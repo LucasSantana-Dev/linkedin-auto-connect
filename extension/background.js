@@ -85,6 +85,15 @@ chrome.runtime.onMessage.addListener(
 
         if (request.action === 'done') {
             activeTabId = null;
+            const r = request.result;
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon128.png',
+                title: 'LinkedIn Auto-Connect',
+                message: r?.success
+                    ? r.message || 'Automation complete.'
+                    : 'Stopped: ' + (r?.error || 'Unknown')
+            });
         }
 
         if (request.action === 'setSchedule') {
