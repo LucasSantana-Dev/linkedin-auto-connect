@@ -1,4 +1,29 @@
 const WEEKLY_LIMIT = 150;
+const isPt = navigator.language?.startsWith('pt');
+
+const optT = {
+    title: isPt
+        ? 'Painel Auto-Conectar' : 'Auto-Connect Dashboard',
+    thisWeek: isPt ? 'Esta Semana' : 'This Week',
+    ofInvites: isPt ? 'de {n} convites' : 'of {n} invites',
+    totalSent: isPt ? 'Total Enviados' : 'Total Sent',
+    allTime: isPt ? 'desde o início' : 'all time',
+    accepted: isPt ? 'Aceitas' : 'Accepted',
+    connMade: isPt ? 'conexões feitas' : 'connections made',
+    schedule: isPt ? 'Agendamento' : 'Schedule',
+    active: isPt ? 'Ativo — executa a cada' : 'Active — runs every',
+    notScheduled: isPt ? 'Não agendado' : 'Not scheduled',
+    recentLog: isPt
+        ? 'Log de Conexões Recentes'
+        : 'Recent Connection Log',
+    name: isPt ? 'Nome' : 'Name',
+    headline: isPt ? 'Título' : 'Headline',
+    status: isPt ? 'Status' : 'Status',
+    time: isPt ? 'Hora' : 'Time',
+    empty: isPt
+        ? 'Nenhum histórico ainda. Execute a automação.'
+        : 'No connection history yet. Run the automation to start tracking.'
+};
 
 function getWeekKey() {
     const now = new Date();
@@ -43,11 +68,11 @@ function loadDashboard() {
             );
             if (schedule?.enabled) {
                 sEl.textContent =
-                    `Active — runs every ` +
+                    `${optT.active} ` +
                     `${schedule.intervalHours}h`;
                 sEl.style.color = '#057642';
             } else {
-                sEl.textContent = 'Not scheduled';
+                sEl.textContent = optT.notScheduled;
             }
 
             const history = data.connectionHistory || [];
@@ -114,4 +139,34 @@ function loadDashboard() {
     );
 }
 
+function applyOptionsI18n() {
+    const q = (sel) => document.querySelector(sel);
+    q('h1').lastChild.textContent = ' ' + optT.title;
+
+    const labels = document.querySelectorAll('.card-label');
+    const subs = document.querySelectorAll('.card-sub');
+    if (labels[0]) labels[0].textContent = optT.thisWeek;
+    if (labels[1]) labels[1].textContent = optT.totalSent;
+    if (labels[2]) labels[2].textContent = optT.accepted;
+    if (subs[0]) subs[0].textContent =
+        optT.ofInvites.replace('{n}', WEEKLY_LIMIT);
+    if (subs[1]) subs[1].textContent = optT.allTime;
+    if (subs[2]) subs[2].textContent = optT.connMade;
+
+    const h2s = document.querySelectorAll('.section h2');
+    if (h2s[0]) h2s[0].textContent = optT.schedule;
+    if (h2s[1]) h2s[1].textContent = optT.recentLog;
+
+    const ths = document.querySelectorAll('th');
+    const thLabels = [optT.name, optT.headline,
+        optT.status, optT.time];
+    ths.forEach((th, i) => {
+        if (thLabels[i]) th.textContent = thLabels[i];
+    });
+
+    document.getElementById('emptyMsg').textContent =
+        optT.empty;
+}
+
 loadDashboard();
+applyOptionsI18n();
