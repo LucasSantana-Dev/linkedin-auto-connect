@@ -50,6 +50,29 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         return { addNote, sendWithout };
     }
 
+    function isEmailRequiredModal() {
+        const modal = queryAll(
+            '.artdeco-modal'
+        ) || queryAll('[role="dialog"]');
+        if (!modal) return false;
+        const inputs = modal.querySelectorAll(
+            'input[type="text"], input[type="email"], input'
+        );
+        for (const input of inputs) {
+            const label = (
+                input.getAttribute('aria-label') ||
+                input.getAttribute('placeholder') || ''
+            ).toLowerCase();
+            if (label.includes('email') ||
+                label.includes('e-mail')) {
+                return true;
+            }
+        }
+        const text = (modal.innerText || '').toLowerCase();
+        return text.includes('enter their email') ||
+            text.includes('digite o e-mail');
+    }
+
     function dismissModal() {
         const dismissBtn =
             queryAll('button[aria-label="Dismiss"]') ||
@@ -340,9 +363,44 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     }
                 }
 
+                connectButtons.sort((a, b) => {
+                    const cardA = a.closest(
+                        '.entity-result, ' +
+                        'li, [data-chameleon-result-urn]'
+                    );
+                    const cardB = b.closest(
+                        '.entity-result, ' +
+                        'li, [data-chameleon-result-urn]'
+                    );
+                    const hasMutualA = cardA
+                        ? (cardA.innerText || '')
+                            .toLowerCase()
+                            .includes('mutual')
+                        : false;
+                    const hasMutualB = cardB
+                        ? (cardB.innerText || '')
+                            .toLowerCase()
+                            .includes('mutual')
+                        : false;
+                    if (hasMutualA && !hasMutualB) return -1;
+                    if (!hasMutualA && hasMutualB) return 1;
+
+                    const degreeA = cardA
+                        ? (cardA.innerText || '')
+                            .match(/(\d)(?:st|nd|rd)/)?.[1]
+                        : null;
+                    const degreeB = cardB
+                        ? (cardB.innerText || '')
+                            .match(/(\d)(?:st|nd|rd)/)?.[1]
+                        : null;
+                    const dA = degreeA ? parseInt(degreeA) : 99;
+                    const dB = degreeB ? parseInt(degreeB) : 99;
+                    return dA - dB;
+                });
+
                 console.log(
                     `[LinkedIn Bot] ${connectButtons.length}` +
-                    ` Connect buttons found`
+                    ` Connect buttons found (mutual first)`
                 );
 
                 for (const button of connectButtons) {
@@ -375,6 +433,15 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                             inviteBtns.sendWithout;
 
                         if (!hasModal) {
+                            if (isEmailRequiredModal()) {
+                                console.log(
+                                    '[LinkedIn Bot] ' +
+                                    'Email required — skipping'
+                                );
+                                dismissModal();
+                                await delay(1500);
+                                continue;
+                            }
                             totalSent++;
                             await delay(
                                 2000 + Math.random() * 3000
