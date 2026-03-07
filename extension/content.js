@@ -363,44 +363,56 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     }
                 }
 
-                connectButtons.sort((a, b) => {
-                    const cardA = a.closest(
+                function getCardInfo(btn) {
+                    const card = btn.closest(
                         '.entity-result, ' +
                         'li, [data-chameleon-result-urn]'
                     );
-                    const cardB = b.closest(
-                        '.entity-result, ' +
-                        'li, [data-chameleon-result-urn]'
+                    if (!card) return {
+                        mutual: false, degree: 99
+                    };
+                    const text = (card.innerText || '')
+                        .toLowerCase();
+                    const mutual = text.includes('mutual')
+                        || text.includes('em comum');
+                    const degreeMatch = text.match(
+                        /(\d)(?:st|nd|rd|º)/
                     );
-                    const hasMutualA = cardA
-                        ? (cardA.innerText || '')
-                            .toLowerCase()
-                            .includes('mutual')
-                        : false;
-                    const hasMutualB = cardB
-                        ? (cardB.innerText || '')
-                            .toLowerCase()
-                            .includes('mutual')
-                        : false;
-                    if (hasMutualA && !hasMutualB) return -1;
-                    if (!hasMutualA && hasMutualB) return 1;
+                    const degree = degreeMatch
+                        ? parseInt(degreeMatch[1]) : 99;
+                    return { mutual, degree };
+                }
 
-                    const degreeA = cardA
-                        ? (cardA.innerText || '')
-                            .match(/(\d)(?:st|nd|rd)/)?.[1]
-                        : null;
-                    const degreeB = cardB
-                        ? (cardB.innerText || '')
-                            .match(/(\d)(?:st|nd|rd)/)?.[1]
-                        : null;
-                    const dA = degreeA ? parseInt(degreeA) : 99;
-                    const dB = degreeB ? parseInt(degreeB) : 99;
-                    return dA - dB;
+                const networked = [];
+                const unnetworked = [];
+                for (const btn of connectButtons) {
+                    const info = getCardInfo(btn);
+                    if (info.mutual || info.degree <= 2) {
+                        networked.push({ btn, ...info });
+                    } else {
+                        unnetworked.push({ btn, ...info });
+                    }
+                }
+
+                networked.sort((a, b) => {
+                    if (a.mutual && !b.mutual) return -1;
+                    if (!a.mutual && b.mutual) return 1;
+                    return a.degree - b.degree;
                 });
 
+                const sorted = [
+                    ...networked.map(x => x.btn),
+                    ...unnetworked.map(x => x.btn)
+                ];
+
+                const totalFound = connectButtons.length;
+                connectButtons.length = 0;
+                connectButtons.push(...sorted);
+
                 console.log(
-                    `[LinkedIn Bot] ${connectButtons.length}` +
-                    ` Connect buttons found (mutual first)`
+                    `[LinkedIn Bot] ${totalFound} found` +
+                    ` (${networked.length} networked,` +
+                    ` ${unnetworked.length} unnetworked)`
                 );
 
                 for (const button of connectButtons) {
