@@ -344,6 +344,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         const MAX_CONSECUTIVE_FAILS = 3;
         stopRequested = false;
         connectionLog.length = 0;
+        const sentUrls = new Set(config?.sentUrls || []);
 
         try {
             while (totalSent < limit) {
@@ -502,6 +503,23 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     if (totalSent >= limit || stopRequested) break;
 
                     try {
+                        const profile =
+                            extractProfileInfo(button);
+                        if (profile.profileUrl &&
+                            sentUrls.has(profile.profileUrl)) {
+                            totalSkipped++;
+                            connectionLog.push({
+                                ...profile,
+                                status: 'skipped-duplicate',
+                                time: new Date().toISOString()
+                            });
+                            reportProgress(
+                                totalSent, limit,
+                                currentPage, totalSkipped
+                            );
+                            continue;
+                        }
+
                         button.scrollIntoView({
                             behavior: 'smooth',
                             block: 'center'
@@ -634,9 +652,16 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                                     consecutiveFails = 0;
                                     totalSent++;
+                                    const sentInfo =
+                                        extractProfileInfo(
+                                            button);
+                                    if (sentInfo.profileUrl) {
+                                        sentUrls.add(
+                                            sentInfo.profileUrl
+                                        );
+                                    }
                                     connectionLog.push({
-                                        ...extractProfileInfo(
-                                            button),
+                                        ...sentInfo,
                                         status: 'sent',
                                         time: new Date()
                                             .toISOString()
@@ -679,8 +704,15 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                             consecutiveFails = 0;
                             totalSent++;
+                            const sentInfo2 =
+                                extractProfileInfo(button);
+                            if (sentInfo2.profileUrl) {
+                                sentUrls.add(
+                                    sentInfo2.profileUrl
+                                );
+                            }
                             connectionLog.push({
-                                ...extractProfileInfo(button),
+                                ...sentInfo2,
                                 status: 'sent',
                                 time: new Date().toISOString()
                             });

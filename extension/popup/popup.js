@@ -417,6 +417,13 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         : '';
 
     lastReportedSent = 0;
+
+    const sentUrls = await new Promise(resolve => {
+        chrome.storage.local.get('sentProfileUrls', (data) => {
+            resolve(data.sentProfileUrls || []);
+        });
+    });
+
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     startBtn.style.display = 'none';
@@ -439,7 +446,8 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         noteTemplate: noteText,
         geoUrn,
         activelyHiring,
-        networkFilter
+        networkFilter,
+        sentUrls
     });
 });
 
@@ -507,6 +515,24 @@ chrome.runtime.onMessage.addListener((request) => {
             lastConnectionLog = response.log;
             document.getElementById('exportBtn')
                 .style.display = 'block';
+
+            const newUrls = response.log
+                .filter(r => r.status === 'sent' && r.profileUrl)
+                .map(r => r.profileUrl);
+            if (newUrls.length) {
+                chrome.storage.local.get(
+                    'sentProfileUrls', (data) => {
+                        const existing =
+                            data.sentProfileUrls || [];
+                        const merged = [...new Set(
+                            [...existing, ...newUrls]
+                        )];
+                        chrome.storage.local.set({
+                            sentProfileUrls: merged
+                        });
+                    }
+                );
+            }
         }
 
         if (response?.success) {

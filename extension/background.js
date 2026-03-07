@@ -51,7 +51,9 @@ function launchAutomation(config) {
                                     limit: config.limit,
                                     sendNote: config.sendNote,
                                     noteTemplate:
-                                        config.noteTemplate
+                                        config.noteTemplate,
+                                    sentUrls:
+                                        config.sentUrls || []
                                 }
                             );
                         });
@@ -109,7 +111,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== 'linkedinSchedule') return;
 
     chrome.storage.local.get(
-        ['popupState', 'schedule'],
+        ['popupState', 'schedule', 'sentProfileUrls'],
         (data) => {
             const state = data.popupState;
             const schedule = data.schedule;
@@ -147,7 +149,8 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                     : getTemplate(state.activeTemplate),
                 geoUrn,
                 activelyHiring: state.activelyHiring || false,
-                networkFilter
+                networkFilter,
+                sentUrls: data.sentProfileUrls || []
             });
         }
     );
