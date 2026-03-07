@@ -343,6 +343,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         let consecutiveFails = 0;
         const MAX_CONSECUTIVE_FAILS = 3;
         stopRequested = false;
+        connectionLog.length = 0;
 
         try {
             while (totalSent < limit) {
@@ -350,18 +351,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     break;
                 }
                 if (detectChallenge()) {
-                    window.postMessage({
-                        type: 'LINKEDIN_BOT_DONE',
-                        result: {
-                            success: false,
-                            error: 'CAPTCHA or security ' +
-                                'challenge detected. ' +
-                                `Sent ${totalSent} before stop.`
-                        }
-                    }, '*');
                     return {
                         success: false,
-                        error: 'CAPTCHA detected'
+                        error: 'CAPTCHA or security ' +
+                            'challenge detected. ' +
+                            `Sent ${totalSent} before stop.`,
+                        log: connectionLog
                     };
                 }
                 await delay(3000);
@@ -727,18 +722,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     nextBtn.click();
                     await delay(8000);
                     if (detectChallenge()) {
-                        window.postMessage({
-                            type: 'LINKEDIN_BOT_DONE',
-                            result: {
-                                success: false,
-                                error: 'CAPTCHA detected ' +
-                                    'after page navigation. ' +
-                                    `Sent ${totalSent}.`
-                            }
-                        }, '*');
                         return {
                             success: false,
-                            error: 'CAPTCHA detected'
+                            error: 'CAPTCHA detected ' +
+                                'after page navigation. ' +
+                                `Sent ${totalSent}.`,
+                            log: connectionLog
                         };
                     }
                 } else {
@@ -757,7 +746,11 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
             };
 
         } catch (error) {
-            return { success: false, error: error.message };
+            return {
+                success: false,
+                error: error.message,
+                log: connectionLog
+            };
         }
     }
 

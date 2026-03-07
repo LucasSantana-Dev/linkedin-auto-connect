@@ -115,8 +115,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
             const schedule = data.schedule;
             if (!schedule?.enabled || !state) return;
 
-            const query = state.customQuery ||
-                buildQueryFromTags(state);
+            const query = buildQueryFromTags(state);
             if (!query) return;
 
             const networkTypes = [];
