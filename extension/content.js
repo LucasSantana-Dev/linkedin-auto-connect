@@ -290,6 +290,8 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         let totalSent = 0;
         let totalSkipped = 0;
         let currentPage = 1;
+        let consecutiveFails = 0;
+        const MAX_CONSECUTIVE_FAILS = 3;
         stopRequested = false;
 
         try {
@@ -539,6 +541,32 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                                 if (sendBtn) {
                                     sendBtn.click();
+                                    await delay(2000);
+
+                                    const stillOpen =
+                                        findInviteButtons();
+                                    if (stillOpen.addNote ||
+                                        stillOpen.sendWithout) {
+                                        consecutiveFails++;
+                                        dismissModal();
+                                        await delay(1000);
+                                        if (consecutiveFails >=
+                                            MAX_CONSECUTIVE_FAILS) {
+                                            const backoff =
+                                                30000 +
+                                                Math.random() * 30000;
+                                            reportProgress(
+                                                totalSent, limit,
+                                                currentPage,
+                                                totalSkipped
+                                            );
+                                            await delay(backoff);
+                                            consecutiveFails = 0;
+                                        }
+                                        continue;
+                                    }
+
+                                    consecutiveFails = 0;
                                     totalSent++;
                                     reportProgress(
                                         totalSent, limit,
@@ -552,6 +580,31 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                             }
                         } else if (inviteBtns.sendWithout) {
                             inviteBtns.sendWithout.click();
+                            await delay(2000);
+
+                            const stillOpen =
+                                findInviteButtons();
+                            if (stillOpen.addNote ||
+                                stillOpen.sendWithout) {
+                                consecutiveFails++;
+                                dismissModal();
+                                await delay(1000);
+                                if (consecutiveFails >=
+                                    MAX_CONSECUTIVE_FAILS) {
+                                    const backoff =
+                                        30000 +
+                                        Math.random() * 30000;
+                                    reportProgress(
+                                        totalSent, limit,
+                                        currentPage, totalSkipped
+                                    );
+                                    await delay(backoff);
+                                    consecutiveFails = 0;
+                                }
+                                continue;
+                            }
+
+                            consecutiveFails = 0;
                             totalSent++;
                             reportProgress(
                                 totalSent, limit,
@@ -570,7 +623,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         }
 
                         await delay(
-                            2000 + Math.random() * 3000
+                            3000 + Math.random() * 4000
                         );
 
                     } catch (err) {

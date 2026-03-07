@@ -130,6 +130,7 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 |---------|---------|-------------|
 | Limit | 50 | Max connection requests per run |
 | Region | Global (US/CA/UK/DE/NL) | Geographic filter for search results |
+| Connection Degree | 2nd + 3rd+ | Filter by connection degree (uses LinkedIn `network` param) |
 | Actively Hiring | Off | Only show profiles with hiring badge |
 | Send Note | On | Include personalized message |
 | Template | Senior Engineer | Pre-written note template |
@@ -151,6 +152,7 @@ This tool is for personal networking purposes. Use responsibly and in accordance
 
 - **50-100 requests per day** max
 - **Random delays** between actions (built-in)
+- **Auto-backoff** on rate limits (429) — pauses 30-60s after 3 consecutive failures
 - **Don't run 24/7** — simulate human behavior
 
 ## License

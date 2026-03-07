@@ -107,6 +107,8 @@ function saveState() {
         limit: document.getElementById('limitInput').value,
         region: document.getElementById('regionSelect').value,
         activelyHiring: document.getElementById('activelyHiringCheckbox').checked,
+        degree2nd: document.getElementById('degree2nd').checked,
+        degree3rd: document.getElementById('degree3rd').checked,
         sendNote: document.getElementById('sendNoteCheckbox').checked,
         activeTemplate: document.querySelector(
             '.template-card.active'
@@ -155,6 +157,14 @@ function loadState() {
         if (popupState.activelyHiring !== undefined) {
             document.getElementById('activelyHiringCheckbox').checked =
                 popupState.activelyHiring;
+        }
+        if (popupState.degree2nd !== undefined) {
+            document.getElementById('degree2nd').checked =
+                popupState.degree2nd;
+        }
+        if (popupState.degree3rd !== undefined) {
+            document.getElementById('degree3rd').checked =
+                popupState.degree3rd;
         }
         if (popupState.sendNote !== undefined) {
             document.getElementById('sendNoteCheckbox').checked =
@@ -251,6 +261,8 @@ document.getElementById('sendNoteCheckbox').addEventListener('change', (e) => {
 document.getElementById('activelyHiringCheckbox').addEventListener(
     'change', saveState
 );
+document.getElementById('degree2nd').addEventListener('change', saveState);
+document.getElementById('degree3rd').addEventListener('change', saveState);
 document.getElementById('regionSelect').addEventListener('change', saveState);
 document.getElementById('limitInput').addEventListener('change', saveState);
 
@@ -282,6 +294,17 @@ document.getElementById('startBtn').addEventListener('click', () => {
     const activelyHiring =
         document.getElementById('activelyHiringCheckbox').checked;
 
+    const networkTypes = [];
+    if (document.getElementById('degree2nd').checked) {
+        networkTypes.push('"S"');
+    }
+    if (document.getElementById('degree3rd').checked) {
+        networkTypes.push('"O"');
+    }
+    const networkFilter = networkTypes.length > 0
+        ? encodeURIComponent(`[${networkTypes.join(',')}]`)
+        : '';
+
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
     startBtn.style.display = 'none';
@@ -303,7 +326,8 @@ document.getElementById('startBtn').addEventListener('click', () => {
         sendNote,
         noteTemplate: noteText,
         geoUrn,
-        activelyHiring
+        activelyHiring,
+        networkFilter
     });
 });
 

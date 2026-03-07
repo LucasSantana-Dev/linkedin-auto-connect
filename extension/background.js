@@ -19,6 +19,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             searchUrl += '&activelyHiring=true';
         }
 
+        if (request.networkFilter) {
+            searchUrl += `&network=${request.networkFilter}`;
+        }
+
         chrome.tabs.create(
             { url: searchUrl, active: true },
             (tab) => {
