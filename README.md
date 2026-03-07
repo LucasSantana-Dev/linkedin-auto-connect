@@ -18,6 +18,11 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn c
 - **Connection log export** — download CSV of sent/skipped profiles with timestamps
 - **Scheduled runs** — recurring automation via Chrome Alarms API (configurable interval)
 - **429 rate limit backoff** — detects failed sends, pauses 30-60s after 3 consecutive failures
+- **Duplicate detection** — skips profiles already sent in previous runs via persistent URL tracking
+- **Desktop notifications** — Chrome notification when automation completes or stops
+- **Acceptance tracker** — check which sent invitations were accepted (cross-references connections page)
+- **Dashboard page** — stats overview with weekly/total/accepted counts and connection history log
+- **Multi-query rotation** — scheduled runs cycle through multiple saved queries automatically
 - **State persistence** — all settings saved via `chrome.storage.local`, survives popup close/reopen
 - **Custom query mode** — toggle between tag builder and manual query input
 - **Auto-pagination** — navigates through search result pages automatically
@@ -101,8 +106,10 @@ Import `n8n-linkedin-workflow.json` into your n8n instance to schedule automated
 extension/
   content.js    <- MAIN world automation (cross-iframe DOM queries)
   bridge.js     <- ISOLATED world messaging bridge (chrome.runtime <-> postMessage)
-  background.js <- Service worker (tab creation, dual-world script injection)
-  popup/        <- Settings UI (search builder, templates, filters)
+  background.js <- Service worker (tab management, alarms, notifications)
+  popup/        <- Settings UI (search builder, templates, filters, schedule)
+  options.html  <- Dashboard page (stats, connection history)
+  options.js    <- Dashboard logic
   manifest.json <- Chrome MV3 manifest
 linkedin-connector.js      <- Standalone Playwright version
 n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
@@ -141,6 +148,7 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 | Template | Senior Engineer | Pre-written note template |
 | Weekly Limit | 150 | Max invites per week (auto-enforced) |
 | Schedule | Off | Recurring runs every N hours (Chrome must be open) |
+| Query Rotation | Empty | Multiple queries (one per line) cycled on each scheduled run |
 
 ## Releasing
 
