@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] - 2026-03-07
+
+### Added
+- PT-BR note templates with language-aware background (scheduled runs use correct language)
+- Dark mode via `prefers-color-scheme` for popup and dashboard
+- 14-day activity bar chart on dashboard showing daily send volume
+
 ## [1.4.0] - 2026-03-07
 
 ### Added

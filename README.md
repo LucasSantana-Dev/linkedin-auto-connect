@@ -26,6 +26,8 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn c
 - **Recent profiles** — last 5 connection profiles shown inline in popup with avatar, name, headline, and status badge
 - **i18n (EN/PT-BR)** — auto-detects browser language, translates all UI labels and messages
 - **Error resilience** — tab load timeout, script injection error handling, tab close detection with notifications
+- **Dark mode** — respects system `prefers-color-scheme` with GitHub-inspired dark palette
+- **Activity chart** — 14-day bar chart on dashboard showing daily send volume
 - **State persistence** — all settings saved via `chrome.storage.local`, survives popup close/reopen
 - **Custom query mode** — toggle between tag builder and manual query input
 - **Auto-pagination** — navigates through search result pages automatically
