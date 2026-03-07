@@ -1,3 +1,5 @@
+let activeTabId = null;
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'start') {
         const query = request.query;
@@ -7,7 +9,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                '%2C%22102890719%22%5D';
 
         let searchUrl =
-            'https://www.linkedin.com/search/results/people/' +
+            'https://www.linkedin.com/search/results/' +
+            'people/' +
             `?geoUrn=${geoUrn}` +
             `&keywords=${encodeURIComponent(query)}` +
             '&origin=FACETED_SEARCH';
@@ -16,38 +19,64 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             searchUrl += '&activelyHiring=true';
         }
 
-        chrome.tabs.create({ url: searchUrl, active: true }, (tab) => {
-            chrome.tabs.onUpdated.addListener(
-                function listener(tabId, info) {
-                    if (tabId !== tab.id || info.status !== 'complete') {
-                        return;
-                    }
-                    chrome.tabs.onUpdated.removeListener(listener);
+        chrome.tabs.create(
+            { url: searchUrl, active: true },
+            (tab) => {
+                activeTabId = tab.id;
+                chrome.tabs.onUpdated.addListener(
+                    function listener(tabId, info) {
+                        if (tabId !== tab.id ||
+                            info.status !== 'complete') {
+                            return;
+                        }
+                        chrome.tabs.onUpdated
+                            .removeListener(listener);
 
-                    chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        files: ['bridge.js'],
-                        world: 'ISOLATED'
-                    }, () => {
                         chrome.scripting.executeScript({
                             target: { tabId: tab.id },
-                            files: ['content.js'],
-                            world: 'MAIN'
+                            files: ['bridge.js'],
+                            world: 'ISOLATED'
                         }, () => {
-                            chrome.tabs.sendMessage(tab.id, {
-                                action: 'runAutomation',
-                                limit: request.limit,
-                                sendNote: request.sendNote,
-                                noteTemplate: request.noteTemplate
-                            }, (response) => {
-                                sendResponse(response);
+                            chrome.scripting.executeScript({
+                                target: { tabId: tab.id },
+                                files: ['content.js'],
+                                world: 'MAIN'
+                            }, () => {
+                                chrome.tabs.sendMessage(
+                                    tab.id,
+                                    {
+                                        action: 'runAutomation',
+                                        limit: request.limit,
+                                        sendNote: request.sendNote,
+                                        noteTemplate:
+                                            request.noteTemplate
+                                    },
+                                    (response) => {
+                                        sendResponse(response);
+                                    }
+                                );
                             });
                         });
-                    });
-                }
-            );
-        });
+                    }
+                );
+            }
+        );
 
         return true;
+    }
+
+    if (request.action === 'stop') {
+        if (activeTabId) {
+            chrome.tabs.sendMessage(
+                activeTabId,
+                { action: 'stop' }
+            );
+        }
+        sendResponse({ status: 'stopping' });
+        return true;
+    }
+
+    if (request.action === 'done') {
+        activeTabId = null;
     }
 });

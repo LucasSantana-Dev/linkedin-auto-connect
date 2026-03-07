@@ -2,6 +2,21 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     window.linkedInAutoConnectInjected = true;
 
     const delay = ms => new Promise(r => setTimeout(r, ms));
+    let stopRequested = false;
+
+    window.addEventListener('message', (event) => {
+        if (event.source !== window) return;
+        if (event.data?.type === 'LINKEDIN_BOT_STOP') {
+            stopRequested = true;
+        }
+    });
+
+    function reportProgress(sent, limit, page, skipped) {
+        window.postMessage({
+            type: 'LINKEDIN_BOT_PROGRESS',
+            sent, limit, page, skipped
+        }, '*');
+    }
 
     function getAllDocuments() {
         const docs = [document];
@@ -273,9 +288,16 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         const noteTemplate = config?.noteTemplate
             || defaultTemplate;
         let totalSent = 0;
+        let totalSkipped = 0;
+        let currentPage = 1;
+        stopRequested = false;
 
         try {
             while (totalSent < limit) {
+                if (stopRequested) {
+                    console.log('[LinkedIn Bot] Stopped.');
+                    break;
+                }
                 await delay(3000);
 
                 for (let i = 0; i < 4; i++) {
@@ -416,7 +438,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 );
 
                 for (const button of connectButtons) {
-                    if (totalSent >= limit) break;
+                    if (totalSent >= limit || stopRequested) break;
 
                     try {
                         button.scrollIntoView({
@@ -446,15 +468,20 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                         if (!hasModal) {
                             if (isEmailRequiredModal()) {
-                                console.log(
-                                    '[LinkedIn Bot] ' +
-                                    'Email required — skipping'
+                                totalSkipped++;
+                                reportProgress(
+                                    totalSent, limit,
+                                    currentPage, totalSkipped
                                 );
                                 dismissModal();
                                 await delay(1500);
                                 continue;
                             }
                             totalSent++;
+                            reportProgress(
+                                totalSent, limit,
+                                currentPage, totalSkipped
+                            );
                             await delay(
                                 2000 + Math.random() * 3000
                             );
@@ -512,11 +539,11 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                                 if (sendBtn) {
                                     sendBtn.click();
-                                    console.log(
-                                        `[LinkedIn Bot] ` +
-                                        `Sent to ${personName}`
-                                    );
                                     totalSent++;
+                                    reportProgress(
+                                        totalSent, limit,
+                                        currentPage, totalSkipped
+                                    );
                                 } else {
                                     dismissModal();
                                 }
@@ -526,6 +553,10 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         } else if (inviteBtns.sendWithout) {
                             inviteBtns.sendWithout.click();
                             totalSent++;
+                            reportProgress(
+                                totalSent, limit,
+                                currentPage, totalSkipped
+                            );
                         } else {
                             dismissModal();
                         }
@@ -552,6 +583,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                 const nextBtn = findNextPageButton();
                 if (nextBtn) {
+                    currentPage++;
                     nextBtn.scrollIntoView({
                         behavior: 'smooth', block: 'center'
                     });

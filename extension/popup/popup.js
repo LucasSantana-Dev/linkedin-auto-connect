@@ -283,8 +283,14 @@ document.getElementById('startBtn').addEventListener('click', () => {
         document.getElementById('activelyHiringCheckbox').checked;
 
     const startBtn = document.getElementById('startBtn');
-    startBtn.disabled = true;
-    startBtn.textContent = 'Running...';
+    const stopBtn = document.getElementById('stopBtn');
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'flex';
+    document.getElementById('progressBox').style.display = 'block';
+    document.getElementById('progressText').textContent =
+        `Sent 0 / ${limit}`;
+    document.getElementById('progressMeta').textContent =
+        'Page 1';
     setStatusMessage(
         'Navigating to search... Do not close this popup or the tab.',
         'info'
@@ -301,10 +307,33 @@ document.getElementById('startBtn').addEventListener('click', () => {
     });
 });
 
+document.getElementById('stopBtn').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'stop' });
+    const stopBtn = document.getElementById('stopBtn');
+    stopBtn.disabled = true;
+    stopBtn.textContent = 'Stopping...';
+    setStatusMessage('Stopping automation...', 'warning');
+});
+
 chrome.runtime.onMessage.addListener((request) => {
+    if (request.action === 'progress') {
+        document.getElementById('progressText').textContent =
+            `Sent ${request.sent} / ${request.limit}`;
+        const meta = [`Page ${request.page}`];
+        if (request.skipped > 0) {
+            meta.push(`${request.skipped} skipped`);
+        }
+        document.getElementById('progressMeta').textContent =
+            meta.join(' · ');
+    }
+
     if (request.action === 'done') {
         const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const response = request.result;
+
+        stopBtn.style.display = 'none';
+        startBtn.style.display = 'flex';
 
         if (response?.success) {
             setStatusMessage(

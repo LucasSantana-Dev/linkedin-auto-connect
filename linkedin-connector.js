@@ -215,21 +215,11 @@ async function runAutomation(searchQuery) {
 
 // --- EXPRESS API ROUTES ---
 
-const searchQueries = [
-    '(recruiter OR "talent acquisition") (react OR node) senior',
-    'recruiter (contract OR freelance) (react OR node)',
-    'recruiter remote (brazil OR latam) (react OR node)',
-    '(recruiter OR agency) staffing (react OR node) contract',
-    'recruiter "next.js" aws senior'
-];
-
 app.post('/api/linkedin/connect', async (req, res) => {
     logger.info(chalk.magenta('\\n--- Incoming Local Trigger Request ---'));
 
-    logger.info(chalk.blue('[BOT] Picking a random highly-targeted Contractor query...'));
-    const query = searchQueries[Math.floor(Math.random() * searchQueries.length)];
-
-    logger.info(chalk.blue(`[BOT] Loaded Search Query: `) + chalk.yellow(query));
+    const query = req.body?.query || 'recruiter software remote';
+    logger.info(chalk.blue(`[BOT] Search Query: `) + chalk.yellow(query));
 
     // Send immediate response so the caller doesn't timeout
     res.json({ success: true, message: 'Automation triggered locally. Running in background.', query });
