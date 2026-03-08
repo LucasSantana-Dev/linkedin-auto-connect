@@ -7,6 +7,7 @@ const {
     buildCommentFromPost,
     extractTopic,
     extractKeyPhrase,
+    extractConcepts,
     humanize,
     detectLanguage,
     isReactablePost,
@@ -618,5 +619,255 @@ describe('buildCommentFromPost PT-BR', () => {
             post, ['Custom: {topic}']
         );
         expect(result).toContain('Custom:');
+    });
+});
+
+describe('extractConcepts', () => {
+    it('returns empty array for null/empty input', () => {
+        expect(extractConcepts(null)).toEqual([]);
+        expect(extractConcepts('')).toEqual([]);
+        expect(extractConcepts(undefined)).toEqual([]);
+    });
+
+    it('extracts framework names', () => {
+        const concepts = extractConcepts(
+            'We built our app with React and Next.js'
+        );
+        expect(concepts).toEqual(
+            expect.arrayContaining(['React'])
+        );
+    });
+
+    it('extracts language names', () => {
+        const concepts = extractConcepts(
+            'Migrating from JavaScript to TypeScript'
+        );
+        const lower = concepts.map(c => c.toLowerCase());
+        expect(lower).toContain('typescript');
+        expect(lower).toContain('javascript');
+    });
+
+    it('extracts infrastructure tools', () => {
+        const concepts = extractConcepts(
+            'Deploying with Docker on Kubernetes via AWS'
+        );
+        const lower = concepts.map(c => c.toLowerCase());
+        expect(lower).toContain('docker');
+        expect(lower).toContain('kubernetes');
+    });
+
+    it('extracts design patterns', () => {
+        const concepts = extractConcepts(
+            'We applied the adapter pattern and ' +
+            'strategy pattern in our codebase'
+        );
+        const joined = concepts.join(' ').toLowerCase();
+        expect(joined).toContain('adapter');
+        expect(joined).toContain('strategy');
+    });
+
+    it('extracts acronyms like SOLID, TDD, REST', () => {
+        const concepts = extractConcepts(
+            'Following SOLID principles with TDD ' +
+            'on a REST API'
+        );
+        expect(concepts).toEqual(
+            expect.arrayContaining(['SOLID', 'TDD', 'REST'])
+        );
+    });
+
+    it('extracts databases', () => {
+        const concepts = extractConcepts(
+            'Switched from MongoDB to PostgreSQL ' +
+            'with a Redis cache layer'
+        );
+        const joined = concepts.join(' ').toLowerCase();
+        expect(joined).toContain('mongodb');
+        expect(joined).toContain('redis');
+    });
+
+    it('extracts architectural terms', () => {
+        const concepts = extractConcepts(
+            'Moving to a microservices architecture ' +
+            'with event-driven messaging'
+        );
+        const joined = concepts.join(' ').toLowerCase();
+        expect(joined).toContain('microservice');
+        expect(joined).toContain('event-driven');
+    });
+
+    it('filters out stop words', () => {
+        const concepts = extractConcepts(
+            'The and for with React is great'
+        );
+        const lower = concepts.map(c => c.toLowerCase());
+        expect(lower).not.toContain('the');
+        expect(lower).not.toContain('and');
+        expect(lower).not.toContain('for');
+    });
+
+    it('returns max 5 concepts', () => {
+        const concepts = extractConcepts(
+            'Using React, Angular, Vue, Svelte, ' +
+            'Next.js, Nest.js, Express, Django, ' +
+            'Flask, Laravel, Rails with TypeScript'
+        );
+        expect(concepts.length).toBeLessThanOrEqual(5);
+    });
+
+    it('deduplicates overlapping concepts', () => {
+        const concepts = extractConcepts(
+            'The observer pattern is a design pattern ' +
+            'we use in observer-based systems'
+        );
+        const observerCount = concepts.filter(c =>
+            c.toLowerCase().includes('observer')
+        ).length;
+        expect(observerCount).toBeLessThanOrEqual(1);
+    });
+
+    it('extracts role titles', () => {
+        const concepts = extractConcepts(
+            'Looking for a Staff Engineer and ' +
+            'Tech Lead for our team'
+        );
+        const joined = concepts.join(' ').toLowerCase();
+        expect(
+            joined.includes('staff engineer') ||
+            joined.includes('tech lead')
+        ).toBe(true);
+    });
+
+    it('extracts compound terms', () => {
+        const concepts = extractConcepts(
+            'Server Components and Module Federation ' +
+            'changed how we build frontends'
+        );
+        const joined = concepts.join(' ').toLowerCase();
+        expect(
+            joined.includes('server components') ||
+            joined.includes('module federation')
+        ).toBe(true);
+    });
+
+    it('returns concepts sorted by length (longest first)', () => {
+        const concepts = extractConcepts(
+            'We use React with Clean Architecture ' +
+            'and SOLID principles'
+        );
+        for (let i = 1; i < concepts.length; i++) {
+            expect(concepts[i - 1].length)
+                .toBeGreaterThanOrEqual(concepts[i].length);
+        }
+    });
+
+    it('rejects terms shorter than 2 or longer than 40', () => {
+        const concepts = extractConcepts('Using Go');
+        const hasGo = concepts.some(c =>
+            c.toLowerCase() === 'go'
+        );
+        expect(hasGo).toBe(false);
+    });
+});
+
+describe('composed template integration', () => {
+    it('uses concept in comment for technical post', () => {
+        const post = 'Here is how we implemented the ' +
+            'Repository Pattern in our TypeScript ' +
+            'codebase with clean architecture. ' +
+            'The key insight was separating the ' +
+            'domain layer from infrastructure.';
+        const comments = new Set();
+        for (let i = 0; i < 50; i++) {
+            comments.add(buildCommentFromPost(post, null));
+        }
+        const all = [...comments];
+        const referencesConcept = all.some(c => {
+            const lower = c.toLowerCase();
+            return lower.includes('typescript') ||
+                lower.includes('repository') ||
+                lower.includes('clean architecture') ||
+                lower.includes('pattern');
+        });
+        expect(referencesConcept).toBe(true);
+    });
+
+    it('uses PT composed templates for PT tech post', () => {
+        const post = 'Implementamos o padrão de projeto ' +
+            'Observer com TypeScript no nosso sistema ' +
+            'distribuído. A arquitetura ficou muito ' +
+            'mais limpa depois dessa refatoração.';
+        const comments = new Set();
+        for (let i = 0; i < 50; i++) {
+            comments.add(buildCommentFromPost(post, null));
+        }
+        const all = [...comments];
+        const hasPtConcept = all.some(c => {
+            const lower = c.toLowerCase();
+            return lower.includes('typescript') ||
+                lower.includes('observer') ||
+                lower.includes('padrão');
+        });
+        expect(hasPtConcept).toBe(true);
+    });
+
+    it('falls back to string templates for no-concept posts', () => {
+        const post = 'Just wanted to share my thoughts ' +
+            'on the current state of remote work ' +
+            'and how it affects team culture.';
+        const result = buildCommentFromPost(post, null);
+        expect(result).toBeTruthy();
+        expect(result.length).toBeGreaterThan(10);
+    });
+
+    it('composed comments vary across runs', () => {
+        const post = 'Deep dive into Docker and ' +
+            'Kubernetes for production deployments. ' +
+            'The key was getting the service mesh ' +
+            'configuration right.';
+        const results = new Set();
+        for (let i = 0; i < 80; i++) {
+            results.add(buildCommentFromPost(post, null));
+        }
+        expect(results.size).toBeGreaterThan(5);
+    });
+
+    it('composed hiring comment references stack', () => {
+        const post = 'We\'re hiring! Looking for a ' +
+            'Senior React and TypeScript developer ' +
+            'to join our team. Apply now!';
+        const comments = [];
+        for (let i = 0; i < 50; i++) {
+            comments.push(buildCommentFromPost(post, null));
+        }
+        const mentionsStack = comments.some(c => {
+            const lower = c.toLowerCase();
+            return lower.includes('react') ||
+                lower.includes('typescript') ||
+                lower.includes('stack');
+        });
+        expect(mentionsStack).toBe(true);
+    });
+
+    it('user templates always take priority over composed', () => {
+        const post = 'Migrating from Express to Nest.js ' +
+            'with TypeScript was a game changer ' +
+            'for our API architecture.';
+        const result = buildCommentFromPost(
+            post, ['My template: {topic}']
+        );
+        expect(result).toMatch(/^My template:/);
+    });
+
+    it('composed comment is humanized', () => {
+        const post = 'How we scaled our PostgreSQL ' +
+            'database with Redis caching and ' +
+            'Kubernetes auto-scaling. The results ' +
+            'were impressive.';
+        const results = new Set();
+        for (let i = 0; i < 100; i++) {
+            results.add(buildCommentFromPost(post, null));
+        }
+        expect(results.size).toBeGreaterThan(3);
     });
 });
