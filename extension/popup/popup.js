@@ -510,14 +510,20 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
 chrome.runtime.onMessage.addListener((request) => {
     if (request.action === 'progress') {
+        const engMode = document.getElementById(
+            'engagementOnlyCheckbox'
+        ).checked;
         const newSent = request.sent - lastReportedSent;
-        if (newSent > 0) {
+        if (newSent > 0 && !engMode) {
             addToWeeklyCount(newSent);
             lastReportedSent = request.sent;
             updateWeeklyDisplay();
+        } else if (newSent > 0) {
+            lastReportedSent = request.sent;
         }
+        const verb = engMode ? 'Engaged' : 'Sent';
         document.getElementById('progressText').textContent =
-            `Sent ${request.sent} / ${request.limit}`;
+            `${verb} ${request.sent} / ${request.limit}`;
         const meta = [`Page ${request.page}`];
         if (request.skipped > 0) {
             meta.push(`${request.skipped} skipped`);
