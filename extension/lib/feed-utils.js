@@ -349,7 +349,6 @@ function buildCommentFromPost(
     if (concepts.length > 0) {
         const composed = finalLang === 'pt'
             ? COMPOSED_PT : COMPOSED_EN;
-        var pools = Object.keys(composed);
         var preferredCat = category;
         if (avoidCelebration &&
             (category === 'career' ||
@@ -358,6 +357,7 @@ function buildCommentFromPost(
         }
         const pool = composed[preferredCat] ||
             composed[category] || composed.generic;
+        if (!pool || pool.length === 0) return null;
         const fn = pickRandom(pool);
         let comment = fn(concepts);
         return humanize(comment);
@@ -378,6 +378,9 @@ function buildCommentFromPost(
         ? CATEGORY_TEMPLATES_PT : CATEGORY_TEMPLATES;
     const templatePool = templates[category] ||
         templates.generic;
+
+    if (!templatePool || templatePool.length === 0)
+        return null;
 
     let candidates = templatePool;
     if (!hasKeyPhrase) {

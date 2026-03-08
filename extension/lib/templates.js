@@ -197,29 +197,9 @@ var CATEGORY_TEMPLATES = {
         'for me {keyPhrase}, but I get the ' +
             'other side too'
     ],
-    tips: [
-        'the {topic} one is so true',
-        'wish someone told me {keyPhrase} ' +
-            'like 2 years ago',
-        'sending this to my team',
-        'the {topic} tip alone is worth it',
-        '{keyPhrase} is underrated advice'
-    ],
-    story: [
-        'been through something similar, ' +
-            'it really shifts your perspective',
-        'you don\'t hear people talk about ' +
-            '{topic} this honestly',
-        '{keyPhrase} - yeah, that part',
-        'appreciate you sharing this'
-    ],
-    news: [
-        'didn\'t see this coming',
-        'been watching {topic}, this is big',
-        'curious how this plays out',
-        '{topic} is moving so fast',
-        'was literally talking about this yesterday'
-    ],
+    tips: [],
+    story: [],
+    news: [],
     humor: [
         'lmaooo',
         'hahaha too real',
@@ -262,25 +242,12 @@ var CATEGORY_TEMPLATES = {
         'commented for the algorithm. you got this'
     ],
     newjob: [
-        'huge move. {topic} is a great space ' +
-            'to be in right now',
-        'exciting times. sounds like a great fit',
-        'they got a good one. wishing you the best',
-        'been following your journey. happy to ' +
-            'see this',
-        'new chapter. go make it count',
-        '{topic} is lucky to have you. looking ' +
-            'forward to seeing what you build',
-        'earned it. excited for what comes next'
+        'congrats, good luck!',
+        'congrats!',
+        'happy for you!',
+        'congrats, good luck!'
     ],
-    generic: [
-        'interesting take on {topic}',
-        'hadn\'t thought about it that way',
-        'a colleague was just talking about ' +
-            'this yesterday',
-        'yeah {keyPhrase}, makes sense',
-        'curious what others think about this'
-    ]
+    generic: []
 };
 
 var CATEGORY_TEMPLATES_PT = {
@@ -327,28 +294,9 @@ var CATEGORY_TEMPLATES_PT = {
         'pra mim {keyPhrase}, mas entendo ' +
             'o outro lado'
     ],
-    tips: [
-        'a de {topic} é muito boa',
-        'queria ter ouvido {keyPhrase} ' +
-            'uns 2 anos atrás',
-        'mandei pro time',
-        'só a dica de {topic} já vale'
-    ],
-    story: [
-        'passei por algo parecido, muda ' +
-            'a perspectiva',
-        'vc não vê gente falando de {topic} ' +
-            'assim com essa honestidade',
-        '{keyPhrase} - é, essa parte',
-        'valeu por compartilhar'
-    ],
-    news: [
-        'eita, não esperava essa',
-        'acompanhando {topic}, isso é grande',
-        'curioso como isso vai afetar o mercado',
-        '{topic} tá voando',
-        'tava falando disso ontem literalmente'
-    ],
+    tips: [],
+    story: [],
+    news: [],
     humor: [
         'kkkkk',
         'hahahaha real demais',
@@ -395,13 +343,7 @@ var CATEGORY_TEMPLATES_PT = {
         'boa, sucesso!',
         'parabéns!'
     ],
-    generic: [
-        'olha interessante sobre {topic}',
-        'não tinha pensado por esse lado',
-        'um colega tava falando disso ontem',
-        'é, {keyPhrase}, faz sentido',
-        'curioso o que os outros acham disso'
-    ]
+    generic: []
 };
 
 var CATEGORY_FOLLOW_UPS = {

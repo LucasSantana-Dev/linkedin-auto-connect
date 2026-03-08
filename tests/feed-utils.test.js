@@ -505,10 +505,15 @@ describe('CATEGORY_TEMPLATES', () => {
             'humor', 'critique', 'motivation',
             'project', 'jobseeking', 'newjob', 'generic'
         ];
+        const allowEmpty = new Set([
+            'generic', 'story', 'news', 'tips'
+        ]);
         for (const cat of expected) {
             expect(CATEGORY_TEMPLATES[cat]).toBeDefined();
-            expect(CATEGORY_TEMPLATES[cat].length)
-                .toBeGreaterThanOrEqual(3);
+            if (!allowEmpty.has(cat)) {
+                expect(CATEGORY_TEMPLATES[cat].length)
+                    .toBeGreaterThanOrEqual(3);
+            }
         }
     });
 
@@ -564,11 +569,16 @@ describe('CATEGORY_TEMPLATES_PT', () => {
             'humor', 'critique', 'motivation',
             'project', 'jobseeking', 'newjob', 'generic'
         ];
+        const allowEmpty = new Set([
+            'generic', 'story', 'news', 'tips'
+        ]);
         for (const cat of expected) {
             expect(CATEGORY_TEMPLATES_PT[cat])
                 .toBeDefined();
-            expect(CATEGORY_TEMPLATES_PT[cat].length)
-                .toBeGreaterThanOrEqual(3);
+            if (!allowEmpty.has(cat)) {
+                expect(CATEGORY_TEMPLATES_PT[cat].length)
+                    .toBeGreaterThanOrEqual(3);
+            }
         }
     });
 

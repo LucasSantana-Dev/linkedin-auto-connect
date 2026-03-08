@@ -974,6 +974,40 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         }, '*');
     }
 
+    var commentedPostUrns = new Set();
+
+    function loadCommentedUrns() {
+        return new Promise(resolve => {
+            const handler = (event) => {
+                if (event.source !== window) return;
+                if (event.data?.type ===
+                    'LINKEDIN_BOT_COMMENTED_LOADED') {
+                    window.removeEventListener(
+                        'message', handler
+                    );
+                    resolve(event.data.urns || []);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.postMessage({
+                type: 'LINKEDIN_BOT_LOAD_COMMENTED'
+            }, '*');
+            setTimeout(() => {
+                window.removeEventListener(
+                    'message', handler
+                );
+                resolve([]);
+            }, 3000);
+        });
+    }
+
+    function saveCommentedUrns(urns) {
+        window.postMessage({
+            type: 'LINKEDIN_BOT_SAVE_COMMENTED',
+            urns
+        }, '*');
+    }
+
     async function runFeedEngage(config) {
         console.log(
             '[LinkedIn Bot] Feed engagement started',
@@ -1023,15 +1057,25 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 'obrigado', 'obrigada']
         };
         let totalEngaged = 0;
+        let totalCommented = 0;
+        const MAX_COMMENTS_PER_SESSION = 8;
+        const MIN_POST_LENGTH = 80;
         let scrollCount = 0;
         const MAX_SCROLLS = 20;
         const previousUrns = await loadEngagedUrns();
         const processedUrns = new Set(previousUrns);
         const newUrns = [];
+        const prevCommented = await loadCommentedUrns();
+        for (var cu of prevCommented) {
+            commentedPostUrns.add(cu);
+        }
+        const newCommentedUrns = [];
         console.log(
             '[LinkedIn Bot] Loaded ' +
             previousUrns.length +
-            ' previously engaged URNs'
+            ' previously engaged URNs, ' +
+            commentedPostUrns.size +
+            ' previously commented URNs'
         );
         stopRequested = false;
         engageLog.length = 0;
@@ -1112,6 +1156,10 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         );
                         if (newUrns.length > 0) {
                             saveEngagedUrns(newUrns);
+                        }
+                        if (newCommentedUrns.length > 0) {
+                            saveCommentedUrns(
+                                newCommentedUrns);
                         }
                         return {
                             success: false,
@@ -1215,11 +1263,43 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 'function'
                                 ? getExistingComments(post)
                                 : [];
-                        if (alreadyCommented(
-                            existing, getMyName())) {
+
+                        if (urn && commentedPostUrns
+                            .has(urn)) {
+                            console.log(
+                                '[LinkedIn Bot] URN ' +
+                                'already commented, skip'
+                            );
+                            skipComment = true;
+                        }
+                        if (!skipComment &&
+                            alreadyCommented(
+                                existing, getMyName())) {
                             console.log(
                                 '[LinkedIn Bot] Already' +
-                                ' commented, skipping'
+                                ' commented (name), skip'
+                            );
+                            skipComment = true;
+                        }
+                        if (!skipComment &&
+                            totalCommented >=
+                            MAX_COMMENTS_PER_SESSION) {
+                            console.log(
+                                '[LinkedIn Bot] Comment' +
+                                ' cap reached (' +
+                                MAX_COMMENTS_PER_SESSION +
+                                '), skip rest'
+                            );
+                            skipComment = true;
+                        }
+                        if (!skipComment &&
+                            postText.length <
+                            MIN_POST_LENGTH) {
+                            console.log(
+                                '[LinkedIn Bot] Post too' +
+                                ' short (' +
+                                postText.length +
+                                ' chars), skip comment'
                             );
                             skipComment = true;
                         }
@@ -1235,7 +1315,8 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             }
                         }
                         const lang = detectedLang;
-                        if (typeof isPolemicPost ===
+                        if (!skipComment &&
+                            typeof isPolemicPost ===
                             'function' &&
                             isPolemicPost(
                                 postText, existing)) {
@@ -1322,7 +1403,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         );
                         if (comment) {
                             await delay(
-                                2000 + Math.random() * 2000
+                                5000 + Math.random() * 8000
                             );
                             const commented =
                                 await commentOnPost(
@@ -1330,6 +1411,17 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 );
                             if (commented) {
                                 actions.push('commented');
+                                totalCommented++;
+                                if (urn) {
+                                    commentedPostUrns
+                                        .add(urn);
+                                    newCommentedUrns
+                                        .push(urn);
+                                }
+                                await delay(
+                                    3000 +
+                                    Math.random() * 5000
+                                );
                             } else {
                                 console.log(
                                     '[LinkedIn Bot] Comment ' +
@@ -1397,7 +1489,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         await delay(
                             typeof actionDelay === 'function'
                                 ? actionDelay(profile)
-                                : 2000 + Math.random() * 3000
+                                : 3000 + Math.random() * 5000
                         );
                     }
 
@@ -1453,6 +1545,14 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     newUrns.length + ' new engaged URNs'
                 );
             }
+            if (newCommentedUrns.length > 0) {
+                saveCommentedUrns(newCommentedUrns);
+                console.log(
+                    '[LinkedIn Bot] Saved ' +
+                    newCommentedUrns.length +
+                    ' new commented URNs'
+                );
+            }
 
             if (config?.nurtureTarget?.profileUrl &&
                 totalEngaged > 0) {
@@ -1473,6 +1573,9 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         } catch (error) {
             if (newUrns.length > 0) {
                 saveEngagedUrns(newUrns);
+            }
+            if (newCommentedUrns.length > 0) {
+                saveCommentedUrns(newCommentedUrns);
             }
             return {
                 success: false,

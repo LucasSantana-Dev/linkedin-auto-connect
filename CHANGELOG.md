@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0] - 2026-03-08
+
+### Added
+- **Comment rate limiting**: Max 8 comments per session to avoid LinkedIn detection — URN-based tracking persisted in chrome.storage across sessions
+- **Minimum post length filter**: Posts under 80 chars skipped for commenting — prevents low-context nonsensical comments
+- **Commented post URN tracking**: Dedicated `commentedPostUrns` storage (separate from `engagedPostUrns`) — triple-layer duplicate prevention: URN check + name match + storage persistence
+
+### Changed
+- **Slower engagement cadence**: Comment delay increased from 2-4s to 5-13s pre-comment + 3-8s post-comment cooldown — between-post delay raised from 2-5s to 3-8s
+- **Empty template pool handling**: `buildCommentFromPost()` returns `null` (skip) instead of crashing when template pool is empty
+- **Template cleanup**: Emptied generic, story, news, tips template pools (EN + PT) — categories that generated nonsensical comments now fall through to AI or skip
+
+### Fixed
+- **Duplicate comments on same post**: Added URN-based tracking via chrome.storage.local (`commentedPostUrns`) — persists across sessions, checked before name-based detection
+- **LinkedIn rate limiting**: Reduced overall engagement speed with longer human-like delays and per-session comment cap
+
 ## [1.15.0] - 2026-03-08
 
 ### Fixed

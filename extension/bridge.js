@@ -69,6 +69,27 @@ window.addEventListener('message', (event) => {
             }, '*');
         });
     }
+    if (event.data?.type === 'LINKEDIN_BOT_SAVE_COMMENTED') {
+        chrome.storage.local.get('commentedPostUrns', (data) => {
+            const existing = data.commentedPostUrns || [];
+            const merged = [...new Set([
+                ...existing,
+                ...(event.data.urns || [])
+            ])];
+            const trimmed = merged.slice(-1000);
+            chrome.storage.local.set({
+                commentedPostUrns: trimmed
+            });
+        });
+    }
+    if (event.data?.type === 'LINKEDIN_BOT_LOAD_COMMENTED') {
+        chrome.storage.local.get('commentedPostUrns', (data) => {
+            window.postMessage({
+                type: 'LINKEDIN_BOT_COMMENTED_LOADED',
+                urns: data.commentedPostUrns || []
+            }, '*');
+        });
+    }
     if (event.data?.type === 'LINKEDIN_BOT_LOGIN_REQUIRED') {
         chrome.runtime.sendMessage({
             action: 'loginRequired'
