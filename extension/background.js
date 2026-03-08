@@ -346,6 +346,7 @@ chrome.runtime.onMessage.addListener(
 chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'fuseLimitRetry') {
         chrome.storage.local.remove('fuseLimitRetry');
+        chrome.storage.local.remove('fuseLimitHit');
         chrome.storage.local.get(
             ['popupState', 'sentProfileUrls'],
             (data) => {

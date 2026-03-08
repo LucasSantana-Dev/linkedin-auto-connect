@@ -18,6 +18,9 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 lastInviteStatus = res.status;
                 if (res.status === 429) {
                     fuseLimitHit = true;
+                    window.postMessage({
+                        type: 'LINKEDIN_BOT_SET_FUSE_LIMIT'
+                    }, '*');
                 }
             }
         } catch (e) {}
@@ -37,6 +40,9 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 lastInviteStatus = this.status;
                 if (this.status === 429) {
                     fuseLimitHit = true;
+                    window.postMessage({
+                        type: 'LINKEDIN_BOT_SET_FUSE_LIMIT'
+                    }, '*');
                 }
             });
         }
@@ -385,8 +391,47 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         return null;
     }
 
+    function checkPersistedFuseLimit() {
+        return new Promise((resolve) => {
+            const handler = (event) => {
+                if (event.source !== window) return;
+                if (event.data?.type ===
+                    'LINKEDIN_BOT_FUSE_LIMIT_STATUS') {
+                    window.removeEventListener(
+                        'message', handler
+                    );
+                    resolve(event.data.hit);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.postMessage({
+                type: 'LINKEDIN_BOT_CHECK_FUSE_LIMIT'
+            }, '*');
+            setTimeout(() => {
+                window.removeEventListener('message', handler);
+                resolve(false);
+            }, 3000);
+        });
+    }
+
     async function runAutomation(config) {
         console.log('[LinkedIn Bot] Started', config);
+
+        const persistedFuse = await checkPersistedFuseLimit();
+        if (persistedFuse) {
+            console.log(
+                '[LinkedIn Bot] Fuse limit still active ' +
+                'from previous page'
+            );
+            fuseLimitHit = true;
+            return {
+                success: false,
+                error: 'Weekly invitation limit reached',
+                message: 'FUSE_LIMIT_EXCEEDED (persisted)',
+                log: []
+            };
+        }
+        fuseLimitHit = false;
 
         const limit = config?.limit || 50;
         const sendNote = config?.sendNote !== undefined

@@ -24,6 +24,22 @@ window.addEventListener('message', (event) => {
             result: event.data.result
         });
     }
+    if (event.data?.type === 'LINKEDIN_BOT_SET_FUSE_LIMIT') {
+        chrome.storage.local.set({
+            fuseLimitHit: {
+                hit: true,
+                at: new Date().toISOString()
+            }
+        });
+    }
+    if (event.data?.type === 'LINKEDIN_BOT_CHECK_FUSE_LIMIT') {
+        chrome.storage.local.get('fuseLimitHit', (data) => {
+            window.postMessage({
+                type: 'LINKEDIN_BOT_FUSE_LIMIT_STATUS',
+                hit: !!data.fuseLimitHit?.hit
+            }, '*');
+        });
+    }
     if (event.data?.type === 'LINKEDIN_BOT_PROGRESS') {
         chrome.runtime.sendMessage({
             action: 'progress',
