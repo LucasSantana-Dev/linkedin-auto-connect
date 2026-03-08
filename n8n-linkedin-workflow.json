@@ -1,117 +1,136 @@
 {
-  "name": "LinkedIn Tech Recruiter Connection Automation",
+  "name": "LinkedIn Automation — Multi-Mode Scheduler",
   "nodes": [
     {
       "parameters": {},
       "id": "cdefbb26-ec41-4560-b8d2-43d93a107817",
-      "name": "When clicking \"Test workflow\"",
+      "name": "Manual Trigger",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [
-        380,
-        240
-      ]
+      "position": [320, 240]
     },
     {
       "parameters": {
         "rule": {
           "interval": [
-            {
-              "field": "days",
-              "triggerAtHour": 10
-            }
+            { "field": "days", "triggerAtHour": 10 }
           ]
         }
       },
       "id": "27f80459-7e4a-4a27-a06d-741ce69b0fa6",
-      "name": "Schedule Trigger",
+      "name": "Daily 10am Trigger",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [
-        380,
-        420
-      ]
+      "position": [320, 420]
     },
     {
       "parameters": {
         "values": {
           "string": [
             {
-              "name": "boolean_query",
-              "value": "site:linkedin.com/in (recruiter OR \"talent acquisition\" OR \"hiring manager\" OR \"HR\") (hiring OR recruiting) (Brazilian OR Brazil OR LATAM) (abroad OR international OR relocation OR \"visa sponsorship\" OR \"remote international\")"
+              "name": "mode",
+              "value": "connect"
+            },
+            {
+              "name": "query",
+              "value": "recruiter software engineer remote LATAM Brazil"
+            }
+          ],
+          "number": [
+            {
+              "name": "limit",
+              "value": 30
             }
           ]
         },
         "options": {}
       },
       "id": "7f1fb559-052b-4add-834c-6cf4df57270e",
-      "name": "Set Search Query",
+      "name": "Set Automation Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [
-        600,
-        340
-      ]
+      "position": [560, 340]
     },
     {
       "parameters": {
-        "command": "=\"node /Users/lucassantana/Desenvolvimento/networking/linkedin-n8n-bot/linkedin-connector.js '\" + $json.boolean_query + \"'\""
+        "method": "POST",
+        "url": "http://localhost:3000/api/linkedin/schedule",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mode",
+              "value": "={{ $json.mode }}"
+            },
+            {
+              "name": "query",
+              "value": "={{ $json.query }}"
+            },
+            {
+              "name": "limit",
+              "value": "={{ $json.limit }}"
+            }
+          ]
+        },
+        "options": {}
       },
       "id": "f512deb1-5a50-4ff6-8367-a0d78fb4ea85",
-      "name": "Execute Playwright Script",
-      "type": "n8n-nodes-base.executeCommand",
-      "typeVersion": 1,
-      "position": [
-        820,
-        340
-      ]
+      "name": "Queue Task via API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 340]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "hours", "triggerAtMinute": 0 }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "name": "Hourly Status Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [320, 600]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:3000/api/linkedin/status",
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "name": "Get Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [560, 600]
     }
   ],
   "pinData": {},
   "connections": {
-    "When clicking \"Test workflow\"": {
-      "main": [
-        [
-          {
-            "node": "Set Search Query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Manual Trigger": {
+      "main": [[
+        { "node": "Set Automation Config", "type": "main", "index": 0 }
+      ]]
     },
-    "Schedule Trigger": {
-      "main": [
-        [
-          {
-            "node": "Set Search Query",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Daily 10am Trigger": {
+      "main": [[
+        { "node": "Set Automation Config", "type": "main", "index": 0 }
+      ]]
     },
-    "Set Search Query": {
-      "main": [
-        [
-          {
-            "node": "Execute Playwright Script",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+    "Set Automation Config": {
+      "main": [[
+        { "node": "Queue Task via API", "type": "main", "index": 0 }
+      ]]
+    },
+    "Hourly Status Check": {
+      "main": [[
+        { "node": "Get Status", "type": "main", "index": 0 }
+      ]]
     }
   },
   "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "dfa2bdf5-d069-4d6b-bd85-1d0cc157492c",
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "e3eecb144fae2e8dafa430ba81b0a88e9ebba50325b128c7f999602e1c94d0dc"
-  },
-  "id": "Pz7Q6S8pAqDk71h1",
+  "settings": { "executionOrder": "v1" },
+  "meta": { "templateCredsSetupCompleted": true },
   "tags": []
 }

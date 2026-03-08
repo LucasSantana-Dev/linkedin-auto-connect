@@ -213,27 +213,112 @@ async function runAutomation(searchQuery) {
   }
 }
 
+// --- TASK QUEUE (shared between n8n and extension) ---
+
+const TASKS_FILE = path.join(__dirname, '.tasks.json');
+
+function loadTasks() {
+    try {
+        return JSON.parse(fs.readFileSync(TASKS_FILE, 'utf8'));
+    } catch {
+        return { pending: [], completed: [] };
+    }
+}
+
+function saveTasks(tasks) {
+    fs.writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2));
+}
+
 // --- EXPRESS API ROUTES ---
 
 app.post('/api/linkedin/connect', async (req, res) => {
-    logger.info(chalk.magenta('\\n--- Incoming Local Trigger Request ---'));
-
+    logger.info(chalk.magenta('--- Incoming Connect Request ---'));
     const query = req.body?.query || 'recruiter software remote';
-    logger.info(chalk.blue(`[BOT] Search Query: `) + chalk.yellow(query));
-
-    // Send immediate response so the caller doesn't timeout
-    res.json({ success: true, message: 'Automation triggered locally. Running in background.', query });
-
-    // Run automation asynchronously
+    logger.info(chalk.blue(`Search Query: `) + chalk.yellow(query));
+    res.json({ success: true, message: 'Automation triggered.', query });
     await runAutomation(query);
+});
+
+app.post('/api/linkedin/schedule', (req, res) => {
+    const { mode, query, limit, targetCompanies } = req.body;
+    const tasks = loadTasks();
+    const task = {
+        id: Date.now().toString(36),
+        mode: mode || 'connect',
+        query: query || '',
+        limit: limit || 50,
+        targetCompanies: targetCompanies || [],
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        source: 'n8n'
+    };
+    tasks.pending.push(task);
+    saveTasks(tasks);
+    logger.info(chalk.cyan(`Task queued: ${task.mode} - ${task.id}`));
+    res.json({ success: true, task });
+});
+
+app.get('/api/linkedin/tasks', (req, res) => {
+    const tasks = loadTasks();
+    res.json(tasks);
+});
+
+app.get('/api/linkedin/tasks/pending', (req, res) => {
+    const tasks = loadTasks();
+    res.json(tasks.pending);
+});
+
+app.post('/api/linkedin/tasks/:id/complete', (req, res) => {
+    const tasks = loadTasks();
+    const idx = tasks.pending.findIndex(
+        t => t.id === req.params.id
+    );
+    if (idx === -1) {
+        return res.status(404).json({ error: 'Task not found' });
+    }
+    const task = tasks.pending.splice(idx, 1)[0];
+    task.status = 'completed';
+    task.completedAt = new Date().toISOString();
+    task.result = req.body.result || {};
+    tasks.completed.push(task);
+    if (tasks.completed.length > 100) {
+        tasks.completed = tasks.completed.slice(-100);
+    }
+    saveTasks(tasks);
+    res.json({ success: true, task });
+});
+
+app.get('/api/linkedin/status', (req, res) => {
+    const tasks = loadTasks();
+    res.json({
+        uptime: process.uptime(),
+        pending: tasks.pending.length,
+        completed: tasks.completed.length,
+        lastCompleted: tasks.completed.length > 0
+            ? tasks.completed[tasks.completed.length - 1]
+            : null
+    });
+});
+
+app.post('/api/linkedin/webhook', (req, res) => {
+    const { event, data } = req.body;
+    logger.info(chalk.magenta(`Webhook: ${event}`));
+    logger.info(JSON.stringify(data, null, 2));
+    res.json({ received: true, event });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    logger.info(chalk.bold.green(`\\n========================================`));
-    logger.info(chalk.bold.green(`🚀 LinkedIn Automation Locally API running`));
+    logger.info(chalk.bold.green(`\n========================================`));
+    logger.info(chalk.bold.green(`LinkedIn Automation API running on :${PORT}`));
     logger.info(chalk.bold.green(`========================================`));
-    logger.info(chalk.cyan(`To trigger the automation, run in another terminal:`));
-    logger.info(chalk.yellow(`curl -X POST http://localhost:${PORT}/api/linkedin/connect`));
-    logger.info(chalk.bold.green(`========================================\\n`));
+    logger.info(chalk.cyan(`Endpoints:`));
+    logger.info(chalk.yellow(`  POST /api/linkedin/connect`));
+    logger.info(chalk.yellow(`  POST /api/linkedin/schedule`));
+    logger.info(chalk.yellow(`  GET  /api/linkedin/tasks`));
+    logger.info(chalk.yellow(`  GET  /api/linkedin/tasks/pending`));
+    logger.info(chalk.yellow(`  POST /api/linkedin/tasks/:id/complete`));
+    logger.info(chalk.yellow(`  GET  /api/linkedin/status`));
+    logger.info(chalk.yellow(`  POST /api/linkedin/webhook`));
+    logger.info(chalk.bold.green(`========================================\n`));
 });
