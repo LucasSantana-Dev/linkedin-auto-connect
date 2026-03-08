@@ -848,6 +848,75 @@ function isCompanyFollowText(text) {
         t === '+ Follow' || t === '+ Seguir';
 }
 
+function getPostText(postEl) {
+    if (!postEl) return '';
+    const sel =
+        '.feed-shared-text, ' +
+        '.feed-shared-inline-show-more-text, ' +
+        '.feed-shared-update-v2__description, ' +
+        '.update-components-text, ' +
+        '[data-test-id="main-feed-activity-content"], ' +
+        'span.break-words';
+    const textEl = postEl.querySelector(sel);
+    if (textEl) {
+        return (textEl.innerText ||
+            textEl.textContent || '').trim();
+    }
+    const spans = postEl.querySelectorAll(
+        'span[dir="ltr"]'
+    );
+    let longest = '';
+    for (const s of spans) {
+        const t = (s.innerText ||
+            s.textContent || '').trim();
+        if (t.length > longest.length) longest = t;
+    }
+    return longest;
+}
+
+function getPostAuthor(postEl) {
+    if (!postEl) return 'Unknown';
+    const sel =
+        '.update-components-actor__name span, ' +
+        '.feed-shared-actor__name span, ' +
+        'a.update-components-actor__meta-link span, ' +
+        '[data-test-id*="actor-name"] span, ' +
+        'span.feed-shared-actor__title span';
+    const authorEl = postEl.querySelector(sel);
+    return authorEl
+        ? (authorEl.innerText ||
+            authorEl.textContent || '').trim()
+            .split('\n')[0]
+        : 'Unknown';
+}
+
+function getPostUrn(postEl) {
+    if (!postEl) return '';
+    return postEl.getAttribute('data-urn') ||
+        postEl.getAttribute('data-id') ||
+        postEl.querySelector('[data-urn]')
+            ?.getAttribute('data-urn') ||
+        postEl.querySelector('[data-id]')
+            ?.getAttribute('data-id') || '';
+}
+
+function isLikeButton(btn) {
+    if (!btn) return false;
+    const label = btn.getAttribute('aria-label') || '';
+    return /Like|Gostei|React|Reagir/i.test(label);
+}
+
+function isCommentButton(btn) {
+    if (!btn) return false;
+    const label = btn.getAttribute('aria-label') || '';
+    const text = (btn.innerText ||
+        btn.textContent || '').trim();
+    return label.includes('Comment') ||
+        label.includes('Comentar') ||
+        text === 'Comment' ||
+        text === 'Comentar';
+}
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         getReactionType,
@@ -860,6 +929,11 @@ if (typeof module !== 'undefined' && module.exports) {
         isReactablePost,
         shouldSkipPost,
         isCompanyFollowText,
+        getPostText,
+        getPostAuthor,
+        getPostUrn,
+        isLikeButton,
+        isCommentButton,
         POST_CATEGORIES,
         CATEGORY_TEMPLATES,
         CATEGORY_TEMPLATES_PT,

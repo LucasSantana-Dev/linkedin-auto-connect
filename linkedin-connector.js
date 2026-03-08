@@ -219,6 +219,41 @@ async function runAutomation(searchQuery) {
   }
 }
 
+// --- SESSION CLEANUP ---
+
+const SESSION_MAX_AGE_DAYS = parseInt(
+    process.env.SESSION_MAX_AGE_DAYS
+) || 30;
+
+function cleanOldSessions() {
+    if (!fs.existsSync(USER_DATA_DIR)) return;
+    const cutoff = Date.now() -
+        SESSION_MAX_AGE_DAYS * 86400000;
+    let cleaned = 0;
+    try {
+        const entries = fs.readdirSync(USER_DATA_DIR);
+        for (const entry of entries) {
+            const full = path.join(USER_DATA_DIR, entry);
+            const stat = fs.statSync(full);
+            if (stat.isDirectory() &&
+                stat.mtimeMs < cutoff) {
+                fs.rmSync(full, { recursive: true });
+                cleaned++;
+            }
+        }
+        if (cleaned > 0) {
+            logger.info(
+                `Cleaned ${cleaned} session dirs ` +
+                `older than ${SESSION_MAX_AGE_DAYS}d`
+            );
+        }
+    } catch (err) {
+        logger.warn(
+            'Session cleanup failed: ' + err.message
+        );
+    }
+}
+
 // --- TASK QUEUE (shared between n8n and extension) ---
 
 const TASKS_FILE = path.join(__dirname, '.tasks.json');
@@ -313,8 +348,14 @@ app.post('/api/linkedin/webhook', (req, res) => {
     res.json({ received: true, event });
 });
 
+app.post('/api/linkedin/cleanup', (req, res) => {
+    cleanOldSessions();
+    res.json({ success: true, message: 'Session cleanup complete.' });
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
+    cleanOldSessions();
     logger.info(chalk.bold.green(`\n========================================`));
     logger.info(chalk.bold.green(`LinkedIn Automation API running on :${PORT}`));
     logger.info(chalk.bold.green(`========================================`));
@@ -326,5 +367,6 @@ app.listen(PORT, () => {
     logger.info(chalk.yellow(`  POST /api/linkedin/tasks/:id/complete`));
     logger.info(chalk.yellow(`  GET  /api/linkedin/status`));
     logger.info(chalk.yellow(`  POST /api/linkedin/webhook`));
+    logger.info(chalk.yellow(`  POST /api/linkedin/cleanup`));
     logger.info(chalk.bold.green(`========================================\n`));
 });
