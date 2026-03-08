@@ -578,7 +578,7 @@ async function startConnect() {
         networkFilter,
         sentUrls,
         engagementOnly
-    });
+    }, handleLaunchResponse);
 }
 
 function startCompanyFollow() {
@@ -614,7 +614,7 @@ function startCompanyFollow() {
         query: query || 'software technology',
         limit,
         targetCompanies
-    });
+    }, handleLaunchResponse);
 }
 
 function startFeedEngage() {
@@ -663,7 +663,7 @@ function startFeedEngage() {
         comment,
         commentTemplates,
         skipKeywords
-    });
+    }, handleLaunchResponse);
 }
 
 function showProgressUI(verb, limit, statusMsg) {
@@ -680,6 +680,41 @@ function showProgressUI(verb, limit, statusMsg) {
     document.getElementById('progressMeta').textContent =
         'Page 1';
     setStatusMessage(statusMsg, 'info');
+}
+
+function resetProgressUI() {
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    startBtn.style.display = 'flex';
+    startBtn.disabled = false;
+    stopBtn.style.display = 'none';
+    document.getElementById('progressBox')
+        .style.display = 'none';
+}
+
+function handleLaunchResponse(response) {
+    if (chrome.runtime.lastError) {
+        resetProgressUI();
+        setStatusMessage(
+            'Failed to start: ' +
+            chrome.runtime.lastError.message,
+            'error'
+        );
+        return;
+    }
+    if (response?.status === 'blocked') {
+        resetProgressUI();
+        const reasons = {
+            hourly: 'Hourly rate limit reached. Try again in ~1 hour.',
+            daily: 'Daily rate limit reached. Try again tomorrow.',
+            weekly: 'Weekly limit reached (150). Try next week.'
+        };
+        setStatusMessage(
+            reasons[response.reason] ||
+            'Rate limit reached. Try again later.',
+            'error'
+        );
+    }
 }
 
 document.getElementById('stopBtn').addEventListener('click', () => {

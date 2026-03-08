@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0] - 2026-03-08
+
+### Added
+- **Behavioral fingerprint randomization**: Gaussian delay distributions, per-session profiles with unique timing patterns (avgDelay 2-5s, burstChance 5-15%, pauseChance 3-10%, scrollMultiplier 0.7-1.3). Simulated reading pauses, mouse jitter, typing delays
+- **Granular rate limiting**: Hourly limits (connect 12, companyFollow 10, feedEngage 15), daily limits (connect 40, companyFollow 30, feedEngage 50), weekly 150. Auto-cleanup of expired keys
+- **Analytics & ROI tracking**: Event pipeline (content script → bridge → chrome.storage), engagement stats by mode/category/reaction/hour/day, template acceptance rates, hour-of-day heatmap, 5000-entry rolling log
+- **Connection nurture system**: 7-day nurture window, 3 engagements per profile, 12h cooldown. Auto-saves new connections, scheduled alarm visits recent activity feeds, engagement recording via bridge pipeline
+- **Smart scheduling**: Analytics-driven optimal time windows, day-of-week weighting, acceptance rate integration. `smartMode` flag skips runs outside optimal windows. `getScheduleInsight` API for dashboard recommendations
+- **Chrome Web Store prep**: Privacy policy page, store listing metadata, permissions documentation
+- **Profile enrichment**: Extract location, summary, profile photo URL, and mutual connection count from LinkedIn search cards
+- **79 new tests**: human-behavior, rate-limiter, analytics, nurture, smart-schedule — total 400 across 11 suites
+
+### Fixed
+- **Rate limit blocks invisible to popup**: Background now returns `{status:'blocked', reason}` and popup resets to ready state with clear error message
+- **Stuck progress UI on launch failure**: Added `resetProgressUI()` to restore start button on `chrome.runtime.lastError` or rate limit rejection
+
+### Improved
+- Rate limit handlers return structured responses instead of fire-and-forget notifications
+- Background service worker loads analytics, nurture, and smart-schedule modules via `importScripts`
+- Expired nurture entries auto-cleaned on extension install/startup
+
 ## [1.11.0] - 2026-03-08
 
 ### Added
