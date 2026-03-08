@@ -1,4 +1,4 @@
-const TEMPLATES_EN = {
+const TEMPLATES = {
     senior: `Hi {name}, I'm a senior software engineer with experience in scalable full-stack systems and cloud infrastructure. Always looking to connect with great people in the industry. Let's stay in touch!`,
     mid: `Hi {name}, I'm a software engineer with a few years of experience building web applications and APIs. I'm always open to learning about new opportunities. Would love to connect!`,
     junior: `Hi {name}, I'm a software developer early in my career, eager to grow and learn from experienced professionals. I'd love to connect and stay in touch!`,
@@ -6,161 +6,6 @@ const TEMPLATES_EN = {
     networking: `Hi {name}, I came across your profile and thought it'd be great to connect. I'm always looking to expand my professional network. Looking forward to staying in touch!`,
     custom: ''
 };
-
-const TEMPLATES_PT = {
-    senior: `Olá {name}, sou engenheiro de software sênior com experiência em sistemas full-stack escaláveis e infraestrutura cloud. Sempre bom conectar com profissionais da área. Vamos manter contato!`,
-    mid: `Olá {name}, sou engenheiro de software com alguns anos de experiência em aplicações web e APIs. Estou sempre aberto a novas oportunidades. Vamos conectar!`,
-    junior: `Olá {name}, sou desenvolvedor no início de carreira, com muita vontade de crescer e aprender com profissionais experientes. Adoraria conectar e manter contato!`,
-    lead: `Olá {name}, sou tech lead com experiência em estratégia técnica e mentoria de times. Gosto de conectar com pessoas que fazem a diferença no mercado de tecnologia. Vamos conectar!`,
-    networking: `Olá {name}, vi seu perfil e achei que seria ótimo conectar. Estou sempre buscando expandir minha rede profissional. Vamos manter contato!`,
-    custom: ''
-};
-
-const TEMPLATES = navigator.language?.startsWith('pt')
-    ? { ...TEMPLATES_PT } : { ...TEMPLATES_EN };
-
-const I18N = {
-    en: {
-        headerTitle: 'Auto-Connect',
-        headerSub: 'Targeted LinkedIn networking automation',
-        searchBuilder: 'Search Builder',
-        role: 'Role',
-        industry: 'Industry',
-        marketFocus: 'Market Focus',
-        levelHire: 'Level They Hire',
-        limit: 'Limit',
-        recruiterLocation: 'Recruiter Location',
-        activelyHiring: 'Only "Actively Hiring" profiles',
-        connectionDegree: 'Connection Degree',
-        sendNote: 'Send personalized note',
-        template: 'Template',
-        message: 'Message',
-        nameVar: '{name} = first name',
-        scheduleRuns: 'Schedule recurring runs',
-        runEvery: 'Run every (hours)',
-        queryRotation: 'Query rotation (one per line)',
-        rotateHint: 'Rotates through queries on each run. ' +
-            'Leave empty to use current search. ' +
-            'Chrome must be running.',
-        thisWeek: 'This week:',
-        invites: 'invites',
-        launch: 'Launch Automation',
-        stop: 'Stop',
-        stopping: 'Stopping...',
-        checkAccepted: 'Check Accepted Connections',
-        checking: 'Checking...',
-        exportCsv: 'Export Connection Log (CSV)',
-        recentConns: 'Recent Connections',
-        safe: 'Runs safely in your browser',
-        editManually: 'Edit query manually',
-        useBuilder: 'Use tag builder',
-        selectTag: 'Select at least one tag to build a query',
-        noQuery: 'No query built. Select tags or ' +
-            'write a custom query.',
-        noteOver: 'Note is {len} chars (max {max}). ' +
-            'Shorten it.',
-        weeklyReached: 'Weekly limit reached ({count}/{limit}).' +
-            ' Wait until next week.',
-        weeklyAdjust: 'Only {rem} invites left this week ' +
-            '({count}/{limit}). ' +
-            'Limit auto-adjusted to {rem}.',
-        navigating: 'Navigating to search... ' +
-            'Do not close this popup or the tab.',
-        stoppingMsg: 'Stopping automation...',
-        sent: 'Sent',
-        page: 'Page',
-        skipped: 'skipped',
-        done: 'Done!',
-        tryAgain: 'Try Again',
-        accepted: 'Found {n} accepted connections!',
-        noAccepted: 'No new accepted connections found.',
-        queryPlaceholder: 'Type your search query...',
-        savedQueriesPlaceholder:
-            'recruiter software remote\n' +
-            'talent acquisition latam\n' +
-            'hiring manager tech',
-        tplNames: {
-            senior: 'Senior Engineer',
-            mid: 'Mid-Level Engineer',
-            junior: 'Junior / Associate',
-            lead: 'Tech Lead / Staff',
-            networking: 'General Networking',
-            custom: 'Custom'
-        }
-    },
-    pt: {
-        headerTitle: 'Auto-Conectar',
-        headerSub: 'Automação de networking no LinkedIn',
-        searchBuilder: 'Construtor de Busca',
-        role: 'Cargo',
-        industry: 'Indústria',
-        marketFocus: 'Foco de Mercado',
-        levelHire: 'Nível que Contratam',
-        limit: 'Limite',
-        recruiterLocation: 'Localização do Recrutador',
-        activelyHiring: 'Apenas perfis "Contratando"',
-        connectionDegree: 'Grau de Conexão',
-        sendNote: 'Enviar nota personalizada',
-        template: 'Modelo',
-        message: 'Mensagem',
-        nameVar: '{name} = primeiro nome',
-        scheduleRuns: 'Agendar execuções recorrentes',
-        runEvery: 'Executar a cada (horas)',
-        queryRotation: 'Rotação de buscas (uma por linha)',
-        rotateHint: 'Alterna entre buscas a cada execução. ' +
-            'Deixe vazio para usar a busca atual. ' +
-            'Chrome precisa estar aberto.',
-        thisWeek: 'Esta semana:',
-        invites: 'convites',
-        launch: 'Iniciar Automação',
-        stop: 'Parar',
-        stopping: 'Parando...',
-        checkAccepted: 'Verificar Conexões Aceitas',
-        checking: 'Verificando...',
-        exportCsv: 'Exportar Log (CSV)',
-        recentConns: 'Conexões Recentes',
-        safe: 'Executa com segurança no seu navegador',
-        editManually: 'Editar busca manualmente',
-        useBuilder: 'Usar construtor de tags',
-        selectTag: 'Selecione pelo menos uma tag',
-        noQuery: 'Nenhuma busca definida. ' +
-            'Selecione tags ou escreva uma busca.',
-        noteOver: 'Nota tem {len} caracteres ' +
-            '(máx {max}). Encurte.',
-        weeklyReached: 'Limite semanal atingido ' +
-            '({count}/{limit}). Aguarde a próxima semana.',
-        weeklyAdjust: 'Restam {rem} convites esta semana ' +
-            '({count}/{limit}). ' +
-            'Limite ajustado para {rem}.',
-        navigating: 'Abrindo busca... ' +
-            'Não feche este popup ou a aba.',
-        stoppingMsg: 'Parando automação...',
-        sent: 'Enviado',
-        page: 'Página',
-        skipped: 'pulados',
-        done: 'Concluído!',
-        tryAgain: 'Tentar Novamente',
-        accepted: '{n} conexões aceitas encontradas!',
-        noAccepted: 'Nenhuma conexão aceita encontrada.',
-        queryPlaceholder: 'Digite sua busca...',
-        savedQueriesPlaceholder:
-            'recrutador software remoto\n' +
-            'talent acquisition latam\n' +
-            'hiring manager tech',
-        tplNames: {
-            senior: 'Engenheiro Sênior',
-            mid: 'Engenheiro Pleno',
-            junior: 'Júnior / Associado',
-            lead: 'Tech Lead / Staff',
-            networking: 'Networking Geral',
-            custom: 'Personalizado'
-        }
-    }
-};
-
-const userLang = navigator.language?.startsWith('pt')
-    ? 'pt' : 'en';
-const t = I18N[userLang];
 
 const MAX_CHARS = 300;
 const WEEKLY_LIMIT = 150;
@@ -246,7 +91,7 @@ function updateQueryPreview() {
     const preview = document.getElementById('queryPreview');
     const query = buildQuery();
     if (!query) {
-        preview.textContent = t.selectTag;
+        preview.textContent = 'Select at least one tag to build a query';
         return;
     }
     preview.textContent = query;
@@ -319,8 +164,7 @@ function saveState() {
         scheduleInterval: document.getElementById(
             'scheduleInterval').value,
         savedQueries: document.getElementById(
-            'savedQueries').value,
-        lang: userLang
+            'savedQueries').value
     };
 
     document.querySelectorAll('.tag').forEach(tag => {
@@ -433,13 +277,13 @@ document.getElementById('toggleCustomQuery').addEventListener('click', () => {
     if (useCustomQuery) {
         input.style.display = 'block';
         input.value = input.value || buildQuery();
-        toggle.textContent = t.useBuilder;
+        toggle.textContent = 'Use tag builder';
         document.querySelectorAll('.tag-group').forEach(
             g => g.style.opacity = '0.4'
         );
     } else {
         input.style.display = 'none';
-        toggle.textContent = t.editManually;
+        toggle.textContent = 'Edit query manually';
         document.querySelectorAll('.tag-group').forEach(
             g => g.style.opacity = '1'
         );
@@ -526,7 +370,10 @@ document.getElementById('scheduleInterval').addEventListener(
 document.getElementById('startBtn').addEventListener('click', async () => {
     const query = buildQuery();
     if (!query) {
-        setStatusMessage(t.noQuery, 'warning');
+        setStatusMessage(
+            'No query built. Select tags or write a custom query.',
+            'warning'
+        );
         return;
     }
 
@@ -535,9 +382,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
 
     if (sendNote && noteText.length > MAX_CHARS) {
         setStatusMessage(
-            t.noteOver
-                .replace('{len}', noteText.length)
-                .replace('{max}', MAX_CHARS),
+            `Note is ${noteText.length} chars (max ${MAX_CHARS}). Shorten it.`,
             'warning'
         );
         return;
@@ -550,9 +395,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const weeklyCount = await getWeeklyCount();
     if (weeklyCount >= WEEKLY_LIMIT) {
         setStatusMessage(
-            t.weeklyReached
-                .replace('{count}', weeklyCount)
-                .replace('{limit}', WEEKLY_LIMIT),
+            `Weekly limit reached (${weeklyCount}/${WEEKLY_LIMIT}). Wait until next week.`,
             'error'
         );
         return;
@@ -560,10 +403,7 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     if (weeklyCount + limit > WEEKLY_LIMIT) {
         const remaining = WEEKLY_LIMIT - weeklyCount;
         setStatusMessage(
-            t.weeklyAdjust
-                .replace(/\{rem\}/g, remaining)
-                .replace('{count}', weeklyCount)
-                .replace('{limit}', WEEKLY_LIMIT),
+            `Only ${remaining} invites left this week (${weeklyCount}/${WEEKLY_LIMIT}). Limit auto-adjusted to ${remaining}.`,
             'warning'
         );
         document.getElementById('limitInput').value = remaining;
@@ -597,10 +437,13 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     stopBtn.style.display = 'flex';
     document.getElementById('progressBox').style.display = 'block';
     document.getElementById('progressText').textContent =
-        `${t.sent} 0 / ${limit}`;
+        `Sent 0 / ${limit}`;
     document.getElementById('progressMeta').textContent =
-        `${t.page} 1`;
-    setStatusMessage(t.navigating, 'info');
+        'Page 1';
+    setStatusMessage(
+        'Navigating to search... Do not close this popup or the tab.',
+        'info'
+    );
 
     chrome.runtime.sendMessage({
         action: 'start',
@@ -619,8 +462,8 @@ document.getElementById('stopBtn').addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'stop' });
     const stopBtn = document.getElementById('stopBtn');
     stopBtn.disabled = true;
-    stopBtn.textContent = t.stopping;
-    setStatusMessage(t.stoppingMsg, 'warning');
+    stopBtn.textContent = 'Stopping...';
+    setStatusMessage('Stopping automation...', 'warning');
 });
 
 let lastReportedSent = 0;
@@ -655,10 +498,10 @@ chrome.runtime.onMessage.addListener((request) => {
             updateWeeklyDisplay();
         }
         document.getElementById('progressText').textContent =
-            `${t.sent} ${request.sent} / ${request.limit}`;
-        const meta = [`${t.page} ${request.page}`];
+            `Sent ${request.sent} / ${request.limit}`;
+        const meta = [`Page ${request.page}`];
         if (request.skipped > 0) {
-            meta.push(`${request.skipped} ${t.skipped}`);
+            meta.push(`${request.skipped} skipped`);
         }
         document.getElementById('progressMeta').textContent =
             meta.join(' · ');
@@ -719,14 +562,14 @@ chrome.runtime.onMessage.addListener((request) => {
                 'Success! ' + (response.message || ''),
                 'success'
             );
-            startBtn.textContent = t.done;
+            startBtn.textContent = 'Done!';
         } else {
             setStatusMessage(
                 'Error: ' + (response?.error || 'Unknown error.'),
                 'error'
             );
             startBtn.disabled = false;
-            startBtn.textContent = t.tryAgain;
+            startBtn.textContent = 'Try Again';
         }
     }
 });
@@ -735,22 +578,20 @@ document.getElementById('checkAcceptedBtn').addEventListener(
     'click', () => {
         const btn = document.getElementById('checkAcceptedBtn');
         btn.disabled = true;
-        btn.textContent = t.checking;
+        btn.textContent = 'Checking...';
         chrome.runtime.sendMessage(
             { action: 'checkAccepted' },
             (response) => {
                 btn.disabled = false;
-                btn.textContent = t.checkAccepted;
+                btn.textContent = 'Check Accepted Connections';
                 if (response?.accepted?.length) {
                     setStatusMessage(
-                        t.accepted.replace(
-                            '{n}', response.accepted.length
-                        ),
+                        `Found ${response.accepted.length} accepted connections!`,
                         'success'
                     );
                 } else {
                     setStatusMessage(
-                        response?.error || t.noAccepted,
+                        response?.error || 'No new accepted connections found.',
                         'info'
                     );
                 }
@@ -809,7 +650,7 @@ function renderRecentProfiles(entries) {
         badge.className = 'profile-badge ';
         if (r.status === 'sent') {
             badge.className += 'sent';
-            badge.textContent = t.sent;
+            badge.textContent = 'Sent';
         } else {
             badge.className += 'skipped';
             badge.textContent =
@@ -829,108 +670,6 @@ function loadRecentProfiles() {
     });
 }
 
-function applyI18n() {
-    const $ = (id) => document.getElementById(id);
-    const q = (sel) => document.querySelector(sel);
-
-    q('.header h2').lastChild.textContent =
-        ' ' + t.headerTitle;
-    q('.header p').textContent = t.headerSub;
-
-    const labels = document.querySelectorAll(
-        '.tag-group-label'
-    );
-    const groupLabels = [
-        t.role, t.industry, t.marketFocus, t.levelHire
-    ];
-    labels.forEach((el, i) => {
-        if (groupLabels[i]) el.textContent = groupLabels[i];
-    });
-
-    const sectionLabels = document.querySelectorAll(
-        '.section-label'
-    );
-    sectionLabels.forEach(el => {
-        if (el.textContent.includes('Search'))
-            el.textContent = t.searchBuilder;
-        if (el.textContent.includes('Template'))
-            el.textContent = t.template;
-        if (el.textContent.includes('Recent'))
-            el.textContent = t.recentConns;
-    });
-
-    q('label[for="limitInput"]').textContent = t.limit;
-    q('label[for="regionSelect"]').textContent =
-        t.recruiterLocation;
-    q('label[for="activelyHiringCheckbox"]').textContent =
-        t.activelyHiring;
-
-    const degreeLabel = document.querySelector(
-        '.input-group > label'
-    );
-    document.querySelectorAll('.input-group > label')
-        .forEach(el => {
-            if (el.textContent.includes('Connection Degree'))
-                el.textContent = t.connectionDegree;
-        });
-
-    q('label[for="sendNoteCheckbox"]').textContent =
-        t.sendNote;
-    q('label[for="scheduleCheckbox"]').textContent =
-        t.scheduleRuns;
-    q('label[for="scheduleInterval"]').textContent =
-        t.runEvery;
-    q('label[for="savedQueries"]').textContent =
-        t.queryRotation;
-
-    $('savedQueries').placeholder =
-        t.savedQueriesPlaceholder;
-
-    const rotateHint = $('scheduleOptions')
-        ?.querySelector('div[style*="font-size:10px"]');
-    if (rotateHint) rotateHint.textContent = t.rotateHint;
-
-    $('toggleCustomQuery').textContent =
-        useCustomQuery ? t.useBuilder : t.editManually;
-    $('customQueryInput').placeholder =
-        t.queryPlaceholder;
-
-    const msgLabel = q('label[for="noteTemplate"]');
-    if (msgLabel) {
-        msgLabel.childNodes[0].textContent = t.message + ' ';
-        const small = msgLabel.querySelector('small');
-        if (small) small.textContent = '— ' + t.nameVar;
-    }
-
-    $('startBtn').lastChild.textContent =
-        ' ' + t.launch;
-
-    const footerText = q('.footer');
-    if (footerText) {
-        footerText.lastChild.textContent =
-            ' ' + t.safe;
-    }
-
-    $('checkAcceptedBtn').textContent = t.checkAccepted;
-    $('exportBtn').textContent = t.exportCsv;
-
-    document.querySelectorAll('.template-card').forEach(card => {
-        const key = card.dataset.template;
-        const nameEl = card.querySelector('.template-name');
-        const previewEl = card.querySelector(
-            '.template-preview'
-        );
-        if (nameEl && t.tplNames[key]) {
-            nameEl.textContent = t.tplNames[key];
-        }
-        if (previewEl && TEMPLATES[key]) {
-            previewEl.textContent =
-                TEMPLATES[key].substring(0, 80) + '...';
-        }
-    });
-}
-
 loadState();
 updateWeeklyDisplay();
 loadRecentProfiles();
-applyI18n();

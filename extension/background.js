@@ -161,6 +161,21 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (request.action === 'progress' &&
+            request.error === 'FUSE_LIMIT_EXCEEDED') {
+            activeTabId = null;
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon128.png',
+                title: 'LinkedIn Auto-Connect',
+                message:
+                    'Weekly invitation limit reached ' +
+                    '(FUSE_LIMIT_EXCEEDED). ' +
+                    'LinkedIn is rejecting new invites. ' +
+                    'Try again in a few days.'
+            });
+        }
+
         if (request.action === 'done') {
             activeTabId = null;
             const r = request.result;

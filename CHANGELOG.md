@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-03-07
+
+### Fixed
+- False positive invites: Connect button showed "Pending" in logs but invites were silently rejected by LinkedIn (HTTP 429 FUSE_LIMIT_EXCEEDED)
+
+### Added
+- 4-layer invite verification: button state filtering, InMails modal handling, DOM pending state polling, network API interception
+- `verifyPendingState()` — polls DOM 6x (3s) to confirm button changed to "Pending" before counting as sent
+- Fetch/XHR interceptors for LinkedIn's `verifyQuotaAndCreateV2` API — detects 429 rate limits in real-time
+- `fuseLimitHit` flag stops automation immediately when weekly quota is exhausted
+- Chrome notification on FUSE_LIMIT_EXCEEDED: "Weekly invitation limit reached"
+- `skipped-unverified` status for invites that failed DOM verification
+- `stopped-quota` status when API rate limit is detected
+- `isButtonClickable()` filter skips `:disabled` and `.artdeco-button--muted` buttons
+- Button disabling after click prevents re-scanning same button
+- `dismissInMailsModal()` handles Send InMail overlay that blocks automation flow
+- Precise send button selector (`div.send-invite button.artdeco-button--primary`) before text-based fallback
+- PT-BR support for `Conectar` button text and `Pendente` status
+
 ## [1.5.0] - 2026-03-07
 
 ### Added

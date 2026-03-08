@@ -18,13 +18,14 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn c
 - **Connection log export** — download CSV of sent/skipped profiles with timestamps
 - **Scheduled runs** — recurring automation via Chrome Alarms API (configurable interval)
 - **429 rate limit backoff** — detects failed sends, pauses 30-60s after 3 consecutive failures
+- **Invite verification** — 4-layer defense against false positives: button state filtering, InMails modal handling, DOM pending state polling, and network API interception (catches LinkedIn's `FUSE_LIMIT_EXCEEDED` 429 responses)
+- **Quota detection** — stops immediately and notifies when LinkedIn's weekly invitation limit is exhausted
 - **Duplicate detection** — skips profiles already sent in previous runs via persistent URL tracking
 - **Desktop notifications** — Chrome notification when automation completes or stops
 - **Acceptance tracker** — check which sent invitations were accepted (cross-references connections page)
 - **Dashboard page** — stats overview with weekly/total/accepted counts and connection history log
 - **Multi-query rotation** — scheduled runs cycle through multiple saved queries automatically
 - **Recent profiles** — last 5 connection profiles shown inline in popup with avatar, name, headline, and status badge
-- **i18n (EN/PT-BR)** — auto-detects browser language, translates all UI labels and messages
 - **Error resilience** — tab load timeout, script injection error handling, tab close detection with notifications
 - **Dark mode** — respects system `prefers-color-scheme` with GitHub-inspired dark palette
 - **Activity chart** — 14-day bar chart on dashboard showing daily send volume

@@ -30,7 +30,8 @@ window.addEventListener('message', (event) => {
             sent: event.data.sent,
             limit: event.data.limit,
             page: event.data.page,
-            skipped: event.data.skipped
+            skipped: event.data.skipped,
+            error: event.data.error || null
         });
     }
 });

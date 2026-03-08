@@ -4,6 +4,85 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     const delay = ms => new Promise(r => setTimeout(r, ms));
     let stopRequested = false;
     const connectionLog = [];
+    let lastInviteStatus = null;
+    let fuseLimitHit = false;
+
+    const origFetch = window.fetch;
+    window.fetch = async function(...args) {
+        const res = await origFetch.apply(this, args);
+        try {
+            const url = typeof args[0] === 'string'
+                ? args[0]
+                : args[0]?.url || '';
+            if (url.includes(
+                'MemberRelationships') &&
+                url.includes('verifyQuotaAndCreate')) {
+                lastInviteStatus = res.status;
+                if (res.status === 429) {
+                    fuseLimitHit = true;
+                }
+            }
+        } catch (e) {}
+        return res;
+    };
+
+    const origXhrOpen = XMLHttpRequest.prototype.open;
+    const origXhrSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function(method, url) {
+        this._linkedInUrl = url;
+        return origXhrOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function() {
+        if (this._linkedInUrl &&
+            this._linkedInUrl.includes(
+                'MemberRelationships') &&
+            this._linkedInUrl.includes(
+                'verifyQuotaAndCreate')) {
+            this.addEventListener('load', function() {
+                lastInviteStatus = this.status;
+                if (this.status === 429) {
+                    fuseLimitHit = true;
+                }
+            });
+        }
+        return origXhrSend.apply(this, arguments);
+    };
+
+    async function verifyPendingState(button) {
+        if (lastInviteStatus === 429) return false;
+
+        for (let i = 0; i < 6; i++) {
+            await delay(500);
+            if (lastInviteStatus === 429) return false;
+
+            const text = (button.innerText || '').trim()
+                .toLowerCase();
+            const ariaLabel = (
+                button.getAttribute('aria-label') || ''
+            ).toLowerCase();
+            if (text.includes('pending') ||
+                ariaLabel.includes('pending') ||
+                text.includes('pendente')) {
+                return true;
+            }
+            const card = button.closest(
+                '.entity-result, li, ' +
+                '[data-chameleon-result-urn]'
+            );
+            if (card) {
+                const btns = card.querySelectorAll('button');
+                for (const b of btns) {
+                    const t = (b.innerText || '').trim()
+                        .toLowerCase();
+                    if (t.includes('pending') ||
+                        t.includes('pendente')) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     function extractProfileInfo(btn) {
         const card = btn.closest(
@@ -138,7 +217,30 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
             text.includes('digite o e-mail');
     }
 
+    function dismissInMailsModal() {
+        const closeIcon = queryAll(
+            '.msg-overlay-bubble-header__control ' +
+            '.artdeco-button__icon' +
+            '[data-test-icon="close-small"]'
+        );
+        if (closeIcon?.parentElement) {
+            closeIcon.parentElement.click();
+            return true;
+        }
+        const inMailDismiss = queryAll(
+            '#artdeco-modal-outlet ' +
+            '.artdeco-modal__dismiss'
+        );
+        if (inMailDismiss) {
+            inMailDismiss.click();
+            return true;
+        }
+        return false;
+    }
+
     function dismissModal() {
+        dismissInMailsModal();
+
         const dismissBtn =
             queryAll('button[aria-label="Dismiss"]') ||
             queryAll('button[aria-label="Close"]') ||
@@ -192,6 +294,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     }
 
     function findSendButton() {
+        const precise = queryAll(
+            'div.send-invite ' +
+            'button.artdeco-button--primary'
+        );
+        if (precise) return precise;
+
         const modal = queryAll(
             '.artdeco-modal'
         ) || queryAll('[role="dialog"]');
@@ -372,11 +480,26 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 const connectButtons = [];
                 const seen = new Set();
 
+                function isButtonClickable(el) {
+                    if (el.disabled ||
+                        el.hasAttribute('disabled')) {
+                        return false;
+                    }
+                    if (el.classList.contains(
+                        'artdeco-button--muted')) {
+                        return false;
+                    }
+                    return true;
+                }
+
                 const allElements = Array.from(
-                    document.querySelectorAll('button, a')
+                    document.querySelectorAll(
+                        'button:enabled, a'
+                    )
                 );
                 for (const el of allElements) {
                     if (seen.has(el)) continue;
+                    if (!isButtonClickable(el)) continue;
                     const text = (el.innerText || '').trim();
                     const ariaLabel = (
                         el.getAttribute('aria-label') || ''
@@ -386,12 +509,14 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     if (lower.includes('message') ||
                         lower.includes('following') ||
                         lower.includes('withdraw') ||
-                        lower.includes('pending')) {
+                        lower.includes('pending') ||
+                        lower.includes('pendente')) {
                         continue;
                     }
 
                     const isConnect =
                         text === 'Connect' ||
+                        text === 'Conectar' ||
                         (ariaLabel.toLowerCase()
                              .includes('invite') &&
                          ariaLabel.toLowerCase()
@@ -407,16 +532,20 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     document.querySelectorAll('span')
                 );
                 for (const span of spans) {
-                    if (span.innerText.trim() === 'Connect') {
+                    const spanText = span.innerText.trim();
+                    if (spanText === 'Connect' ||
+                        spanText === 'Conectar') {
                         const parent =
                             span.closest('button, a');
-                        if (parent && !seen.has(parent)) {
+                        if (parent && !seen.has(parent) &&
+                            isButtonClickable(parent)) {
                             const t = (parent.innerText || '')
                                 .trim().toLowerCase();
                             if (!t.includes('message') &&
                                 !t.includes('following') &&
                                 !t.includes('withdraw') &&
-                                !t.includes('pending')) {
+                                !t.includes('pending') &&
+                                !t.includes('pendente')) {
                                 seen.add(parent);
                                 connectButtons.push(parent);
                             }
@@ -502,6 +631,20 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 for (const button of connectButtons) {
                     if (totalSent >= limit || stopRequested) break;
 
+                    if (fuseLimitHit) {
+                        connectionLog.push({
+                            status: 'stopped-quota',
+                            time: new Date().toISOString()
+                        });
+                        window.postMessage({
+                            type: 'LINKEDIN_BOT_PROGRESS',
+                            sent: totalSent, limit, page: currentPage,
+                            skipped: totalSkipped,
+                            error: 'FUSE_LIMIT_EXCEEDED'
+                        }, '*');
+                        break;
+                    }
+
                     try {
                         const profile =
                             extractProfileInfo(button);
@@ -520,6 +663,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                             continue;
                         }
 
+                        lastInviteStatus = null;
                         button.scrollIntoView({
                             behavior: 'smooth',
                             block: 'center'
@@ -527,7 +671,11 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         await delay(
                             1000 + Math.random() * 1500
                         );
+                        button.focus();
                         button.click();
+                        button.setAttribute(
+                            'disabled', 'disabled'
+                        );
 
                         let inviteBtns = {
                             addNote: null,
@@ -563,7 +711,34 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                                 await delay(1500);
                                 continue;
                             }
-                            totalSent++;
+                            const noModalVerified =
+                                await verifyPendingState(
+                                    button);
+                            if (noModalVerified) {
+                                totalSent++;
+                                const sentInfo =
+                                    extractProfileInfo(button);
+                                if (sentInfo.profileUrl) {
+                                    sentUrls.add(
+                                        sentInfo.profileUrl
+                                    );
+                                }
+                                connectionLog.push({
+                                    ...sentInfo,
+                                    status: 'sent',
+                                    time: new Date()
+                                        .toISOString()
+                                });
+                            } else {
+                                totalSkipped++;
+                                connectionLog.push({
+                                    ...extractProfileInfo(
+                                        button),
+                                    status: 'skipped-unverified',
+                                    time: new Date()
+                                        .toISOString()
+                                });
+                            }
                             reportProgress(
                                 totalSent, limit,
                                 currentPage, totalSkipped
@@ -651,21 +826,36 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                                     }
 
                                     consecutiveFails = 0;
-                                    totalSent++;
+                                    const noteVerified =
+                                        await verifyPendingState(
+                                            button);
                                     const sentInfo =
                                         extractProfileInfo(
                                             button);
-                                    if (sentInfo.profileUrl) {
-                                        sentUrls.add(
-                                            sentInfo.profileUrl
-                                        );
+                                    if (noteVerified) {
+                                        totalSent++;
+                                        if (sentInfo.profileUrl) {
+                                            sentUrls.add(
+                                                sentInfo
+                                                    .profileUrl
+                                            );
+                                        }
+                                        connectionLog.push({
+                                            ...sentInfo,
+                                            status: 'sent',
+                                            time: new Date()
+                                                .toISOString()
+                                        });
+                                    } else {
+                                        totalSkipped++;
+                                        connectionLog.push({
+                                            ...sentInfo,
+                                            status:
+                                                'skipped-unverified',
+                                            time: new Date()
+                                                .toISOString()
+                                        });
                                     }
-                                    connectionLog.push({
-                                        ...sentInfo,
-                                        status: 'sent',
-                                        time: new Date()
-                                            .toISOString()
-                                    });
                                     reportProgress(
                                         totalSent, limit,
                                         currentPage, totalSkipped
@@ -703,19 +893,34 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                             }
 
                             consecutiveFails = 0;
-                            totalSent++;
+                            const noNoteVerified =
+                                await verifyPendingState(
+                                    button);
                             const sentInfo2 =
                                 extractProfileInfo(button);
-                            if (sentInfo2.profileUrl) {
-                                sentUrls.add(
-                                    sentInfo2.profileUrl
-                                );
+                            if (noNoteVerified) {
+                                totalSent++;
+                                if (sentInfo2.profileUrl) {
+                                    sentUrls.add(
+                                        sentInfo2.profileUrl
+                                    );
+                                }
+                                connectionLog.push({
+                                    ...sentInfo2,
+                                    status: 'sent',
+                                    time: new Date()
+                                        .toISOString()
+                                });
+                            } else {
+                                totalSkipped++;
+                                connectionLog.push({
+                                    ...sentInfo2,
+                                    status:
+                                        'skipped-unverified',
+                                    time: new Date()
+                                        .toISOString()
+                                });
                             }
-                            connectionLog.push({
-                                ...sentInfo2,
-                                status: 'sent',
-                                time: new Date().toISOString()
-                            });
                             reportProgress(
                                 totalSent, limit,
                                 currentPage, totalSkipped
