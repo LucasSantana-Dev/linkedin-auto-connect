@@ -29,7 +29,7 @@ function notifyError(msg) {
     chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icons/icon128.png',
-        title: 'LinkedIn Auto-Connect',
+        title: 'LinkedIn Engage',
         message: msg
     });
 }
@@ -208,7 +208,8 @@ function launchCompanyFollow(config) {
             }
             activeTabId = tab.id;
             injectAndStart(tab.id,
-                ['lib/feed-utils.js',
+                ['lib/templates.js',
+                    'lib/feed-utils.js',
                     'lib/company-utils.js',
                     'lib/human-behavior.js',
                     'company-follow.js'],
@@ -238,7 +239,8 @@ function launchFeedEngage(config) {
             }
             activeTabId = tab.id;
             injectAndStart(tab.id,
-                ['lib/feed-utils.js',
+                ['lib/templates.js',
+                    'lib/feed-utils.js',
                     'lib/human-behavior.js',
                     'feed-engage.js'],
                 'LINKEDIN_FEED_ENGAGE_START',
@@ -263,7 +265,8 @@ function launchNurture(target, config) {
             }
             activeTabId = tab.id;
             injectAndStart(tab.id,
-                ['lib/feed-utils.js',
+                ['lib/templates.js',
+                    'lib/feed-utils.js',
                     'lib/human-behavior.js',
                     'feed-engage.js'],
                 'LINKEDIN_FEED_ENGAGE_START',
@@ -421,7 +424,7 @@ chrome.runtime.onMessage.addListener(
             chrome.notifications.create({
                 type: 'basic',
                 iconUrl: 'icons/icon128.png',
-                title: 'LinkedIn Auto-Connect',
+                title: 'LinkedIn Engage',
                 message:
                     'Weekly invitation limit reached. ' +
                     `Auto-retry scheduled in ${retryHours}h.`
@@ -433,7 +436,7 @@ chrome.runtime.onMessage.addListener(
             chrome.notifications.create({
                 type: 'basic',
                 iconUrl: 'icons/icon128.png',
-                title: 'LinkedIn Auto-Connect',
+                title: 'LinkedIn Engage',
                 message:
                     'LinkedIn login required. Please ' +
                     'log in and restart the automation.'
@@ -780,7 +783,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 chrome.notifications.create({
                     type: 'basic',
                     iconUrl: 'icons/icon128.png',
-                    title: 'LinkedIn Auto-Connect',
+                    title: 'LinkedIn Engage',
                     message:
                         'Quota retry: testing with 10 ' +
                         'invites to check if limit reset.'
@@ -830,7 +833,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 chrome.notifications.create({
                     type: 'basic',
                     iconUrl: 'icons/icon128.png',
-                    title: 'LinkedIn Auto-Connect',
+                    title: 'LinkedIn Engage',
                     message:
                         `Scheduled feed engagement: ` +
                         `${limit} posts` +
@@ -887,7 +890,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 chrome.notifications.create({
                     type: 'basic',
                     iconUrl: 'icons/icon128.png',
-                    title: 'LinkedIn Auto-Connect',
+                    title: 'LinkedIn Engage',
                     message:
                         `Scheduled company follow: ` +
                         `batch of ${batch.length} ` +
