@@ -7,6 +7,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ status: 'started' });
         return true;
     }
+    if (request.action === 'runCustom') {
+        window.postMessage({
+            type: request.msgType,
+            config: request.config
+        }, '*');
+        sendResponse({ status: 'started' });
+        return true;
+    }
     if (request.action === 'stop') {
         window.postMessage({
             type: 'LINKEDIN_BOT_STOP'

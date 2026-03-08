@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.8.0] - 2026-03-07
+
+### Added
+- **Company follow mode**: Search and auto-follow companies on LinkedIn (e.g., big tech, startups)
+- Optional target company filter (only follow matching names from a user-provided list)
+- **Feed engagement mode**: Auto-react and comment on LinkedIn feed posts
+- Content-based smart reactions: keyword matching maps posts to Celebrate, Support, Insightful, Funny, or Love
+- Comment templates with `{topic}` auto-detection (AI, leadership, hiring, etc.) and `{excerpt}` placeholders
+- Skip keywords to avoid engaging with sponsored/promoted content
+- Multi-mode popup UI: Connect / Companies / Feed selector with per-mode settings
+- Shared utility library (`lib/feed-utils.js`) with pure functions for feed engagement logic
+- Generic script injection (`injectAndStart`, `injectScriptsSequentially`) in background.js
+- Generic `runCustom` bridge relay for arbitrary content script message types
+- 30 new tests for feed-utils.js (getReactionType, buildCommentFromPost, extractTopic, isReactablePost, shouldSkipPost, isCompanyFollowText)
+
+### Improved
+- State persistence now covers all new mode fields (companyQuery, targetCompanies, feedReact, feedComment, commentTemplates, skipKeywords, currentMode)
+- Progress indicator adapts verb per mode: Sent / Followed / Engaged
+
 ## [1.7.0] - 2026-03-07
 
 ### Added

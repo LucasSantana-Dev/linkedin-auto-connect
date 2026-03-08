@@ -18,6 +18,9 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn c
 - **Connection log export** — download CSV of sent/skipped profiles with timestamps
 - **Scheduled runs** — recurring automation via Chrome Alarms API (configurable interval)
 - **Engagement mode** — visit profiles + follow as alternative when connect invites are exhausted; toggle in popup or auto-fallback on quota hit
+- **Company follow mode** — search and auto-follow companies (big tech, startups, etc.) with optional target company filter
+- **Feed engagement mode** — auto-react and comment on LinkedIn feed posts based on content; smart reaction selection (Celebrate, Support, Insightful, Funny, Love) via keyword matching
+- **Comment templates** — `{topic}` auto-detected from post content (AI, leadership, hiring, etc.) and `{excerpt}` for quoting; skip keywords to avoid sponsored content
 - **429 rate limit backoff** — detects failed sends, exponential backoff (30s, 60s, 120s... up to 5min) after 3 consecutive failures
 - **Invite verification** — 4-layer defense against false positives: button state filtering, InMails modal handling, DOM pending state polling, and network API interception (catches LinkedIn's `FUSE_LIMIT_EXCEEDED` 429 responses)
 - **Quota detection** — stops immediately and notifies when LinkedIn's weekly invitation limit is exhausted
@@ -111,13 +114,18 @@ Import `n8n-linkedin-workflow.json` into your n8n instance to schedule automated
 
 ```
 extension/
-  content.js    <- MAIN world automation (cross-iframe DOM queries)
-  bridge.js     <- ISOLATED world messaging bridge (chrome.runtime <-> postMessage)
-  background.js <- Service worker (tab management, alarms, notifications)
-  popup/        <- Settings UI (search builder, templates, filters, schedule)
-  options.html  <- Dashboard page (stats, connection history)
-  options.js    <- Dashboard logic
-  manifest.json <- Chrome MV3 manifest
+  content.js        <- MAIN world automation (connect + engagement)
+  company-follow.js <- MAIN world company follow automation
+  feed-engage.js    <- MAIN world feed reaction/comment automation
+  bridge.js         <- ISOLATED world messaging bridge (chrome.runtime <-> postMessage)
+  background.js     <- Service worker (tab management, alarms, notifications)
+  lib/
+    invite-utils.js <- Shared invite/connect utility functions
+    feed-utils.js   <- Shared feed engagement utility functions
+  popup/            <- Settings UI (search builder, templates, filters, schedule)
+  options.html      <- Dashboard page (stats, connection history)
+  options.js        <- Dashboard logic
+  manifest.json     <- Chrome MV3 manifest
 linkedin-connector.js      <- Standalone Playwright version
 n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 .github/workflows/
@@ -158,6 +166,12 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 | Weekly Limit | 150 | Max invites per week (auto-enforced) |
 | Schedule | Off | Recurring runs every N hours (Chrome must be open) |
 | Query Rotation | Empty | Multiple queries (one per line) cycled on each scheduled run |
+| Company Query | Empty | Search term for company follow mode |
+| Target Companies | Empty | Only follow companies matching these names (one per line) |
+| Feed React | On | React to feed posts (smart reaction based on content) |
+| Feed Comment | Off | Comment on feed posts using templates |
+| Comment Templates | Empty | One template per line; `{topic}` and `{excerpt}` are auto-replaced |
+| Skip Keywords | Empty | Skip posts containing these words (one per line) |
 
 ## Releasing
 

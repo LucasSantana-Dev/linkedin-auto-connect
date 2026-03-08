@@ -147,6 +147,7 @@ function setStatusMessage(text, type) {
 function saveState() {
     const state = {
         tags: {},
+        currentMode,
         limit: document.getElementById('limitInput').value,
         region: document.getElementById('regionSelect').value,
         activelyHiring: document.getElementById('activelyHiringCheckbox').checked,
@@ -165,7 +166,19 @@ function saveState() {
         scheduleInterval: document.getElementById(
             'scheduleInterval').value,
         savedQueries: document.getElementById(
-            'savedQueries').value
+            'savedQueries').value,
+        companyQuery: document.getElementById(
+            'companyQueryInput').value,
+        targetCompanies: document.getElementById(
+            'targetCompanies').value,
+        feedReact: document.getElementById(
+            'feedReactCheckbox').checked,
+        feedComment: document.getElementById(
+            'feedCommentCheckbox').checked,
+        commentTemplates: document.getElementById(
+            'commentTemplatesInput').value,
+        skipKeywords: document.getElementById(
+            'skipKeywordsInput').value
     };
 
     document.querySelectorAll('.tag').forEach(tag => {
@@ -257,9 +270,40 @@ function loadState() {
             );
         }
 
+        if (popupState.companyQuery) {
+            document.getElementById('companyQueryInput').value =
+                popupState.companyQuery;
+        }
+        if (popupState.targetCompanies) {
+            document.getElementById('targetCompanies').value =
+                popupState.targetCompanies;
+        }
+        if (popupState.feedReact !== undefined) {
+            document.getElementById('feedReactCheckbox').checked =
+                popupState.feedReact;
+        }
+        if (popupState.feedComment) {
+            document.getElementById('feedCommentCheckbox').checked =
+                true;
+            document.getElementById('commentSection')
+                .style.display = 'block';
+        }
+        if (popupState.commentTemplates) {
+            document.getElementById('commentTemplatesInput').value =
+                popupState.commentTemplates;
+        }
+        if (popupState.skipKeywords) {
+            document.getElementById('skipKeywordsInput').value =
+                popupState.skipKeywords;
+        }
+
         setActiveTemplate(popupState.activeTemplate || 'senior');
         updateQueryPreview();
         updateCharCounter();
+
+        if (popupState.currentMode) {
+            setMode(popupState.currentMode);
+        }
     });
 }
 
@@ -376,6 +420,16 @@ document.getElementById('scheduleInterval').addEventListener(
 );
 
 document.getElementById('startBtn').addEventListener('click', async () => {
+    if (currentMode === 'companies') {
+        return startCompanyFollow();
+    }
+    if (currentMode === 'feed') {
+        return startFeedEngage();
+    }
+    return startConnect();
+});
+
+async function startConnect() {
     const query = buildQuery();
     if (!query) {
         setStatusMessage(
@@ -399,19 +453,19 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     const limit = parseInt(
         document.getElementById('limitInput').value
     ) || 50;
-
-    const isEngagement = document.getElementById(
+    const engagementOnly = document.getElementById(
         'engagementOnlyCheckbox'
     ).checked;
+
     const weeklyCount = await getWeeklyCount();
-    if (!isEngagement && weeklyCount >= WEEKLY_LIMIT) {
+    if (!engagementOnly && weeklyCount >= WEEKLY_LIMIT) {
         setStatusMessage(
             `Weekly limit reached (${weeklyCount}/${WEEKLY_LIMIT}). Wait until next week or use Engagement mode.`,
             'error'
         );
         return;
     }
-    if (!isEngagement && weeklyCount + limit > WEEKLY_LIMIT) {
+    if (!engagementOnly && weeklyCount + limit > WEEKLY_LIMIT) {
         const remaining = WEEKLY_LIMIT - weeklyCount;
         setStatusMessage(
             `Only ${remaining} invites left this week (${weeklyCount}/${WEEKLY_LIMIT}). Limit auto-adjusted to ${remaining}.`,
@@ -442,26 +496,11 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         });
     });
 
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    startBtn.style.display = 'none';
-    stopBtn.style.display = 'flex';
-    document.getElementById('progressBox').style.display = 'block';
-    const verb = engagementOnly ? 'Engaged' : 'Sent';
-    document.getElementById('progressText').textContent =
-        `${verb} 0 / ${limit}`;
-    document.getElementById('progressMeta').textContent =
-        'Page 1';
-    setStatusMessage(
+    showProgressUI(engagementOnly ? 'Engaged' : 'Sent', limit,
         engagementOnly
             ? 'Navigating to search (engagement mode)...'
-            : 'Navigating to search... Do not close this popup or the tab.',
-        'info'
+            : 'Navigating to search... Do not close this popup or the tab.'
     );
-
-    const engagementOnly = document.getElementById(
-        'engagementOnlyCheckbox'
-    ).checked;
 
     chrome.runtime.sendMessage({
         action: 'start',
@@ -475,7 +514,106 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         sentUrls,
         engagementOnly
     });
-});
+}
+
+function startCompanyFollow() {
+    const query = document.getElementById(
+        'companyQueryInput'
+    ).value.trim();
+    if (!query) {
+        setStatusMessage(
+            'Enter a company search query.',
+            'warning'
+        );
+        return;
+    }
+    const limit = parseInt(
+        document.getElementById('limitInput').value
+    ) || 50;
+    const raw = document.getElementById(
+        'targetCompanies'
+    ).value.trim();
+    const targetCompanies = raw
+        ? raw.split('\n').map(s => s.trim()).filter(Boolean)
+        : [];
+
+    lastReportedSent = 0;
+    showProgressUI('Followed', limit,
+        'Navigating to company search...'
+    );
+
+    chrome.runtime.sendMessage({
+        action: 'startCompanyFollow',
+        query,
+        limit,
+        targetCompanies
+    });
+}
+
+function startFeedEngage() {
+    const limit = parseInt(
+        document.getElementById('limitInput').value
+    ) || 20;
+    const react = document.getElementById(
+        'feedReactCheckbox'
+    ).checked;
+    const comment = document.getElementById(
+        'feedCommentCheckbox'
+    ).checked;
+
+    if (!react && !comment) {
+        setStatusMessage(
+            'Enable at least one: react or comment.',
+            'warning'
+        );
+        return;
+    }
+
+    const rawTemplates = document.getElementById(
+        'commentTemplatesInput'
+    ).value.trim();
+    const commentTemplates = rawTemplates
+        ? rawTemplates.split('\n').map(s => s.trim())
+            .filter(Boolean)
+        : [];
+    const rawSkip = document.getElementById(
+        'skipKeywordsInput'
+    ).value.trim();
+    const skipKeywords = rawSkip
+        ? rawSkip.split('\n').map(s => s.trim())
+            .filter(Boolean)
+        : [];
+
+    lastReportedSent = 0;
+    showProgressUI('Engaged', limit,
+        'Navigating to feed...'
+    );
+
+    chrome.runtime.sendMessage({
+        action: 'startFeedEngage',
+        limit,
+        react,
+        comment,
+        commentTemplates,
+        skipKeywords
+    });
+}
+
+function showProgressUI(verb, limit, statusMsg) {
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    startBtn.style.display = 'none';
+    stopBtn.style.display = 'flex';
+    stopBtn.disabled = false;
+    stopBtn.textContent = 'Stop';
+    document.getElementById('progressBox')
+        .style.display = 'block';
+    document.getElementById('progressText').textContent =
+        `${verb} 0 / ${limit}`;
+    document.getElementById('progressMeta').textContent =
+        'Page 1';
+    setStatusMessage(statusMsg, 'info');
+}
 
 document.getElementById('stopBtn').addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'stop' });
@@ -510,18 +648,24 @@ document.getElementById('exportBtn').addEventListener('click', () => {
 
 chrome.runtime.onMessage.addListener((request) => {
     if (request.action === 'progress') {
-        const engMode = document.getElementById(
+        const isConnect = currentMode === 'connect';
+        const engMode = isConnect && document.getElementById(
             'engagementOnlyCheckbox'
         ).checked;
         const newSent = request.sent - lastReportedSent;
-        if (newSent > 0 && !engMode) {
+        if (newSent > 0 && isConnect && !engMode) {
             addToWeeklyCount(newSent);
             lastReportedSent = request.sent;
             updateWeeklyDisplay();
         } else if (newSent > 0) {
             lastReportedSent = request.sent;
         }
-        const verb = engMode ? 'Engaged' : 'Sent';
+        const verbMap = {
+            connect: engMode ? 'Engaged' : 'Sent',
+            companies: 'Followed',
+            feed: 'Engaged'
+        };
+        const verb = verbMap[currentMode] || 'Done';
         document.getElementById('progressText').textContent =
             `${verb} ${request.sent} / ${request.limit}`;
         const meta = [`Page ${request.page}`];
@@ -700,6 +844,85 @@ function loadRecentProfiles() {
         renderRecentProfiles(data.connectionHistory);
     });
 }
+
+let currentMode = 'connect';
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('connectSection')
+        .style.display = mode === 'connect' ? 'block' : 'none';
+    document.getElementById('companySection')
+        .style.display = mode === 'companies' ? 'block' : 'none';
+    document.getElementById('feedSection')
+        .style.display = mode === 'feed' ? 'block' : 'none';
+    document.getElementById('weeklyCounter')
+        .style.display = mode === 'connect' ? 'block' : 'none';
+
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        const isActive = btn.dataset.mode === mode;
+        btn.classList.toggle('active', isActive);
+        btn.style.background = isActive
+            ? 'var(--primary)' : 'var(--bg-color)';
+        btn.style.color = isActive
+            ? 'white' : 'var(--text-main)';
+        btn.style.borderColor = isActive
+            ? 'var(--primary)' : 'var(--border)';
+    });
+
+    const labels = {
+        connect: 'Launch Automation',
+        companies: 'Follow Companies',
+        feed: 'Engage Feed'
+    };
+    const startBtn = document.getElementById('startBtn');
+    startBtn.textContent = '';
+    const svg = document.createElementNS(
+        'http://www.w3.org/2000/svg', 'svg'
+    );
+    svg.setAttribute('width', '16');
+    svg.setAttribute('height', '16');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+    const poly = document.createElementNS(
+        'http://www.w3.org/2000/svg', 'polygon'
+    );
+    poly.setAttribute('points', '5 3 19 12 5 21 5 3');
+    svg.appendChild(poly);
+    startBtn.appendChild(svg);
+    startBtn.appendChild(
+        document.createTextNode(' ' + labels[mode])
+    );
+    startBtn.disabled = false;
+
+    saveState();
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        setMode(btn.dataset.mode);
+    });
+});
+
+document.getElementById('feedCommentCheckbox')
+    .addEventListener('change', (e) => {
+        document.getElementById('commentSection')
+            .style.display =
+                e.target.checked ? 'block' : 'none';
+        saveState();
+    });
+
+document.getElementById('feedReactCheckbox')
+    .addEventListener('change', saveState);
+document.getElementById('companyQueryInput')
+    .addEventListener('input', saveState);
+document.getElementById('targetCompanies')
+    .addEventListener('input', saveState);
+document.getElementById('commentTemplatesInput')
+    .addEventListener('input', saveState);
+document.getElementById('skipKeywordsInput')
+    .addEventListener('input', saveState);
 
 loadState();
 updateWeeklyDisplay();

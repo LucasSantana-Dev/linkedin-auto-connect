@@ -535,6 +535,99 @@
     </div>
 
     <div class="content">
+        <!-- MODE SELECTOR -->
+        <div class="section" style="margin-bottom:12px;">
+            <div class="section-label">Mode</div>
+            <div style="display:flex; gap:6px;">
+                <button class="mode-btn active"
+                    data-mode="connect"
+                    style="flex:1; padding:8px; border:1.5px solid var(--primary);
+                    border-radius:var(--radius-md); background:var(--primary);
+                    color:white; font-size:11px; font-weight:600; cursor:pointer;">
+                    Connect
+                </button>
+                <button class="mode-btn"
+                    data-mode="companies"
+                    style="flex:1; padding:8px; border:1.5px solid var(--border);
+                    border-radius:var(--radius-md); background:var(--bg-color);
+                    color:var(--text-main); font-size:11px; font-weight:600; cursor:pointer;">
+                    Companies
+                </button>
+                <button class="mode-btn"
+                    data-mode="feed"
+                    style="flex:1; padding:8px; border:1.5px solid var(--border);
+                    border-radius:var(--radius-md); background:var(--bg-color);
+                    color:var(--text-main); font-size:11px; font-weight:600; cursor:pointer;">
+                    Feed
+                </button>
+            </div>
+        </div>
+
+        <!-- COMPANY FOLLOW SECTION -->
+        <div id="companySection" style="display:none;">
+            <div class="section">
+                <div class="section-label">Company Search</div>
+                <div class="input-group">
+                    <label for="companyQueryInput">Search query</label>
+                    <input type="text" class="custom-query-input"
+                        id="companyQueryInput"
+                        style="display:block;"
+                        placeholder="e.g. Google, Microsoft, tech startup..." />
+                </div>
+                <div class="input-group">
+                    <label for="targetCompanies">
+                        Target companies (optional, one per line)
+                    </label>
+                    <textarea id="targetCompanies"
+                        class="note-area" rows="3"
+                        placeholder="Google&#10;Microsoft&#10;Meta&#10;Amazon&#10;Apple"></textarea>
+                </div>
+                <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">
+                    Leave empty to follow all results.
+                    Fill in to only follow matching companies.
+                </div>
+            </div>
+        </div>
+
+        <!-- FEED ENGAGE SECTION -->
+        <div id="feedSection" style="display:none;">
+            <div class="section">
+                <div class="section-label">Feed Engagement</div>
+                <div class="checkbox-group">
+                    <label for="feedReactCheckbox">React to posts</label>
+                    <input type="checkbox" id="feedReactCheckbox" checked />
+                </div>
+                <div class="checkbox-group">
+                    <label for="feedCommentCheckbox">Comment on posts</label>
+                    <input type="checkbox" id="feedCommentCheckbox" />
+                </div>
+                <div id="commentSection" style="display:none;">
+                    <div class="input-group">
+                        <label for="commentTemplatesInput">
+                            Comment templates (one per line)
+                        </label>
+                        <textarea id="commentTemplatesInput"
+                            class="note-area" rows="3"
+                            placeholder="Great insight on {topic}! Thanks for sharing.&#10;Really interesting perspective on {topic}.&#10;This is so relevant — thanks for posting!"></textarea>
+                    </div>
+                    <div style="font-size:10px; color:var(--text-muted); margin-top:4px;">
+                        {topic} = auto-detected from post content.
+                        A random template is picked per post.
+                    </div>
+                </div>
+                <div class="input-group" style="margin-top:8px;">
+                    <label for="skipKeywordsInput">
+                        Skip posts with keywords (one per line)
+                    </label>
+                    <textarea id="skipKeywordsInput"
+                        class="note-area" rows="2"
+                        placeholder="sponsored&#10;ad&#10;promoted"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONNECT SECTION (existing) -->
+        <div id="connectSection">
         <!-- SEARCH BUILDER -->
         <div class="section">
             <div class="section-label">Search Builder</div>
@@ -728,6 +821,7 @@
             This week: <strong id="weeklyCount">0</strong>
             / <span id="weeklyLimit">150</span> invites
         </div>
+        </div><!-- /connectSection -->
 
         <button id="startBtn">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>

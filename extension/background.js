@@ -154,10 +154,134 @@ function launchAutomation(config) {
     );
 }
 
+function launchCompanyFollow(config) {
+    let searchUrl =
+        'https://www.linkedin.com/search/results/' +
+        'companies/' +
+        `?keywords=${encodeURIComponent(config.query)}` +
+        '&origin=FACETED_SEARCH';
+
+    chrome.tabs.create(
+        { url: searchUrl, active: true },
+        (tab) => {
+            if (chrome.runtime.lastError || !tab) {
+                notifyError(
+                    'Failed to open company search: ' +
+                    (chrome.runtime.lastError?.message
+                        || 'unknown error')
+                );
+                return;
+            }
+            activeTabId = tab.id;
+            injectAndStart(tab.id,
+                ['lib/feed-utils.js', 'company-follow.js'],
+                'LINKEDIN_COMPANY_FOLLOW_START',
+                config
+            );
+        }
+    );
+}
+
+function launchFeedEngage(config) {
+    const feedUrl = 'https://www.linkedin.com/feed/';
+
+    chrome.tabs.create(
+        { url: feedUrl, active: true },
+        (tab) => {
+            if (chrome.runtime.lastError || !tab) {
+                notifyError(
+                    'Failed to open feed: ' +
+                    (chrome.runtime.lastError?.message
+                        || 'unknown error')
+                );
+                return;
+            }
+            activeTabId = tab.id;
+            injectAndStart(tab.id,
+                ['lib/feed-utils.js', 'feed-engage.js'],
+                'LINKEDIN_FEED_ENGAGE_START',
+                config
+            );
+        }
+    );
+}
+
+function injectAndStart(tabId, scripts, msgType, config) {
+    const timeout = setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(listener);
+        notifyError('Tab took too long to load.');
+    }, 60000);
+
+    function listener(updatedId, info) {
+        if (updatedId !== tabId ||
+            info.status !== 'complete') return;
+        clearTimeout(timeout);
+        chrome.tabs.onUpdated.removeListener(listener);
+
+        chrome.scripting.executeScript({
+            target: { tabId },
+            files: ['bridge.js'],
+            world: 'ISOLATED'
+        }, () => {
+            if (chrome.runtime.lastError) {
+                notifyError(
+                    'Bridge injection failed: ' +
+                    chrome.runtime.lastError.message
+                );
+                return;
+            }
+            injectScriptsSequentially(
+                tabId, scripts, 0, () => {
+                    chrome.tabs.sendMessage(tabId, {
+                        action: 'runCustom',
+                        msgType,
+                        config
+                    });
+                }
+            );
+        });
+    }
+
+    chrome.tabs.onUpdated.addListener(listener);
+}
+
+function injectScriptsSequentially(
+    tabId, scripts, idx, cb) {
+    if (idx >= scripts.length) { cb(); return; }
+    chrome.scripting.executeScript({
+        target: { tabId },
+        files: [scripts[idx]],
+        world: 'MAIN'
+    }, () => {
+        if (chrome.runtime.lastError) {
+            notifyError(
+                `Script injection failed: ` +
+                chrome.runtime.lastError.message
+            );
+            return;
+        }
+        injectScriptsSequentially(
+            tabId, scripts, idx + 1, cb
+        );
+    });
+}
+
 chrome.runtime.onMessage.addListener(
     (request, sender, sendResponse) => {
         if (request.action === 'start') {
             launchAutomation(request);
+            sendResponse({ status: 'started' });
+            return true;
+        }
+
+        if (request.action === 'startCompanyFollow') {
+            launchCompanyFollow(request);
+            sendResponse({ status: 'started' });
+            return true;
+        }
+
+        if (request.action === 'startFeedEngage') {
+            launchFeedEngage(request);
             sendResponse({ status: 'started' });
             return true;
         }
