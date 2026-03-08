@@ -21,7 +21,8 @@ function loadDashboard() {
         [
             weekKey, 'sentProfileUrls',
             'acceptedUrls', 'schedule',
-            'connectionHistory', 'fuseLimitRetry'
+            'connectionHistory', 'fuseLimitRetry',
+            'companyFollowHistory', 'feedEngageHistory'
         ],
         (data) => {
             const weekCount = data[weekKey] || 0;
@@ -67,6 +68,18 @@ function loadDashboard() {
                 }
             }
 
+            const companyHistory =
+                data.companyFollowHistory || [];
+            const companyCount = companyHistory
+                .filter(r => r.status === 'followed')
+                .length;
+            const feedHistory =
+                data.feedEngageHistory || [];
+            const feedCount = feedHistory
+                .filter(r =>
+                    !r.status?.startsWith('skipped'))
+                .length;
+
             document.getElementById('totalSkipped')
                 .textContent = skippedCount;
             document.getElementById('totalQuota')
@@ -75,6 +88,10 @@ function loadDashboard() {
                 .textContent = engagedCount;
             document.getElementById('totalFollowed')
                 .textContent = followedCount;
+            document.getElementById('totalCompanies')
+                .textContent = companyCount;
+            document.getElementById('totalFeed')
+                .textContent = feedCount;
 
             if (sentUrls.length > 0) {
                 const pct = Math.round(
@@ -106,8 +123,28 @@ function loadDashboard() {
                 sEl.textContent = 'Not scheduled';
             }
 
-            renderChart(history);
-            if (!history.length) return;
+            const companyEntries = companyHistory.map(r => ({
+                name: r.name || 'Unknown',
+                headline: r.subtitle || '',
+                profileUrl: r.companyUrl || '',
+                status: r.status === 'followed'
+                    ? 'company-followed' : r.status,
+                time: r.time
+            }));
+            const feedEntries = feedHistory.map(r => ({
+                name: r.author || 'Unknown',
+                headline: (r.postText || '')
+                    .substring(0, 80),
+                profileUrl: '',
+                status: 'feed-' + (r.status || ''),
+                time: r.time
+            }));
+            const allHistory = history
+                .concat(companyEntries)
+                .concat(feedEntries);
+
+            renderChart(allHistory);
+            if (!allHistory.length) return;
 
             document.getElementById('emptyMsg')
                 .style.display = 'none';
@@ -115,7 +152,12 @@ function loadDashboard() {
                 .style.display = 'table';
 
             const tbody = document.getElementById('logBody');
-            const recent = history.slice(-100).reverse();
+            const sorted = allHistory
+                .filter(r => r.time)
+                .sort((a, b) =>
+                    new Date(b.time) - new Date(a.time)
+                );
+            const recent = sorted.slice(0, 100);
 
             for (const r of recent) {
                 const tr = document.createElement('tr');
@@ -151,6 +193,12 @@ function loadDashboard() {
                     r.status === 'followed' ||
                     r.status === 'visited-followed') {
                     badge.className += 'badge-engaged';
+                } else if (r.status?.startsWith(
+                    'company-')) {
+                    badge.className += 'badge-company';
+                } else if (r.status?.startsWith(
+                    'feed-')) {
+                    badge.className += 'badge-feed';
                 } else {
                     badge.className += 'badge-skipped';
                 }
@@ -188,9 +236,15 @@ function renderChart(history) {
 
     const dayCounts = {};
     for (const r of history) {
-        if (!r.time || r.status !== 'sent') continue;
-        const day = r.time.substring(0, 10);
-        dayCounts[day] = (dayCounts[day] || 0) + 1;
+        if (!r.time) continue;
+        const s = r.status || '';
+        if (s === 'sent' ||
+            s === 'company-followed' ||
+            s.startsWith('feed-') &&
+            !s.includes('skipped')) {
+            const day = r.time.substring(0, 10);
+            dayCounts[day] = (dayCounts[day] || 0) + 1;
+        }
     }
 
     const today = new Date();
@@ -234,12 +288,31 @@ function renderChart(history) {
 
 function exportCsv() {
     chrome.storage.local.get(
-        ['connectionHistory', 'acceptedUrls'],
+        ['connectionHistory', 'acceptedUrls',
+            'companyFollowHistory', 'feedEngageHistory'],
         (data) => {
             const history = data.connectionHistory || [];
             const acceptedSet = new Set(
                 data.acceptedUrls || []
             );
+            const companyH =
+                (data.companyFollowHistory || []).map(r => ({
+                    name: r.name || '',
+                    headline: r.subtitle || '',
+                    profileUrl: r.companyUrl || '',
+                    status: 'company-' + (r.status || ''),
+                    time: r.time || ''
+                }));
+            const feedH =
+                (data.feedEngageHistory || []).map(r => ({
+                    name: r.author || '',
+                    headline: (r.postText || '')
+                        .substring(0, 80),
+                    profileUrl: '',
+                    status: 'feed-' + (r.status || ''),
+                    time: r.time || ''
+                }));
+            history.push(...companyH, ...feedH);
             const rows = [
                 ['Name', 'Headline', 'Profile URL',
                  'Status', 'Time'].join(',')

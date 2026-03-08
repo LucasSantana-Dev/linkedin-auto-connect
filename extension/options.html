@@ -207,6 +207,16 @@
             color: #7c3aed;
         }
 
+        .badge-company {
+            background: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+        }
+
+        .badge-feed {
+            background: rgba(5, 150, 105, 0.1);
+            color: #059669;
+        }
+
         .empty {
             text-align: center;
             padding: 40px;
@@ -281,7 +291,8 @@
             </div>
         </div>
     </div>
-    <div class="grid" style="grid-template-columns:1fr 1fr;">
+    <div class="grid"
+        style="grid-template-columns:repeat(4,1fr);">
         <div class="card">
             <div class="card-label">Engaged</div>
             <div class="card-value" id="totalEngaged"
@@ -296,6 +307,22 @@
                 style="color:#7c3aed">0</div>
             <div class="card-sub">
                 follow actions
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">Companies</div>
+            <div class="card-value" id="totalCompanies"
+                style="color:#2563eb">0</div>
+            <div class="card-sub">
+                companies followed
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-label">Feed</div>
+            <div class="card-value" id="totalFeed"
+                style="color:#059669">0</div>
+            <div class="card-sub">
+                posts reacted/commented
             </div>
         </div>
     </div>

@@ -148,6 +148,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
 
             return {
                 success: true,
+                mode: 'company',
                 message: `Followed ${totalFollowed} ` +
                     `companies.`,
                 log: followLog
@@ -155,6 +156,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
         } catch (error) {
             return {
                 success: false,
+                mode: 'company',
                 error: error.message,
                 log: followLog
             };

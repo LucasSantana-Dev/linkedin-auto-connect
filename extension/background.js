@@ -340,6 +340,23 @@ chrome.runtime.onMessage.addListener(
                     ? r.message || 'Automation complete.'
                     : 'Stopped: ' + (r?.error || 'Unknown')
             });
+            if (r?.log?.length && r?.mode) {
+                const key = r.mode === 'company'
+                    ? 'companyFollowHistory'
+                    : r.mode === 'feed'
+                        ? 'feedEngageHistory'
+                        : null;
+                if (key) {
+                    chrome.storage.local.get(key, (data) => {
+                        const existing = data[key] || [];
+                        const merged = existing
+                            .concat(r.log).slice(-500);
+                        chrome.storage.local.set({
+                            [key]: merged
+                        });
+                    });
+                }
+            }
         }
 
         if (request.action === 'checkAccepted') {

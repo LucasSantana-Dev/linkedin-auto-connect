@@ -422,6 +422,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
             return {
                 success: true,
+                mode: 'feed',
                 message: `Feed engagement done! ` +
                     `Interacted with ${totalEngaged} posts.`,
                 log: engageLog
@@ -429,6 +430,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         } catch (error) {
             return {
                 success: false,
+                mode: 'feed',
                 error: error.message,
                 log: engageLog
             };
