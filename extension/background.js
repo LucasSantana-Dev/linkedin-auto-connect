@@ -342,8 +342,35 @@ function injectScriptsSequentially(
 
 async function generateAIComment(data) {
     const { postText, existingComments, author,
-        authorTitle, lang, category, apiKey } = data;
+        authorTitle, lang, category, reactions,
+        apiKey } = data;
     if (!apiKey) return null;
+
+    var reactionCtx = '';
+    if (reactions && typeof reactions === 'object') {
+        var parts = [];
+        if (reactions.ENTERTAINMENT)
+            parts.push(reactions.ENTERTAINMENT +
+                ' Funny');
+        if (reactions.PRAISE)
+            parts.push(reactions.PRAISE +
+                ' Celebrate');
+        if (reactions.EMPATHY)
+            parts.push(reactions.EMPATHY +
+                ' Support');
+        if (reactions.INTEREST)
+            parts.push(reactions.INTEREST +
+                ' Insightful');
+        if (reactions.APPRECIATION)
+            parts.push(reactions.APPRECIATION +
+                ' Love');
+        if (reactions.LIKE)
+            parts.push(reactions.LIKE + ' Like');
+        if (parts.length > 0) {
+            reactionCtx = '\nReactions: ' +
+                parts.join(', ');
+        }
+    }
 
     const commentsCtx = existingComments?.length
         ? '\n\nOther comments on this post:\n' +
@@ -381,8 +408,8 @@ async function generateAIComment(data) {
         toneGuide =
             '\nTone: TECHNICAL post.' +
             ' Show you understood the content.' +
-            ' Ask a smart follow-up question OR' +
-            ' share a brief related experience.';
+            ' Share a brief related experience' +
+            ' or acknowledge a specific point.';
     }
 
     var authorCtx = 'Post by ' +
@@ -420,6 +447,9 @@ async function generateAIComment(data) {
         ' "cool", "interesting", "Great post",' +
         ' "Love this", "Thanks for sharing"' +
         '\n- NEVER use hashtags or emojis' +
+        '\n- NEVER ask questions — no "?", no' +
+        ' "how", "what", "why", "right?"' +
+        '\n- NEVER invite a reply or discussion' +
         '\n- NEVER be ironic, sarcastic, offensive' +
         ', polemic, or dismissive' +
         '\n- NEVER create discussion or controversy' +
@@ -427,6 +457,7 @@ async function generateAIComment(data) {
         '\n- Don\'t repeat what others said' +
         '\n\n' + authorCtx +
         ':\n' + (postText || '').substring(0, 800) +
+        reactionCtx +
         commentsCtx +
         '\n\nYour comment (raw text, no quotes,' +
         ' or "SKIP" if no good comment):';
@@ -468,10 +499,13 @@ async function generateAIComment(data) {
             .replace(/^["']|["']$/g, '')
             .replace(/^Comment:\s*/i, '')
             .trim();
-        var qWords = /^(how|what|where|when|why|which|is |are |do |does |can |could |would |have |has |como|qual|onde|quando|por que|você|vocês)/i;
-        if (qWords.test(comment) &&
-            !/[?]$/.test(comment)) {
-            comment = comment.replace(/[.]$/, '') + '?';
+        if (/\?\s*$/.test(comment)) {
+            console.log(
+                '[LinkedIn Bot] AI generated a ' +
+                'question, skipping: "' +
+                comment.substring(0, 60) + '"'
+            );
+            return null;
         }
         if (/^skip$/i.test(comment)) {
             console.log(

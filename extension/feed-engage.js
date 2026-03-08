@@ -1188,12 +1188,21 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             ? getPostAuthorTitle(post)
                             : '';
 
+                    var postReactions =
+                        typeof getPostReactions ===
+                            'function'
+                            ? getPostReactions(post)
+                            : {};
+
                     console.log(
                         '[LinkedIn Bot] Post by ' + author +
                         ': "' + postText.substring(0, 80) +
                         '..." | lang=' +
                         detectLanguage(postText) +
-                        ' cat=' + classifyPost(postText)
+                        ' cat=' + classifyPost(
+                            postText, postReactions) +
+                        ' reactions=' +
+                        JSON.stringify(postReactions)
                     );
 
                     if (!isReactablePost(post)) continue;
@@ -1257,7 +1266,8 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         var detectedLang =
                             detectLanguage(postText);
                         const category =
-                            classifyPost(postText);
+                            classifyPost(
+                                postText, postReactions);
                         const existing =
                             typeof getExistingComments ===
                                 'function'
@@ -1353,6 +1363,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                     authorTitle,
                                     lang,
                                     category,
+                                    reactions: postReactions,
                                     apiKey: aiApiKey
                                 });
                             if (comment) {
@@ -1449,7 +1460,8 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             entry: {
                                 mode: 'feed',
                                 category: classifyPost(
-                                    postText
+                                    postText,
+                                    postReactions
                                 ),
                                 reaction: actions.find(
                                     a => a !== 'commented'

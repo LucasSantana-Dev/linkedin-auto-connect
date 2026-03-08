@@ -151,15 +151,11 @@ var POST_CATEGORIES = {
 
 var CATEGORY_TEMPLATES = {
     hiring: [
-        'what does the day-to-day look like?',
-        'any remote flexibility on this one?',
         'know someone who might be a good fit, ' +
             'sharing',
-        'is {topic} the main focus or more of ' +
-            'a cross-functional thing?',
-        'what\'s the team size?',
-        'is this open to candidates ' +
-            'relocating from abroad?'
+        'great to see {topic} roles opening up',
+        'sharing for reach',
+        'saved this, know people who\'d be a fit'
     ],
     achievement: [
         'congrats!',
@@ -180,8 +176,6 @@ var CATEGORY_TEMPLATES = {
             'the hard way',
         'we debated this exact thing on our ' +
             'team last week',
-        'how do you handle {topic} at scale ' +
-            'though? that\'s where it gets messy',
         'our team switched to this approach ' +
             'and it made a real difference',
         '{topic} is one of those things ' +
@@ -193,7 +187,6 @@ var CATEGORY_TEMPLATES = {
         'been going back and forth on this too',
         'we tried both and honestly {topic} ' +
             'came down to "it depends"',
-        'following, curious what others think',
         'for me {keyPhrase}, but I get the ' +
             'other side too'
     ],
@@ -214,7 +207,6 @@ var CATEGORY_TEMPLATES = {
     critique: [
         'fair point honestly',
         'been thinking about this too',
-        'interesting perspective',
         'yeah this keeps coming up lately',
         '{keyPhrase} - interesting take'
     ],
@@ -226,10 +218,7 @@ var CATEGORY_TEMPLATES = {
     ],
     project: [
         'just checked it out, pretty cool',
-        'how long did this take?',
-        'is the code open source?',
-        'the {topic} part is nice, ' +
-            'what stack did you use?',
+        'the {topic} part is nice, bookmarked',
         'bookmarked, might try this out'
     ],
     jobseeking: [
@@ -238,8 +227,7 @@ var CATEGORY_TEMPLATES = {
             'something, sharing',
         'good luck with the search!',
         '{topic} people are in demand, ' +
-            'you\'ll find something',
-        'commented for the algorithm. you got this'
+            'you\'ll find something'
     ],
     newjob: [
         'congrats, good luck!',
@@ -254,13 +242,9 @@ var CATEGORY_TEMPLATES_PT = {
     hiring: [
         'vaga top, vou compartilhar na minha rede',
         'a área de {topic} tá muito aquecida',
-        'bom ver empresas investindo em {topic}. ' +
-            'boa sorte na busca!',
-        'esse tipo de vaga que eu gosto de ver ' +
-            'no feed. {keyPhrase}',
-        'salvei. conheço gente que pode se encaixar',
-        'interessante - como é a stack?',
-        'bom ver {topic} contratando'
+        'bom ver empresas investindo em {topic}',
+        'salvei, conheço gente que pode se encaixar',
+        'compartilhando pra dar alcance'
     ],
     achievement: [
         'parabéns!',
@@ -279,8 +263,6 @@ var CATEGORY_TEMPLATES_PT = {
         '{keyPhrase} - é, aprendi na marra também',
         'a gente debateu exatamente isso no time ' +
             'semana passada',
-        'como vc lida com {topic} em escala? ' +
-            'é aí que complica',
         'nosso time migrou pra essa abordagem ' +
             'e fez diferença real'
     ],
@@ -290,7 +272,6 @@ var CATEGORY_TEMPLATES_PT = {
         'também fico nessa dúvida',
         'a gente tentou dos dois jeitos e {topic} ' +
             'sempre foi "depende"',
-        'seguindo, curioso pelas respostas',
         'pra mim {keyPhrase}, mas entendo ' +
             'o outro lado'
     ],
@@ -311,7 +292,6 @@ var CATEGORY_TEMPLATES_PT = {
     critique: [
         'justo, faz sentido',
         'tô pensando nisso também',
-        'perspectiva interessante',
         'esse assunto tá aparecendo bastante',
         '{keyPhrase} - ponto interessante'
     ],
@@ -323,10 +303,7 @@ var CATEGORY_TEMPLATES_PT = {
     ],
     project: [
         'dei uma olhada, bem legal',
-        'quanto tempo levou?',
-        'o código tá aberto?',
-        'a parte de {topic} ficou boa, ' +
-            'qual stack vc usou?',
+        'a parte de {topic} ficou boa, salvei',
         'salvei, quero testar'
     ],
     jobseeking: [
@@ -347,124 +324,37 @@ var CATEGORY_TEMPLATES_PT = {
 };
 
 var CATEGORY_FOLLOW_UPS = {
-    technical: [
-        '', '',
-        ' what stack are you using for this?',
-        ' curious how you measured the impact.',
-        ' have you benchmarked this?',
-        ''
-    ],
-    question: [
-        '', '',
-        ' would love to hear more takes on this.',
-        ' what has your experience been?',
-        ''
-    ],
-    hiring: [
-        '', '', '',
-        ' is this remote-friendly?',
-        ''
-    ],
-    project: [
-        '', '',
-        ' what was the hardest part to build?',
-        ' is it open source?',
-        ''
-    ],
+    technical: ['', '', '', '', ''],
+    question: ['', '', '', '', ''],
+    hiring: ['', '', '', '', ''],
+    project: ['', '', '', '', ''],
     humor: ['', '', '', '', ''],
     newjob: ['', '', '', '', ''],
     achievement: ['', '', '', '', ''],
-    jobseeking: [
-        '', '',
-        ' what kind of role are you targeting?',
-        ''
-    ],
-    critique: [
-        '', '',
-        ' curious how others are handling this.',
-        ''
-    ],
-    story: [
-        '', '',
-        ' have you written more about this?',
-        ''
-    ],
-    tips: [
-        '', '',
-        ' any more resources on this?',
-        ''
-    ],
+    jobseeking: ['', '', '', '', ''],
+    critique: ['', '', '', '', ''],
+    story: ['', '', '', '', ''],
+    tips: ['', '', '', '', ''],
     motivation: ['', '', '', '', ''],
-    news: [
-        '', '',
-        ' curious how this plays out long-term.',
-        ''
-    ],
-    generic: [
-        '', '', '', '',
-        ' would love to connect and chat more.',
-        ''
-    ]
+    news: ['', '', '', '', ''],
+    generic: ['', '', '', '', '']
 };
 
 var CATEGORY_FOLLOW_UPS_PT = {
-    technical: [
-        '', '',
-        ' qual stack vc tá usando?',
-        ' curioso como mediu o impacto.',
-        ''
-    ],
-    question: [
-        '', '',
-        ' quero ver mais opiniões sobre isso.',
-        ' qual tem sido sua experiência?',
-        ''
-    ],
-    hiring: [
-        '', '', '',
-        ' aceita remoto?',
-        ''
-    ],
-    project: [
-        '', '',
-        ' qual foi a parte mais difícil de construir?',
-        ' é open source?',
-        ''
-    ],
+    technical: ['', '', '', '', ''],
+    question: ['', '', '', '', ''],
+    hiring: ['', '', '', '', ''],
+    project: ['', '', '', '', ''],
     humor: ['', '', '', '', ''],
     newjob: ['', '', '', '', ''],
     achievement: ['', '', '', '', ''],
-    jobseeking: [
-        '', '',
-        ' que tipo de vaga vc tá buscando?',
-        ''
-    ],
-    critique: [
-        '', '',
-        ' curioso como outros estão lidando com isso.',
-        ''
-    ],
-    story: [
-        '', '',
-        ' vc já escreveu mais sobre isso?',
-        ''
-    ],
-    tips: [
-        '', '',
-        ' tem mais material sobre isso?',
-        ''
-    ],
+    jobseeking: ['', '', '', '', ''],
+    critique: ['', '', '', '', ''],
+    story: ['', '', '', '', ''],
+    tips: ['', '', '', '', ''],
     motivation: ['', '', '', '', ''],
-    news: [
-        '', '',
-        ' curioso como isso se desenrola.',
-        ''
-    ],
-    generic: [
-        '', '', '', '',
-        ' bora conectar e trocar mais sobre isso.',
-        ''
-    ]
+    news: ['', '', '', '', ''],
+    generic: ['', '', '', '', '']
 };
 
 var OPENERS = [
@@ -578,8 +468,6 @@ var COMPOSED_EN = {
         (c) => 'had to learn ' + c[0] +
             ' on a deadline, not fun. ' +
             'bookmarking this',
-        (c) => 'how do you handle ' + c[0] +
-            ' at scale though?',
         (c) => 'our team debated ' + c[0] +
             (c[1] ? ' vs ' + c[1] : '') +
             ' just last week haha',
@@ -588,11 +476,9 @@ var COMPOSED_EN = {
             'about it this way',
     ],
     hiring: [
-        (c) => 'is this remote friendly?',
         (c) => 'know someone who\'d be a fit, sharing',
-        (c) => 'what\'s the team size' +
-            (c[0] ? ' for ' + c[0] : '') + '?',
-        (c) => 'cool, what\'s the stack?',
+        (c) => 'great to see ' +
+            (c[0] || 'this') + ' roles opening up',
         (c) => 'sharing for reach',
     ],
     achievement: [
@@ -607,7 +493,6 @@ var COMPOSED_EN = {
             ' start simple',
         (c) => 'been going back and forth on this too' +
             (c[0] ? ', especially with ' + c[0] : ''),
-        (c) => 'following, curious what others think',
     ],
     tips: [
         (c) => c[0]
@@ -627,9 +512,8 @@ var COMPOSED_EN = {
     news: [
         (c) => (c[0] || 'this') +
             ' is moving fast',
-        (c) => 'been watching ' +
-            (c[0] || 'this') +
-            ', curious where it goes',
+        (c) => 'been following ' +
+            (c[0] || 'this') + ' closely',
     ],
     humor: [
         (c) => 'hahaha' +
@@ -645,8 +529,6 @@ var COMPOSED_EN = {
         (c) => 'fair point' +
             (c[0] ? ' about ' + c[0] : ''),
         (c) => 'been thinking about this too',
-        (c) => 'interesting take' +
-            (c[0] ? ' on ' + c[0] : ''),
         (c) => 'yeah this comes up a lot in' +
             ' conversations lately',
     ],
@@ -658,11 +540,11 @@ var COMPOSED_EN = {
             '. good reminder',
     ],
     project: [
-        (c) => 'how long did ' +
-            (c[0] || 'this') + ' take?',
-        (c) => 'just checked it out, cool. ' +
-            'is the code open source?',
+        (c) => 'just checked it out, ' +
+            (c[0] || 'this') + ' looks solid',
         (c) => 'bookmarked, might try this',
+        (c) => 'nice work on the ' +
+            (c[0] || 'project') + ' part',
     ],
     jobseeking: [
         (c) => 'sharing for reach, good luck!',
@@ -678,7 +560,6 @@ var COMPOSED_EN = {
             (c[0] || 'it') + ' that way',
         (c) => 'a coworker was just talking about ' +
             (c[0] || 'this') + ' yesterday',
-        (c) => 'interesting take',
     ]
 };
 
@@ -691,8 +572,6 @@ var COMPOSED_PT = {
             'implementar de verdade',
         (c) => 'tive que aprender ' + c[0] +
             ' no susto, isso teria ajudado',
-        (c) => 'como vc lida com ' + c[0] +
-            ' em escala?',
         (c) => 'o time debateu ' + c[0] +
             (c[1] ? ' vs ' + c[1] : '') +
             ' semana passada haha',
@@ -701,12 +580,10 @@ var COMPOSED_PT = {
             'por esse lado',
     ],
     hiring: [
-        (c) => 'aceita remoto?',
         (c) => 'conheço gente que pode se encaixar',
-        (c) => 'como é o time' +
-            (c[0] ? ' de ' + c[0] : '') + '?',
+        (c) => 'bom ver vagas de ' +
+            (c[0] || 'tech') + ' abrindo',
         (c) => 'compartilhando pra dar alcance',
-        (c) => 'qual a stack?',
     ],
     achievement: [
         (c) => 'parabéns!',
@@ -720,7 +597,6 @@ var COMPOSED_PT = {
             ' começar simples',
         (c) => 'também fico nessa' +
             (c[0] ? ', ainda mais com ' + c[0] : ''),
-        (c) => 'seguindo, curioso pelas respostas',
     ],
     tips: [
         (c) => c[0]
@@ -740,8 +616,7 @@ var COMPOSED_PT = {
     news: [
         (c) => (c[0] || 'isso') + ' tá voando',
         (c) => 'acompanhando ' +
-            (c[0] || 'isso') +
-            ', curioso onde vai dar',
+            (c[0] || 'isso') + ' de perto',
     ],
     humor: [
         (c) => 'kkkkk' +
@@ -756,8 +631,6 @@ var COMPOSED_PT = {
         (c) => 'justo' +
             (c[0] ? ' sobre ' + c[0] : ''),
         (c) => 'tô pensando nisso também',
-        (c) => 'ponto interessante' +
-            (c[0] ? ' sobre ' + c[0] : ''),
         (c) => 'esse assunto tá aparecendo bastante' +
             ' ultimamente',
     ],
@@ -769,11 +642,11 @@ var COMPOSED_PT = {
             '. bom lembrete',
     ],
     project: [
-        (c) => 'quanto tempo levou ' +
-            (c[0] || 'isso') + '?',
-        (c) => 'dei uma olhada, legal. ' +
-            'o código tá aberto?',
+        (c) => 'dei uma olhada, ' +
+            (c[0] || 'isso') + ' ficou bom',
         (c) => 'salvei, quero testar',
+        (c) => 'a parte de ' +
+            (c[0] || 'projeto') + ' ficou massa',
     ],
     jobseeking: [
         (c) => 'compartilhando, boa sorte!',
@@ -789,7 +662,6 @@ var COMPOSED_PT = {
             (c[0] || 'isso') + ' assim',
         (c) => 'um colega tava falando de ' +
             (c[0] || 'isso') + ' ontem',
-        (c) => 'interessante',
     ]
 };
 

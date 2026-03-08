@@ -33,7 +33,7 @@ function getReactionType(postText, keywords) {
     return 'LIKE';
 }
 
-function classifyPost(postText) {
+function classifyPost(postText, reactions) {
     if (!postText) return 'generic';
     const lower = postText.toLowerCase();
     const scores = {};
@@ -51,6 +51,35 @@ function classifyPost(postText) {
             score *= 1.5;
         }
         scores[category] = score;
+    }
+
+    if (reactions && typeof reactions === 'object') {
+        var funny = reactions.ENTERTAINMENT || 0;
+        var celebrate = reactions.PRAISE || 0;
+        var support = reactions.EMPATHY || 0;
+        var insightful = reactions.INTEREST || 0;
+        var total = reactions._total || 0;
+        if (funny >= 3 || (total > 10 &&
+            funny / total > 0.3)) {
+            scores.humor = (scores.humor || 0) + 3;
+        }
+        if (celebrate >= 3 || (total > 10 &&
+            celebrate / total > 0.3)) {
+            scores.achievement =
+                (scores.achievement || 0) + 2;
+            scores.newjob =
+                (scores.newjob || 0) + 1.5;
+        }
+        if (insightful >= 3 || (total > 10 &&
+            insightful / total > 0.3)) {
+            scores.technical =
+                (scores.technical || 0) + 2;
+        }
+        if (support >= 3 || (total > 10 &&
+            support / total > 0.3)) {
+            scores.jobseeking =
+                (scores.jobseeking || 0) + 1.5;
+        }
     }
 
     let bestCategory = 'generic';
@@ -615,6 +644,7 @@ function isLowQualityComment(comment, postText) {
     var sarcasticRe =
         /\b(obviously|clearly|duh|sure buddy|yeah right|good luck with that|ironic|imagine thinking)\b/i;
     if (sarcasticRe.test(c)) return true;
+    if (/\?\s*$/.test(c)) return true;
     return false;
 }
 
@@ -659,6 +689,60 @@ function getPostAuthorTitle(postEl) {
         }
     }
     return '';
+}
+
+function getPostReactions(postEl) {
+    if (!postEl || !postEl.querySelector) return {};
+    var counts = {};
+    var reactionImgs = postEl.querySelectorAll(
+        'img[data-test-app-aware-reaction-type],' +
+        'img[alt*="reaction"],' +
+        'img[alt*="Reaction"],' +
+        'img[alt*="reactions"]'
+    );
+    for (var img of reactionImgs) {
+        var type = img.getAttribute(
+            'data-test-app-aware-reaction-type'
+        ) || '';
+        if (!type) {
+            var alt = (img.getAttribute('alt') || '')
+                .toLowerCase();
+            if (alt.includes('like')) type = 'LIKE';
+            else if (alt.includes('celebrat') ||
+                alt.includes('parabéns'))
+                type = 'PRAISE';
+            else if (alt.includes('support') ||
+                alt.includes('apoio'))
+                type = 'EMPATHY';
+            else if (alt.includes('insightful') ||
+                alt.includes('genial'))
+                type = 'INTEREST';
+            else if (alt.includes('funny') ||
+                alt.includes('engraçado'))
+                type = 'ENTERTAINMENT';
+            else if (alt.includes('love') ||
+                alt.includes('amei'))
+                type = 'APPRECIATION';
+        }
+        if (type) counts[type] = (counts[type] || 0) + 1;
+    }
+    var totalEl = postEl.querySelector(
+        '[data-testid*="social-counts"],' +
+        'button[aria-label*="reaction"],' +
+        'span[class*="social-detail"]'
+    );
+    if (totalEl) {
+        var totalText = (totalEl.innerText ||
+            totalEl.getAttribute('aria-label') || ''
+        );
+        var numMatch = totalText.match(/(\d[\d,]*)/);
+        if (numMatch) {
+            counts._total = parseInt(
+                numMatch[1].replace(/,/g, ''), 10
+            );
+        }
+    }
+    return counts;
 }
 
 function getPostUrn(postEl) {
@@ -802,6 +886,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getPostText,
         getPostAuthor,
         getPostAuthorTitle,
+        getPostReactions,
         getPostUrn,
         isLowQualityComment,
         isLikeButton,

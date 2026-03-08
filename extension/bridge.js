@@ -143,6 +143,7 @@ window.addEventListener('message', (event) => {
             authorTitle: event.data.authorTitle,
             lang: event.data.lang,
             category: event.data.category,
+            reactions: event.data.reactions,
             apiKey: event.data.apiKey
         }, (response) => {
             window.postMessage({
