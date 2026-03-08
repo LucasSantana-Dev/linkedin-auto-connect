@@ -76,6 +76,19 @@ function launchAutomation(config) {
                     }
                     chrome.scripting.executeScript({
                         target: { tabId: tab.id },
+                        files: ['lib/invite-utils.js'],
+                        world: 'MAIN'
+                    }, () => {
+                        if (chrome.runtime.lastError) {
+                            notifyError(
+                                'Utils injection failed: ' +
+                                chrome.runtime.lastError
+                                    .message
+                            );
+                            return;
+                        }
+                    chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
                         files: ['content.js'],
                         world: 'MAIN'
                     }, () => {
@@ -111,6 +124,7 @@ function launchAutomation(config) {
                                 }
                             }
                         );
+                    });
                     });
                 });
             }

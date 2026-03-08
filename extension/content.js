@@ -14,9 +14,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
             const url = typeof args[0] === 'string'
                 ? args[0]
                 : args[0]?.url || '';
-            if (url.includes(
-                'MemberRelationships') &&
-                url.includes('verifyQuotaAndCreate')) {
+            if (isInviteUrl(url)) {
                 lastInviteStatus = res.status;
                 if (res.status === 429) {
                     fuseLimitHit = true;
@@ -34,10 +32,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     };
     XMLHttpRequest.prototype.send = function() {
         if (this._linkedInUrl &&
-            this._linkedInUrl.includes(
-                'MemberRelationships') &&
-            this._linkedInUrl.includes(
-                'verifyQuotaAndCreate')) {
+            isInviteUrl(this._linkedInUrl)) {
             this.addEventListener('load', function() {
                 lastInviteStatus = this.status;
                 if (this.status === 429) {
@@ -55,31 +50,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
             await delay(500);
             if (lastInviteStatus === 429) return false;
 
-            const text = (button.innerText || '').trim()
-                .toLowerCase();
-            const ariaLabel = (
-                button.getAttribute('aria-label') || ''
-            ).toLowerCase();
-            if (text.includes('pending') ||
-                ariaLabel.includes('pending') ||
-                text.includes('pendente')) {
-                return true;
-            }
+            if (isPendingState(button)) return true;
             const card = button.closest(
                 '.entity-result, li, ' +
                 '[data-chameleon-result-urn]'
             );
-            if (card) {
-                const btns = card.querySelectorAll('button');
-                for (const b of btns) {
-                    const t = (b.innerText || '').trim()
-                        .toLowerCase();
-                    if (t.includes('pending') ||
-                        t.includes('pendente')) {
-                        return true;
-                    }
-                }
-            }
+            if (isPendingInCard(card)) return true;
         }
         return false;
     }
@@ -119,10 +95,8 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     });
 
     function detectChallenge() {
-        const url = window.location.href.toLowerCase();
-        if (url.includes('/checkpoint/') ||
-            url.includes('/authwall') ||
-            url.includes('/challenge/')) {
+        if (detectChallengeFromUrl(
+            window.location.href)) {
             return true;
         }
         const captcha = document.querySelector(
@@ -133,11 +107,8 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         );
         if (captcha) return true;
         const text = (document.body?.innerText || '')
-            .substring(0, 2000).toLowerCase();
-        return text.includes('security verification') ||
-            text.includes('verificação de segurança') ||
-            text.includes("let's do a quick") ||
-            text.includes('unusual activity');
+            .substring(0, 2000);
+        return detectChallengeFromText(text);
     }
 
     function reportProgress(sent, limit, page, skipped) {
@@ -198,23 +169,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         const modal = queryAll(
             '.artdeco-modal'
         ) || queryAll('[role="dialog"]');
-        if (!modal) return false;
-        const inputs = modal.querySelectorAll(
-            'input[type="text"], input[type="email"], input'
-        );
-        for (const input of inputs) {
-            const label = (
-                input.getAttribute('aria-label') ||
-                input.getAttribute('placeholder') || ''
-            ).toLowerCase();
-            if (label.includes('email') ||
-                label.includes('e-mail')) {
-                return true;
-            }
-        }
-        const text = (modal.innerText || '').toLowerCase();
-        return text.includes('enter their email') ||
-            text.includes('digite o e-mail');
+        return isEmailRequiredContent(modal);
     }
 
     function dismissInMailsModal() {
@@ -260,29 +215,27 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     }
 
     function extractPersonName(contextBtn) {
-        let name = 'there';
-
         const modal = queryAll(
             '.artdeco-modal.send-invite'
         ) || queryAll('[role="dialog"]');
         if (modal) {
             const strong = modal.querySelector('strong');
             if (strong) {
-                const fullName = (strong.textContent || '')
-                    .trim();
-                name = fullName.split(/\s+/)[0];
-                if (name) return name;
+                const first = extractFirstName(
+                    strong.textContent
+                );
+                if (first !== 'there') return first;
             }
         }
 
         if (contextBtn) {
             const aria =
                 contextBtn.getAttribute('aria-label') || '';
-            const m = aria.match(/Invite\s+(\S+)/i);
-            if (m) name = m[1];
+            const fromAria = extractNameFromAria(aria);
+            if (fromAria) return fromAria;
         }
 
-        return name;
+        return 'there';
     }
 
     function findTextarea() {
@@ -480,18 +433,6 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 const connectButtons = [];
                 const seen = new Set();
 
-                function isButtonClickable(el) {
-                    if (el.disabled ||
-                        el.hasAttribute('disabled')) {
-                        return false;
-                    }
-                    if (el.classList.contains(
-                        'artdeco-button--muted')) {
-                        return false;
-                    }
-                    return true;
-                }
-
                 const allElements = Array.from(
                     document.querySelectorAll(
                         'button:enabled, a'
@@ -501,22 +442,13 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     if (seen.has(el)) continue;
                     if (!isButtonClickable(el)) continue;
                     const text = (el.innerText || '').trim();
+                    if (shouldExcludeButton(text)) continue;
+
                     const ariaLabel = (
                         el.getAttribute('aria-label') || ''
                     );
-                    const lower = text.toLowerCase();
-
-                    if (lower.includes('message') ||
-                        lower.includes('following') ||
-                        lower.includes('withdraw') ||
-                        lower.includes('pending') ||
-                        lower.includes('pendente')) {
-                        continue;
-                    }
-
                     const isConnect =
-                        text === 'Connect' ||
-                        text === 'Conectar' ||
+                        isConnectButtonText(text) ||
                         (ariaLabel.toLowerCase()
                              .includes('invite') &&
                          ariaLabel.toLowerCase()
@@ -533,22 +465,17 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 );
                 for (const span of spans) {
                     const spanText = span.innerText.trim();
-                    if (spanText === 'Connect' ||
-                        spanText === 'Conectar') {
+                    if (isConnectButtonText(spanText)) {
                         const parent =
                             span.closest('button, a');
                         if (parent && !seen.has(parent) &&
-                            isButtonClickable(parent)) {
-                            const t = (parent.innerText || '')
-                                .trim().toLowerCase();
-                            if (!t.includes('message') &&
-                                !t.includes('following') &&
-                                !t.includes('withdraw') &&
-                                !t.includes('pending') &&
-                                !t.includes('pendente')) {
-                                seen.add(parent);
-                                connectButtons.push(parent);
-                            }
+                            isButtonClickable(parent) &&
+                            !shouldExcludeButton(
+                                (parent.innerText || '')
+                                    .trim()
+                            )) {
+                            seen.add(parent);
+                            connectButtons.push(parent);
                         }
                     }
                 }
