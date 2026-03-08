@@ -40,24 +40,76 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             );
             return posts;
         }
-        const fallback = document.querySelectorAll(
-            '[role="main"] > div > div > div'
+
+        const likeBtns = document.querySelectorAll(
+            'button[aria-label*="Like"], ' +
+            'button[aria-label*="Gostei"], ' +
+            'button[aria-label*="React"], ' +
+            'button[aria-label*="Reagir"], ' +
+            'button[aria-label*="Comment"], ' +
+            'button[aria-label*="Comentar"]'
         );
-        const real = [];
-        for (const el of fallback) {
-            if (el.querySelector(
-                'button[aria-label*="Like"], ' +
-                'button[aria-label*="Gostei"], ' +
-                'button[aria-label*="React"], ' +
-                'button[aria-label*="Reagir"]'
-            )) {
-                real.push(el);
-            }
-        }
         console.log(
             '[LinkedIn Bot] findPosts: primary=0, ' +
-            'fallback candidates=' + fallback.length +
-            ', with Like btn=' + real.length
+            'searching from ' + likeBtns.length +
+            ' action buttons'
+        );
+
+        const seen = new Set();
+        const real = [];
+        for (const btn of likeBtns) {
+            let el = btn.parentElement;
+            let depth = 0;
+            while (el && depth < 10) {
+                const urn = el.getAttribute('data-urn') ||
+                    el.getAttribute('data-id') || '';
+                if (urn && (urn.includes('activity') ||
+                    urn.includes('ugcPost'))) {
+                    if (!seen.has(urn)) {
+                        seen.add(urn);
+                        real.push(el);
+                    }
+                    break;
+                }
+                if (el.classList &&
+                    (el.classList.contains(
+                        'feed-shared-update-v2') ||
+                    el.classList.contains(
+                        'occludable-update'))) {
+                    const id = el.id || el.className;
+                    if (!seen.has(id)) {
+                        seen.add(id);
+                        real.push(el);
+                    }
+                    break;
+                }
+                el = el.parentElement;
+                depth++;
+            }
+            if (!el || depth >= 10) {
+                let container = btn;
+                for (let i = 0; i < 8; i++) {
+                    if (!container.parentElement) break;
+                    container = container.parentElement;
+                    const rect =
+                        container.getBoundingClientRect();
+                    if (rect.height > 150 &&
+                        rect.width > 400) {
+                        const key = container.tagName +
+                            rect.top + rect.left;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            real.push(container);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        console.log(
+            '[LinkedIn Bot] findPosts: found ' +
+            real.length + ' posts via button walk-up'
         );
         return real;
     }
@@ -293,6 +345,42 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         engageLog.length = 0;
 
         try {
+            await delay(3000);
+            if (findPosts().length === 0) {
+                console.log(
+                    '[LinkedIn Bot] No posts on first ' +
+                    'try, dumping DOM debug info...'
+                );
+                const allBtns = document.querySelectorAll(
+                    'button'
+                );
+                const labels = [];
+                for (const b of allBtns) {
+                    const l = b.getAttribute('aria-label');
+                    if (l) labels.push(l);
+                }
+                console.log(
+                    '[LinkedIn Bot] All button aria-labels:',
+                    [...new Set(labels)].slice(0, 30)
+                );
+                const allUrns = document.querySelectorAll(
+                    '[data-urn], [data-id]'
+                );
+                console.log(
+                    '[LinkedIn Bot] Elements with data-urn' +
+                    '/data-id:', allUrns.length
+                );
+                for (let i = 0; i < Math.min(5,
+                    allUrns.length); i++) {
+                    console.log(
+                        '  ', allUrns[i].tagName,
+                        allUrns[i].getAttribute('data-urn') ||
+                        allUrns[i].getAttribute('data-id'),
+                        allUrns[i].className.substring(0, 60)
+                    );
+                }
+            }
+
             while (totalEngaged < limit &&
                 scrollCount < MAX_SCROLLS) {
                 if (stopRequested) break;
