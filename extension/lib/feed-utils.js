@@ -391,9 +391,12 @@ function getPostAuthor(postEl) {
 function getPostUrn(postEl) {
     if (!postEl) return '';
     return postEl.getAttribute('data-urn') ||
+        postEl.getAttribute('data-entity-urn') ||
         postEl.getAttribute('data-id') ||
         postEl.querySelector('[data-urn]')
             ?.getAttribute('data-urn') ||
+        postEl.querySelector('[data-entity-urn]')
+            ?.getAttribute('data-entity-urn') ||
         postEl.querySelector('[data-id]')
             ?.getAttribute('data-id') || '';
 }

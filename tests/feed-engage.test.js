@@ -175,10 +175,32 @@ describe('getPostUrn', () => {
         );
     });
 
+    it('extracts data-entity-urn when no data-urn', () => {
+        const post = document.createElement('div');
+        post.setAttribute(
+            'data-entity-urn', 'urn:li:activity:99999'
+        );
+        expect(getPostUrn(post)).toBe(
+            'urn:li:activity:99999'
+        );
+    });
+
     it('extracts data-id when no data-urn', () => {
         const post = document.createElement('div');
         post.setAttribute('data-id', 'activity:67890');
         expect(getPostUrn(post)).toBe('activity:67890');
+    });
+
+    it('extracts data-entity-urn from child', () => {
+        const post = document.createElement('div');
+        const child = document.createElement('div');
+        child.setAttribute(
+            'data-entity-urn', 'urn:li:ugcPost:222'
+        );
+        post.appendChild(child);
+        expect(getPostUrn(post)).toBe(
+            'urn:li:ugcPost:222'
+        );
     });
 
     it('extracts from child element', () => {

@@ -69,22 +69,77 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         'APPRECIATION': 'Amei'
     };
 
+    function ensureActionBar(el) {
+        if (!el) return el;
+        const hasBtn = el.querySelector(
+            'button[aria-label*="Like"], ' +
+            'button[aria-label*="React"], ' +
+            'button[aria-label*="Comment"], ' +
+            'button[aria-label*="Gostei"], ' +
+            'button[aria-label*="Reagir"], ' +
+            'button[aria-label*="Comentar"], ' +
+            '.feed-shared-social-action-bar'
+        );
+        if (hasBtn) return el;
+        let parent = el.parentElement;
+        for (let i = 0; i < 5; i++) {
+            if (!parent) break;
+            if (parent.classList?.contains(
+                'feed-shared-update-v2') ||
+                parent.classList?.contains(
+                    'occludable-update')) {
+                return parent;
+            }
+            const bar = parent.querySelector(
+                '.feed-shared-social-action-bar'
+            );
+            if (bar) return parent;
+            parent = parent.parentElement;
+        }
+        return el;
+    }
+
+    function findActionButtons(postEl) {
+        const bar = postEl.querySelector(
+            '.feed-shared-social-action-bar, ' +
+            '[class*="social-action-bar"], ' +
+            '[class*="social-actions"]'
+        );
+        const scope = bar || postEl;
+        return scope.querySelectorAll('button');
+    }
+
     function findPosts() {
         const sel =
             'div[data-urn*="activity"], ' +
             'div[data-urn*="ugcPost"], ' +
             'div[data-id*="activity"], ' +
             'div[data-id*="ugcPost"], ' +
+            'div[data-entity-urn*="activity"], ' +
+            'div[data-entity-urn*="ugcPost"], ' +
             '.feed-shared-update-v2, ' +
             '.occludable-update, ' +
             'div.fie-impression-container';
-        const posts = document.querySelectorAll(sel);
+        let posts = document.querySelectorAll(sel);
         if (posts.length > 0) {
+            const adjusted = [];
+            const seen = new Set();
+            for (const p of posts) {
+                const wide = ensureActionBar(p);
+                const key = wide.getAttribute('data-urn') ||
+                    wide.getAttribute('data-entity-urn') ||
+                    wide.getAttribute('data-id') ||
+                    wide.className;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    adjusted.push(wide);
+                }
+            }
             console.log(
                 '[LinkedIn Bot] findPosts: matched ' +
-                posts.length + ' via primary selectors'
+                adjusted.length + ' via primary selectors'
             );
-            return posts;
+            return adjusted;
         }
 
         const likeBtns = document.querySelectorAll(
@@ -245,18 +300,21 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
     function getPostUrn(postEl) {
         const urn = postEl.getAttribute('data-urn') ||
+            postEl.getAttribute('data-entity-urn') ||
             postEl.getAttribute('data-id') ||
             postEl.querySelector('[data-urn]')
                 ?.getAttribute('data-urn') ||
+            postEl.querySelector('[data-entity-urn]')
+                ?.getAttribute('data-entity-urn') ||
             postEl.querySelector('[data-id]')
                 ?.getAttribute('data-id') || '';
         return urn;
     }
 
     async function reactToPost(postEl, reactionType) {
-        const likeBtns = postEl.querySelectorAll('button');
+        const actionBtns = findActionButtons(postEl);
         let likeBtn = null;
-        for (const btn of likeBtns) {
+        for (const btn of actionBtns) {
             const label = (
                 btn.getAttribute('aria-label') || ''
             ).toLowerCase();
@@ -275,11 +333,23 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         if (!likeBtn) {
             likeBtn = postEl.querySelector(
                 'button.react-button, ' +
+                'button.react-button__trigger, ' +
                 'button.reactions-react-button, ' +
-                'button.social-actions-button'
+                'button.social-actions-button, ' +
+                'button[aria-label*="React Like"]'
             );
         }
-        if (!likeBtn) return false;
+        if (!likeBtn) {
+            console.log(
+                '[LinkedIn Bot] No like button found. ' +
+                'Buttons in scope: ' +
+                [...actionBtns].map(b =>
+                    b.getAttribute('aria-label') ||
+                    (b.innerText || '').substring(0, 20)
+                ).slice(0, 10).join(', ')
+            );
+            return false;
+        }
 
         const alreadyLiked =
             likeBtn.getAttribute('aria-pressed') === 'true';
@@ -455,13 +525,21 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         sel.removeAllRanges();
         sel.addRange(range);
 
-        const inserted = document.execCommand(
-            'insertText', false, text
-        );
+        let inserted = false;
+        try {
+            inserted = document.execCommand(
+                'insertText', false, text
+            );
+        } catch (e) {}
 
-        if (!inserted || (editor.innerText || '')
-            .trim() !== text.trim()) {
-            editor.innerText = text;
+        const current = (editor.innerText || '').trim();
+        if (!inserted || current !== text.trim()) {
+            while (editor.firstChild) {
+                editor.removeChild(editor.firstChild);
+            }
+            const p = document.createElement('p');
+            p.textContent = text;
+            editor.appendChild(p);
         }
 
         for (const evtType of ['input', 'change']) {
@@ -471,14 +549,26 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 data: text
             }));
         }
-        for (const evtType of ['keydown', 'keypress',
-            'keyup']) {
+        for (const evtType of ['keydown', 'keyup']) {
             editor.dispatchEvent(new KeyboardEvent(
                 evtType, {
-                    bubbles: true, key: ' ',
-                    keyCode: 32, which: 32
+                    bubbles: true, key: 'a',
+                    keyCode: 65, which: 65
                 }
             ));
+        }
+
+        const nativeSetter =
+            Object.getOwnPropertyDescriptor(
+                HTMLElement.prototype, 'innerText'
+            )?.set;
+        if (nativeSetter) {
+            try {
+                nativeSetter.call(editor, text);
+                editor.dispatchEvent(new Event(
+                    'input', { bubbles: true }
+                ));
+            } catch (e) {}
         }
     }
 
@@ -507,11 +597,9 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
     }
 
     async function commentOnPost(postEl, commentText) {
-        const commentBtns = postEl.querySelectorAll(
-            'button'
-        );
+        const actionBtns = findActionButtons(postEl);
         let commentBtn = null;
-        for (const btn of commentBtns) {
+        for (const btn of actionBtns) {
             const label =
                 btn.getAttribute('aria-label') || '';
             const text = (btn.innerText ||
@@ -526,7 +614,12 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         }
         if (!commentBtn) {
             console.log(
-                '[LinkedIn Bot] No comment button found'
+                '[LinkedIn Bot] No comment button found.' +
+                ' Action buttons: ' +
+                [...actionBtns].map(b =>
+                    b.getAttribute('aria-label') ||
+                    (b.innerText || '').substring(0, 20)
+                ).slice(0, 10).join(', ')
             );
             return false;
         }
@@ -537,6 +630,22 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         await delay(300);
         commentBtn.click();
 
+        const editorSels = [
+            'div[role="textbox"]' +
+                '[contenteditable="true"]',
+            'div[contenteditable="true"]' +
+                '[aria-label*="Text editor"]',
+            'div[contenteditable="true"]' +
+                '[aria-label*="comment"]',
+            'div[contenteditable="true"]' +
+                '[aria-label*="comentário"]',
+            'div[contenteditable="true"]' +
+                '.ql-editor',
+            'div[contenteditable="true"]' +
+                '[class*="editor"]'
+        ];
+        const editorSelJoined = editorSels.join(', ');
+
         let editor = null;
         let searchScope = postEl;
         for (let i = 0; i < 12; i++) {
@@ -546,8 +655,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 findCommentSection(postEl);
             if (commentSection) {
                 editor = commentSection.querySelector(
-                    'div[role="textbox"]' +
-                    '[contenteditable="true"]'
+                    editorSelJoined
                 );
                 if (editor) {
                     searchScope = commentSection;
@@ -556,8 +664,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             }
 
             editor = postEl.querySelector(
-                'div[role="textbox"]' +
-                '[contenteditable="true"]'
+                editorSelJoined
             );
             if (editor) break;
 
@@ -565,8 +672,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             for (let d = 0; d < 3 && !editor; d++) {
                 if (!parent) break;
                 editor = parent.querySelector(
-                    'div[role="textbox"]' +
-                    '[contenteditable="true"]'
+                    editorSelJoined
                 );
                 if (editor) {
                     searchScope = parent;
@@ -614,10 +720,14 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     const text = (btn.innerText ||
                         btn.textContent || '').trim();
 
+                    const ctrlName =
+                        btn.getAttribute(
+                            'data-control-name') || '';
                     const isSubmit =
                         cls.includes('submit-button') ||
                         cls.includes('comments-comment-box' +
                             '__submit-button') ||
+                        ctrlName === 'submit_comment' ||
                         (cls.includes('comment') &&
                             (cls.includes('submit') ||
                             btn.type === 'submit')) ||

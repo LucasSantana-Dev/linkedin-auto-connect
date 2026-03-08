@@ -4,14 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [1.13.0] - 2026-03-08
 
-### Refactored
-- **Template data extraction**: Split `feed-utils.js` (1702→442 lines) into pure-logic functions and a new `templates.js` (1293 lines) containing all template data constants (POST_CATEGORIES, CATEGORY_TEMPLATES, COMPOSED_EN/PT, TOPIC_MAP, etc.)
-- **Dual-environment compatibility**: `var` destructuring with `typeof` guard enables Node.js `require()` in tests while Chrome MAIN world uses global scope from prior script injection
-
 ### Fixed
+- **Feed engagement not reacting/commenting**: Post container scoping now walks up to include `feed-shared-social-action-bar` when `data-urn` element doesn't contain action buttons — fixes LinkedIn DOM split where buttons are siblings, not children
+- **Like/Comment button discovery**: New `findActionButtons()` searches within `feed-shared-social-action-bar` first, with debug logging when buttons aren't found
+- **Comment editor detection**: Added Quill editor selectors (`aria-label*='Text editor'`, `aria-label*='comment'`, `.ql-editor`, `[class*="editor"]`) — LinkedIn migrated from `role="textbox"` to Quill-based contenteditable
+- **Comment text input**: Modernized `setEditorText()` — wraps `execCommand('insertText')` in try/catch (deprecated), DOM-safe fallback with `createElement('p')`, native `innerText` setter for React/Quill state sync
+- **Submit button detection**: Added `data-control-name='submit_comment'` selector
+- **Post URN detection**: Added `data-entity-urn` attribute to `getPostUrn()` (both feed-engage.js and lib/feed-utils.js)
 - **Stale branding**: Updated 5 notification titles in `background.js` from "LinkedIn Auto-Connect" to "LinkedIn Engage", fixed popup title, header text, and dashboard title
 - **Script injection order**: Added `lib/templates.js` to injection arrays in `background.js` for company-follow, feed-engage, and nurture modes — templates load before feed-utils in MAIN world
 - **Privacy policy wording**: Clarified nurture auto-cleanup as "after 10 days of inactivity"
+
+### Refactored
+- **Template data extraction**: Split `feed-utils.js` (1702→442 lines) into pure-logic functions and a new `templates.js` (1293 lines) containing all template data constants (POST_CATEGORIES, CATEGORY_TEMPLATES, COMPOSED_EN/PT, TOPIC_MAP, etc.)
+- **Dual-environment compatibility**: `var` destructuring with `typeof` guard enables Node.js `require()` in tests while Chrome MAIN world uses global scope from prior script injection
+- **Post discovery**: `findPosts()` now deduplicates and adjusts containers via `ensureActionBar()` — walks up DOM to find parent with action bar when primary selector returns narrow elements
+
+### Added
+- **2 new tests**: `data-entity-urn` extraction from post element and child elements (402 total)
 
 ## [1.12.0] - 2026-03-08
 
