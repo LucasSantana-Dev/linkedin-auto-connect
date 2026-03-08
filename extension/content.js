@@ -90,7 +90,38 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         );
         const profileUrl = linkEl
             ? linkEl.href.split('?')[0] : '';
-        return { name, headline, profileUrl };
+        const locEl = card.querySelector(
+            '.entity-result__secondary-subtitle'
+        );
+        const location = locEl
+            ? locEl.innerText.trim() : '';
+        const summaryEl = card.querySelector(
+            '.entity-result__summary'
+        );
+        const summary = summaryEl
+            ? summaryEl.innerText.trim() : '';
+        const imgEl = card.querySelector(
+            'img.presence-entity__image, ' +
+            'img.EntityPhoto-circle-5, ' +
+            'img[data-delayed-url]'
+        );
+        const photoUrl = imgEl
+            ? (imgEl.src || imgEl.dataset.delayedUrl
+                || '') : '';
+        const mutualEl = card.querySelector(
+            '.entity-result__simple-insight, ' +
+            '.member-insights__reason'
+        );
+        const mutualText = mutualEl
+            ? mutualEl.innerText.trim() : '';
+        const mutualMatch =
+            mutualText.match(/(\d+)\s*mutual/i);
+        const mutualConnections = mutualMatch
+            ? parseInt(mutualMatch[1]) : 0;
+        return {
+            name, headline, profileUrl, location,
+            summary, photoUrl, mutualConnections
+        };
     }
 
     function notifyNurture(info) {
