@@ -254,33 +254,29 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         }
 
         commentBtn.click();
-        await delay(2000);
 
-        let editor = postEl.querySelector(
-            'div[role="textbox"]' +
-            '[contenteditable="true"]'
-        );
-        if (!editor) {
-            editor = document.querySelector(
+        let editor = null;
+        for (let i = 0; i < 10; i++) {
+            await delay(500);
+            editor = postEl.querySelector(
                 'div[role="textbox"]' +
                 '[contenteditable="true"]'
             );
-        }
-        if (!editor) {
-            editor = postEl.querySelector(
-                '.ql-editor[contenteditable="true"], ' +
-                '[contenteditable="true"]' +
-                '[data-placeholder]'
-            );
-        }
-        if (!editor) {
-            editor = document.querySelector(
-                '.ql-editor[contenteditable="true"], ' +
-                '[contenteditable="true"]' +
-                '[data-placeholder*="comment"], ' +
-                '[contenteditable="true"]' +
-                '[data-placeholder*="comentário"]'
-            );
+            if (!editor) {
+                editor = document.querySelector(
+                    'div[role="textbox"]' +
+                    '[contenteditable="true"]'
+                );
+            }
+            if (!editor) {
+                editor = postEl.querySelector(
+                    '.ql-editor' +
+                    '[contenteditable="true"], ' +
+                    '[contenteditable="true"]' +
+                    '[data-placeholder]'
+                );
+            }
+            if (editor) break;
         }
         if (!editor) {
             console.log(
@@ -296,7 +292,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         setEditorText(editor, commentText);
         await delay(1500);
 
-        const allBtns = document.querySelectorAll(
+        const allBtns = postEl.querySelectorAll(
             'button'
         );
         let submitBtn = null;
@@ -306,7 +302,8 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 btn.getAttribute('aria-label') || '';
             const text = (btn.innerText ||
                 btn.textContent || '').trim();
-            if ((cls.includes('comment') &&
+            if (cls.includes('submit-button--cr') ||
+                (cls.includes('comment') &&
                 (cls.includes('submit') ||
                     btn.type === 'submit')) ||
                 label.includes('Post comment') ||
@@ -323,11 +320,13 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         }
 
         if (!submitBtn) {
-            const nearby = postEl.querySelectorAll(
-                'button[type="submit"], ' +
-                'button.artdeco-button--primary'
+            const fallback = document.querySelectorAll(
+                'button.comments-comment-box' +
+                '__submit-button--cr, ' +
+                'button[type="submit"]' +
+                '.artdeco-button--primary'
             );
-            for (const btn of nearby) {
+            for (const btn of fallback) {
                 if (!btn.disabled) {
                     submitBtn = btn;
                     break;
