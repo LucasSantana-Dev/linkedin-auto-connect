@@ -3,11 +3,14 @@
  */
 const {
     getReactionType,
+    classifyPost,
     buildCommentFromPost,
     extractTopic,
     isReactablePost,
     shouldSkipPost,
-    isCompanyFollowText
+    isCompanyFollowText,
+    POST_CATEGORIES,
+    CATEGORY_TEMPLATES
 } = require('../extension/lib/feed-utils');
 
 describe('getReactionType', () => {
@@ -71,11 +74,101 @@ describe('getReactionType', () => {
     });
 });
 
+describe('classifyPost', () => {
+    it('classifies hiring posts', () => {
+        expect(classifyPost(
+            'We\'re hiring a senior engineer! Join our team.'
+        )).toBe('hiring');
+    });
+
+    it('classifies achievement posts', () => {
+        expect(classifyPost(
+            'Excited to announce I\'ve been promoted ' +
+            'to Staff Engineer!'
+        )).toBe('achievement');
+    });
+
+    it('classifies technical posts', () => {
+        expect(classifyPost(
+            'How we improved our API latency by ' +
+            'refactoring the database layer and ' +
+            'adding caching with Redis'
+        )).toBe('technical');
+    });
+
+    it('classifies question posts', () => {
+        expect(classifyPost(
+            'What do you think about the future ' +
+            'of remote work? Curious to hear your thoughts?'
+        )).toBe('question');
+    });
+
+    it('classifies tips posts', () => {
+        expect(classifyPost(
+            'Pro tip: Here\'s what I learned about ' +
+            'writing clean code. Best practice is ' +
+            'to keep functions small.'
+        )).toBe('tips');
+    });
+
+    it('classifies story posts', () => {
+        expect(classifyPost(
+            'Let me tell you about my journey. ' +
+            '5 years ago I was rejected from every ' +
+            'company I applied to.'
+        )).toBe('story');
+    });
+
+    it('classifies news posts', () => {
+        expect(classifyPost(
+            'Just announced: The latest report shows ' +
+            'significant growth in the AI market. ' +
+            'Industry trend worth watching.'
+        )).toBe('news');
+    });
+
+    it('returns generic for unclassifiable posts', () => {
+        expect(classifyPost(
+            'Beautiful sunset today'
+        )).toBe('generic');
+    });
+
+    it('returns generic for empty/null text', () => {
+        expect(classifyPost('')).toBe('generic');
+        expect(classifyPost(null)).toBe('generic');
+    });
+
+    it('picks category with most keyword matches', () => {
+        expect(classifyPost(
+            'We\'re hiring! Open role for engineers. ' +
+            'Apply now and join our team. ' +
+            'Send your resume today.'
+        )).toBe('hiring');
+    });
+
+    it('classifies PT-BR hiring posts', () => {
+        expect(classifyPost(
+            'Estamos contratando! Vaga para dev senior.'
+        )).toBe('hiring');
+    });
+});
+
 describe('buildCommentFromPost', () => {
-    it('returns null with empty templates', () => {
-        expect(buildCommentFromPost('some text', [])).toBeNull();
-        expect(buildCommentFromPost('some text', null))
-            .toBeNull();
+    it('uses built-in templates when no user templates', () => {
+        const result = buildCommentFromPost(
+            'Excited to announce I got promoted!', null
+        );
+        expect(result).toBeTruthy();
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(10);
+    });
+
+    it('uses user templates when provided', () => {
+        const result = buildCommentFromPost(
+            'Great article about AI',
+            ['Nice post about {topic}!']
+        );
+        expect(result).toBe('Nice post about AI!');
     });
 
     it('replaces {topic} with extracted topic', () => {
@@ -94,20 +187,70 @@ describe('buildCommentFromPost', () => {
         expect(result).toContain('Re: Hello world');
     });
 
-    it('picks a random template', () => {
-        const templates = ['A', 'B', 'C'];
+    it('replaces {category} with detected category', () => {
+        const result = buildCommentFromPost(
+            'We\'re hiring engineers!',
+            ['Category: {category}']
+        );
+        expect(result).toBe('Category: hiring');
+    });
+
+    it('replaces all {topic} occurrences', () => {
+        const result = buildCommentFromPost(
+            'AI is great',
+            ['{topic} and {topic}']
+        );
+        expect(result).toBe('AI and AI');
+    });
+
+    it('uses category-appropriate built-in template', () => {
+        const results = new Set();
+        for (let i = 0; i < 30; i++) {
+            results.add(buildCommentFromPost(
+                'We\'re hiring! Open role for engineers.',
+                null
+            ));
+        }
+        for (const comment of results) {
+            expect(comment).toBeTruthy();
+            expect(comment.length).toBeGreaterThan(20);
+        }
+    });
+
+    it('picks random templates from pool', () => {
         const results = new Set();
         for (let i = 0; i < 50; i++) {
-            results.add(buildCommentFromPost('text', templates));
+            results.add(buildCommentFromPost(
+                'Just deployed our new Kubernetes cluster',
+                null
+            ));
         }
         expect(results.size).toBeGreaterThan(1);
     });
 });
 
 describe('extractTopic', () => {
-    it('returns matching topic', () => {
+    it('returns AI for AI-related text', () => {
         expect(extractTopic('AI is changing the world'))
             .toBe('AI');
+    });
+
+    it('returns specific tech topics', () => {
+        expect(extractTopic('We use React and Next.js'))
+            .toBe('frontend development');
+        expect(extractTopic('Deploying with Docker'))
+            .toBe('containerization');
+        expect(extractTopic('AWS Lambda is powerful'))
+            .toBe('cloud infrastructure');
+        expect(extractTopic('Python FastAPI backend'))
+            .toBe('Python');
+    });
+
+    it('returns career topics', () => {
+        expect(extractTopic('Tips for career growth'))
+            .toBe('career growth');
+        expect(extractTopic('Remote work is the future'))
+            .toBe('remote work');
     });
 
     it('returns "this topic" for unrecognized content', () => {
@@ -118,6 +261,13 @@ describe('extractTopic', () => {
     it('returns "this" for empty text', () => {
         expect(extractTopic('')).toBe('this');
         expect(extractTopic(null)).toBe('this');
+    });
+
+    it('matches first topic when multiple present', () => {
+        const result = extractTopic(
+            'AI and machine learning with Python'
+        );
+        expect(result).toBe('AI');
     });
 });
 
@@ -196,5 +346,46 @@ describe('isCompanyFollowText', () => {
     it('rejects empty', () => {
         expect(isCompanyFollowText('')).toBe(false);
         expect(isCompanyFollowText(null)).toBe(false);
+    });
+});
+
+describe('POST_CATEGORIES', () => {
+    it('has all expected categories', () => {
+        const expected = [
+            'hiring', 'achievement', 'technical',
+            'question', 'tips', 'story', 'news'
+        ];
+        for (const cat of expected) {
+            expect(POST_CATEGORIES[cat]).toBeDefined();
+            expect(POST_CATEGORIES[cat].length)
+                .toBeGreaterThan(0);
+        }
+    });
+});
+
+describe('CATEGORY_TEMPLATES', () => {
+    it('has templates for all categories plus generic', () => {
+        const expected = [
+            'hiring', 'achievement', 'technical',
+            'question', 'tips', 'story', 'news', 'generic'
+        ];
+        for (const cat of expected) {
+            expect(CATEGORY_TEMPLATES[cat]).toBeDefined();
+            expect(CATEGORY_TEMPLATES[cat].length)
+                .toBeGreaterThan(0);
+        }
+    });
+
+    it('most templates contain {topic} placeholder', () => {
+        let total = 0;
+        let withTopic = 0;
+        for (const templates of
+            Object.values(CATEGORY_TEMPLATES)) {
+            for (const tmpl of templates) {
+                total++;
+                if (tmpl.includes('{topic}')) withTopic++;
+            }
+        }
+        expect(withTopic / total).toBeGreaterThan(0.8);
     });
 });

@@ -267,11 +267,12 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         }
                     }
 
-                    if (doComment &&
-                        commentTemplates.length > 0) {
+                    if (doComment) {
                         const comment =
                             buildCommentFromPost(
-                                postText, commentTemplates
+                                postText,
+                                commentTemplates.length > 0
+                                    ? commentTemplates : null
                             );
                         if (comment) {
                             await delay(
