@@ -416,14 +416,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
     async function visitProfile(url) {
         try {
-            const iframe = document.createElement('iframe');
-            iframe.style.cssText =
-                'width:0;height:0;border:none;' +
-                'position:absolute;left:-9999px';
-            iframe.src = url;
-            document.body.appendChild(iframe);
+            const w = window.open(url, '_blank',
+                'width=100,height=100,left=-9999,top=-9999'
+            );
+            if (!w) return false;
             await delay(3000 + Math.random() * 2000);
-            iframe.remove();
+            try { w.close(); } catch (e) {}
             return true;
         } catch (e) {
             return false;
