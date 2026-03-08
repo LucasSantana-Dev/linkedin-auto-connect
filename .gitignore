@@ -5,3 +5,4 @@ cached-selectors.json
 .env
 *.log
 .DS_Store
+.claude/
