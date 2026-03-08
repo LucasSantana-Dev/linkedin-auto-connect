@@ -12,31 +12,27 @@ const WEEKLY_LIMIT = 150;
 let useCustomQuery = false;
 
 const DEFAULT_LATAM_COMPANIES = [
-    'Google', 'Microsoft', 'Amazon', 'Meta', 'Apple',
-    'Netflix', 'Spotify', 'Stripe', 'Shopify',
-    'Twilio', 'Cloudflare', 'Datadog', 'GitLab',
-    'GitHub', 'Elastic', 'MongoDB', 'HashiCorp',
-    'Canonical', 'Red Hat', 'IBM',
-    'Thoughtworks', 'EPAM', 'Globant', 'Endava',
-    'CI&T', 'BairesDev', 'Turing',
-    'Toptal', 'Deel', 'Remote',
-    'Coinbase', 'Binance', 'Mercado Libre',
-    'Nubank', 'iFood', 'Rappi', 'VTEX',
-    'PagSeguro', 'Stone', 'XP Inc',
-    'Salesforce', 'HubSpot', 'Atlassian',
-    'Oracle', 'SAP', 'VMware', 'Cisco',
-    'Uber', 'Airbnb', 'DoorDash', 'Block',
-    'Vercel', 'Supabase', 'PlanetScale',
-    'Notion', 'Figma', 'Canva', 'Linear',
-    'Wildlife Studios', 'Ubisoft', 'Rockstar',
-    'Andela', 'Nearform', 'X-Team',
-    'CrossOver', 'Terminal', 'Arc',
-    'Automattic', 'Basecamp', 'Zapier',
+    'Hotjar', 'Doist', 'Toggl', 'Pipefy', 'VTEX',
+    'Rock Content', 'Loft', 'CloudWalk', 'Olist',
+    'Vercel', 'Linear', 'Railway', 'Supabase',
     'Grafana Labs', 'Sentry', 'LaunchDarkly',
-    'Twitch', 'Discord', 'Slack',
-    'PayPal', 'Wise', 'Revolut',
-    'Docker', 'JetBrains', 'CircleCI',
-    'DigitalOcean', 'Akamai', 'Fastly'
+    'PostHog', 'Mux', 'Render', 'Fly.io',
+    'QuintoAndar', 'Dock', 'Creditas', 'Gupy',
+    'Flash', 'PicPay', 'Stone', 'Nuvemshop',
+    'RD Station', 'Movidesk', 'Portabilis',
+    'Jusbrasil', 'Pismo', 'Magrathea Labs',
+    'Globant', 'Endava', 'CI&T', 'BairesDev',
+    'Nearform', 'X-Team', 'Andela', 'Turing',
+    'Toptal', 'Deel', 'Remote', 'Revelo',
+    'Automattic', 'Zapier', 'Basecamp',
+    'Canonical', 'DigitalOcean', 'Elastic',
+    'HashiCorp', 'Docker', 'CircleCI',
+    'Datadog', 'Cloudflare', 'Fastly',
+    'GitLab', 'JetBrains', 'Notion',
+    'Wise', 'Revolut', 'Coinbase', 'Binance',
+    'Invillia', 'e-Core', 'Daitan', 'DB1',
+    'Arctouch', 'FCamara', 'Raro Labs',
+    'Codeminer42', 'Sambatech', 'SoftExpert'
 ].join('\n');
 
 function getWeekKey() {
@@ -955,6 +951,12 @@ document.getElementById('loadDefaultCompanies')
     .addEventListener('click', () => {
         document.getElementById('targetCompanies')
             .value = DEFAULT_LATAM_COMPANIES;
+        const queryInput = document.getElementById(
+            'companyQueryInput');
+        if (!queryInput.value.trim()) {
+            queryInput.value =
+                'remote software engineer hiring LATAM';
+        }
         saveState();
     });
 
