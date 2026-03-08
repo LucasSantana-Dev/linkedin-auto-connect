@@ -4,6 +4,17 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
     const delay = ms => new Promise(r => setTimeout(r, ms));
     let stopRequested = false;
     const followLog = [];
+    let consecutiveFails = 0;
+    let backoffMultiplier = 1;
+
+    function detectChallenge() {
+        const url = window.location.href;
+        if (/checkpoint|authwall|challenge/i.test(url)) {
+            return true;
+        }
+        const text = document.body?.innerText || '';
+        return /security verification|unusual activity|verificação de segurança/i.test(text);
+    }
 
     function findCompanyCards() {
         return document.querySelectorAll(
@@ -66,6 +77,14 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             if (totalFollowed >= limit ||
                 stopRequested) break;
 
+            if (detectChallenge()) {
+                console.log(
+                    '[LinkedIn Bot] CAPTCHA detected'
+                );
+                return -1;
+            }
+
+            try {
             const info = extractCompanyInfo(card);
 
             if (companies.length > 0 &&
@@ -105,6 +124,8 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
 
             if (success) {
                 totalFollowed++;
+                consecutiveFails = 0;
+                backoffMultiplier = 1;
                 followLog.push({
                     ...info,
                     status: 'followed',
@@ -124,6 +145,31 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             await delay(
                 1500 + Math.random() * 2500
             );
+
+            } catch (cardErr) {
+                console.log(
+                    '[LinkedIn Bot] Error on card:',
+                    cardErr.message
+                );
+                consecutiveFails++;
+                if (consecutiveFails >= 3) {
+                    const backoff = Math.min(
+                        30000 * backoffMultiplier +
+                        Math.random() * 5000,
+                        300000
+                    );
+                    backoffMultiplier *= 2;
+                    console.log(
+                        '[LinkedIn Bot] ' +
+                        consecutiveFails +
+                        ' consecutive fails, ' +
+                        'backing off ' +
+                        Math.round(backoff / 1000) + 's'
+                    );
+                    await delay(backoff);
+                    consecutiveFails = 0;
+                }
+            }
         }
 
         return totalFollowed;
@@ -146,6 +192,15 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             totalFollowed = await processCurrentPage(
                 companies, limit, totalFollowed
             );
+            if (totalFollowed === -1) {
+                return {
+                    success: false,
+                    mode: 'company',
+                    error: 'CAPTCHA or security ' +
+                        'challenge detected',
+                    log: followLog
+                };
+            }
 
             let queueIdx = 0;
             while (totalFollowed < limit &&
@@ -170,6 +225,15 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                 totalFollowed = await processCurrentPage(
                     companies, limit, totalFollowed
                 );
+                if (totalFollowed === -1) {
+                    return {
+                        success: false,
+                        mode: 'company',
+                        error: 'CAPTCHA or security ' +
+                            'challenge detected',
+                        log: followLog
+                    };
+                }
             }
 
             return {

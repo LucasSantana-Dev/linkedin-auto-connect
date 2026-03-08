@@ -4,6 +4,17 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
     const delay = ms => new Promise(r => setTimeout(r, ms));
     let stopRequested = false;
     const engageLog = [];
+    let consecutiveFails = 0;
+    let backoffMultiplier = 1;
+
+    function detectChallenge() {
+        const url = window.location.href;
+        if (/checkpoint|authwall|challenge/i.test(url)) {
+            return true;
+        }
+        const text = document.body?.innerText || '';
+        return /security verification|unusual activity|verificação de segurança/i.test(text);
+    }
 
     const REACTION_MAP = {
         'LIKE': 'Like',
@@ -471,6 +482,23 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     if (totalEngaged >= limit ||
                         stopRequested) break;
 
+                    if (detectChallenge()) {
+                        console.log(
+                            '[LinkedIn Bot] CAPTCHA detected'
+                        );
+                        if (newUrns.length > 0) {
+                            saveEngagedUrns(newUrns);
+                        }
+                        return {
+                            success: false,
+                            mode: 'feed',
+                            error: 'CAPTCHA or security ' +
+                                'challenge detected',
+                            log: engageLog
+                        };
+                    }
+
+                    try {
                     const urn = getPostUrn(post);
                     if (urn && processedUrns.has(urn)) {
                         continue;
@@ -543,6 +571,8 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
                     if (actions.length > 0) {
                         totalEngaged++;
+                        consecutiveFails = 0;
+                        backoffMultiplier = 1;
                         if (urn) newUrns.push(urn);
                         engageLog.push({
                             author,
@@ -563,6 +593,32 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     await delay(
                         2000 + Math.random() * 3000
                     );
+
+                    } catch (postErr) {
+                        console.log(
+                            '[LinkedIn Bot] Error on post:',
+                            postErr.message
+                        );
+                        consecutiveFails++;
+                        if (consecutiveFails >= 3) {
+                            const backoff = Math.min(
+                                30000 * backoffMultiplier +
+                                Math.random() * 5000,
+                                300000
+                            );
+                            backoffMultiplier *= 2;
+                            console.log(
+                                '[LinkedIn Bot] ' +
+                                consecutiveFails +
+                                ' consecutive fails, ' +
+                                'backing off ' +
+                                Math.round(backoff / 1000) +
+                                's'
+                            );
+                            await delay(backoff);
+                            consecutiveFails = 0;
+                        }
+                    }
                 }
 
                 if (totalEngaged >= limit) break;
@@ -591,6 +647,9 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 log: engageLog
             };
         } catch (error) {
+            if (newUrns.length > 0) {
+                saveEngagedUrns(newUrns);
+            }
             return {
                 success: false,
                 mode: 'feed',
