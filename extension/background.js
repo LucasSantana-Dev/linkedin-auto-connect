@@ -1,5 +1,17 @@
 let activeTabId = null;
 
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
+    if (info.status !== 'complete') return;
+    if (!tab.url ||
+        !tab.url.includes(
+            'linkedin.com/search/results/people'
+        )) return;
+    chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['search-filter.js']
+    }).catch(() => {});
+});
+
 importScripts('lib/rate-limiter.js');
 importScripts('lib/nurture.js');
 importScripts('lib/analytics.js');
