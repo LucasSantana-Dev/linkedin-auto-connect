@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.17.1] - 2026-03-09
+
 ### Fixed
 - **PT-BR connect note context in More-menu flow**: Connect actions discovered via `More` now preserve the original profile metadata (location/headline/summary), so Brazilian-profile detection no longer falls back to English notes
 
