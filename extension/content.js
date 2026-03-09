@@ -728,9 +728,11 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                     if (isConnect) {
                         seen.add(el);
+                        const profile = extractProfileInfo(el);
                         actionTargets.push({
                             button: el,
-                            action: 'connect'
+                            action: 'connect',
+                            profile
                         });
                     }
                 }
@@ -750,9 +752,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                                     .trim()
                             )) {
                             seen.add(parent);
+                            const profile =
+                                extractProfileInfo(parent);
                             actionTargets.push({
                                 button: parent,
-                                action: 'connect'
+                                action: 'connect',
+                                profile
                             });
                         }
                     }
@@ -777,17 +782,25 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         await tryConnectViaMore(card);
                     if (connectItem && !seen.has(connectItem)) {
                         seen.add(connectItem);
+                        const profile = extractProfileInfo(
+                            primaryBtn
+                        );
                         actionTargets.push({
                             button: connectItem,
-                            action: 'connect'
+                            action: 'connect',
+                            profile
                         });
                     } else if (!connectItem &&
                         !seen.has(primaryBtn) &&
                         isButtonClickable(primaryBtn)) {
                         seen.add(primaryBtn);
+                        const profile = extractProfileInfo(
+                            primaryBtn
+                        );
                         actionTargets.push({
                             button: primaryBtn,
-                            action: 'follow'
+                            action: 'follow',
+                            profile
                         });
                     }
                 }
@@ -848,6 +861,8 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     if (totalSent >= limit || stopRequested) break;
                     const button = target.button;
                     const actionType = target.action;
+                    const targetProfile =
+                        target.profile || {};
 
                     if (fuseLimitHit) {
                         connectionLog.push({
@@ -885,8 +900,9 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     }
 
                     try {
-                        const profile =
-                            extractProfileInfo(button);
+                        const profile = targetProfile.name
+                            ? targetProfile
+                            : extractProfileInfo(button);
                         if (profile.profileUrl &&
                             sentUrls.has(profile.profileUrl)) {
                             totalSkipped++;
