@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.17.0] - 2026-03-09
+
 ### Added
 - **Thread-style AI comment context**: Feed comment generation now summarizes existing comments (dominant sentiment, energy, brevity, common openers) and uses that style profile to produce comments that match the post conversation without copying phrases
 - **Visual + engagement tone context**: AI prompt now includes image signals, reaction intensity/dominant reaction, and author-role tone hints for more human-like, context-matched comments
