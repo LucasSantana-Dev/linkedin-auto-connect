@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.17.5] - 2026-03-09
+
+### Added
+- **Persistent search page filter**: New `search-filter.js` content script runs automatically on all LinkedIn people search pages (not just during automation), dimming cards that show "Message" instead of "Connect" — covers Open Profile users and already-connected people
+
+### Changed
+- **Moved filtering to content script**: URL sanitization and card dimming logic moved from `content.js` (automation-only) to a persistent content script registered in `manifest.json`, so filtering works when browsing search results manually
+
 ## [1.17.4] - 2026-03-09
 
 ### Fixed
