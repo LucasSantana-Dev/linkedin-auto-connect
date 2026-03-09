@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Humanization prompt tuning**: Reduced overly rigid AI constraints (formal grammar, forced one-word congrats, blanket no-emoji/no-question behavior) and replaced with thread-driven style rules based on emoji/question/exclamation rates to generate more natural, native-sounding comments
 - **Existing-comments-first grounding**: AI comments now prioritize thread keywords/phrase anchors extracted from existing comments and reject outputs that do not overlap with post/thread context
+- **Connect fallback behavior**: When a result only exposes `Follow` (no `Connect` in direct action or More menu), Connect mode now follows the profile instead of skipping it
 
 ### Fixed
 - **CI flake in human behavior timing tests**: `humanDelay()` now enforces the 500ms minimum after burst-delay calculations and clamps negative burst noise to zero, removing stochastic test failures in Node 18 matrix runs

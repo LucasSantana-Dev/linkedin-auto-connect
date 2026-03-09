@@ -14,6 +14,7 @@ const {
     extractFirstName,
     extractNameFromAria,
     isFollowButtonText,
+    isFollowingButtonText,
     isBrazilianProfile
 } = require('../extension/lib/invite-utils');
 
@@ -383,5 +384,31 @@ describe('isFollowButtonText', () => {
 
     it('rejects empty string', () => {
         expect(isFollowButtonText('')).toBe(false);
+    });
+});
+
+describe('isFollowingButtonText', () => {
+    it('matches "Following"', () => {
+        expect(isFollowingButtonText('Following')).toBe(true);
+    });
+
+    it('matches "Seguindo" (PT-BR)', () => {
+        expect(isFollowingButtonText('Seguindo')).toBe(true);
+    });
+
+    it('matches with whitespace', () => {
+        expect(isFollowingButtonText('  Following  ')).toBe(true);
+    });
+
+    it('rejects "Follow"', () => {
+        expect(isFollowingButtonText('Follow')).toBe(false);
+    });
+
+    it('rejects "Connect"', () => {
+        expect(isFollowingButtonText('Connect')).toBe(false);
+    });
+
+    it('rejects empty string', () => {
+        expect(isFollowingButtonText('')).toBe(false);
     });
 });

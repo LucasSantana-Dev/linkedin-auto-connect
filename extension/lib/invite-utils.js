@@ -104,6 +104,11 @@ function isFollowButtonText(text) {
     return t === 'Follow' || t === 'Seguir';
 }
 
+function isFollowingButtonText(text) {
+    const t = text.trim();
+    return t === 'Following' || t === 'Seguindo';
+}
+
 function extractNameFromAria(ariaLabel) {
     const m = (ariaLabel || '').match(/Invite\s+(\S+)/i);
     return m ? m[1] : null;
@@ -158,6 +163,7 @@ if (typeof module !== 'undefined' && module.exports) {
         extractFirstName,
         extractNameFromAria,
         isFollowButtonText,
+        isFollowingButtonText,
         isBrazilianProfile
     };
 }

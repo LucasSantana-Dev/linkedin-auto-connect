@@ -66,6 +66,19 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         return false;
     }
 
+    async function verifyFollowState(button) {
+        for (let i = 0; i < 6; i++) {
+            await delay(400);
+            const text = (button.innerText || '').trim();
+            const aria = button.getAttribute('aria-label') || '';
+            if (isFollowingButtonText(text) ||
+                isFollowingButtonText(aria)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function extractProfileInfo(btn) {
         const card = btn.closest(
             '.entity-result, li, ' +
@@ -689,7 +702,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 window.scrollTo(0, 0);
                 await delay(1000);
 
-                const connectButtons = [];
+                const actionTargets = [];
                 const seen = new Set();
 
                 const allElements = Array.from(
@@ -715,7 +728,10 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                     if (isConnect) {
                         seen.add(el);
-                        connectButtons.push(el);
+                        actionTargets.push({
+                            button: el,
+                            action: 'connect'
+                        });
                     }
                 }
 
@@ -734,7 +750,10 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                                     .trim()
                             )) {
                             seen.add(parent);
-                            connectButtons.push(parent);
+                            actionTargets.push({
+                                button: parent,
+                                action: 'connect'
+                            });
                         }
                     }
                 }
@@ -758,7 +777,18 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         await tryConnectViaMore(card);
                     if (connectItem && !seen.has(connectItem)) {
                         seen.add(connectItem);
-                        connectButtons.push(connectItem);
+                        actionTargets.push({
+                            button: connectItem,
+                            action: 'connect'
+                        });
+                    } else if (!connectItem &&
+                        !seen.has(primaryBtn) &&
+                        isButtonClickable(primaryBtn)) {
+                        seen.add(primaryBtn);
+                        actionTargets.push({
+                            button: primaryBtn,
+                            action: 'follow'
+                        });
                     }
                 }
 
@@ -784,12 +814,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                 const networked = [];
                 const unnetworked = [];
-                for (const btn of connectButtons) {
-                    const info = getCardInfo(btn);
+                for (const target of actionTargets) {
+                    const info = getCardInfo(target.button);
                     if (info.mutual || info.degree <= 2) {
-                        networked.push({ btn, ...info });
+                        networked.push({ target, ...info });
                     } else {
-                        unnetworked.push({ btn, ...info });
+                        unnetworked.push({ target, ...info });
                     }
                 }
 
@@ -800,13 +830,13 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 });
 
                 const sorted = [
-                    ...networked.map(x => x.btn),
-                    ...unnetworked.map(x => x.btn)
+                    ...networked.map(x => x.target),
+                    ...unnetworked.map(x => x.target)
                 ];
 
-                const totalFound = connectButtons.length;
-                connectButtons.length = 0;
-                connectButtons.push(...sorted);
+                const totalFound = actionTargets.length;
+                actionTargets.length = 0;
+                actionTargets.push(...sorted);
 
                 console.log(
                     `[LinkedIn Bot] ${totalFound} found` +
@@ -814,8 +844,10 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     ` ${unnetworked.length} unnetworked)`
                 );
 
-                for (const button of connectButtons) {
+                for (const target of actionTargets) {
                     if (totalSent >= limit || stopRequested) break;
+                    const button = target.button;
+                    const actionType = target.action;
 
                     if (fuseLimitHit) {
                         connectionLog.push({
@@ -883,6 +915,47 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         button.setAttribute(
                             'disabled', 'disabled'
                         );
+
+                        if (actionType === 'follow') {
+                            const followVerified =
+                                await verifyFollowState(button);
+                            if (followVerified) {
+                                totalSent++;
+                                const followedInfo =
+                                    extractProfileInfo(button);
+                                if (followedInfo.profileUrl) {
+                                    sentUrls.add(
+                                        followedInfo.profileUrl
+                                    );
+                                }
+                                connectionLog.push({
+                                    ...followedInfo,
+                                    status: 'followed',
+                                    time: new Date()
+                                        .toISOString()
+                                });
+                            } else {
+                                totalSkipped++;
+                                connectionLog.push({
+                                    ...extractProfileInfo(
+                                        button
+                                    ),
+                                    status: 'skipped-unverified',
+                                    reason:
+                                        'follow-not-confirmed',
+                                    time: new Date()
+                                        .toISOString()
+                                });
+                            }
+                            reportProgress(
+                                totalSent, limit,
+                                currentPage, totalSkipped
+                            );
+                            await delay(
+                                1500 + Math.random() * 2500
+                            );
+                            continue;
+                        }
 
                         let inviteBtns = {
                             addNote: null,

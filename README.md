@@ -10,6 +10,7 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **300-char validation** — enforces LinkedIn's invitation note character limit
 - **Smart prioritization** — profiles with mutual connections and closer network degree are processed first
 - **Follow-to-Connect** — handles profiles showing "Follow" instead of "Connect" by opening the "More" menu to find the hidden Connect option
+- **Connect mode follow fallback** — if a profile has only `Follow` and no `Connect` option, Connect mode follows the person instead of skipping
 - **Email modal detection** — auto-skips profiles that require email verification (3rd+ degree with no mutuals)
 - **LATAM recruiter targeting** — Market Focus tags (LATAM, Brazil, Nearshore, Remote) + configurable recruiter region selector
 - **"Actively Hiring" filter** — leverages LinkedIn's undocumented `activelyHiring=true` URL parameter
