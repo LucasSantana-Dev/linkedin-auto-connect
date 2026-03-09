@@ -13,7 +13,9 @@ const {
     isEmailRequiredContent,
     extractFirstName,
     extractNameFromAria,
-    isFollowButtonText
+    isFollowButtonText,
+    isFollowingButtonText,
+    isBrazilianProfile
 } = require('../extension/lib/invite-utils');
 
 describe('isButtonClickable', () => {
@@ -329,6 +331,32 @@ describe('extractNameFromAria', () => {
     });
 });
 
+describe('isBrazilianProfile', () => {
+    it('detects Brazil by location', () => {
+        expect(isBrazilianProfile({
+            location: 'São Paulo, Brazil',
+            headline: 'Software Engineer',
+            summary: ''
+        })).toBe(true);
+    });
+
+    it('detects Portuguese cues in headline/summary', () => {
+        expect(isBrazilianProfile({
+            location: 'Lisbon, Portugal',
+            headline: 'Engenheiro de Software',
+            summary: 'Atuando com times de produto e dados'
+        })).toBe(true);
+    });
+
+    it('returns false for non-Brazilian profile', () => {
+        expect(isBrazilianProfile({
+            location: 'Berlin, Germany',
+            headline: 'Senior Backend Engineer',
+            summary: 'Building distributed systems'
+        })).toBe(false);
+    });
+});
+
 describe('isFollowButtonText', () => {
     it('matches "Follow"', () => {
         expect(isFollowButtonText('Follow')).toBe(true);
@@ -356,5 +384,31 @@ describe('isFollowButtonText', () => {
 
     it('rejects empty string', () => {
         expect(isFollowButtonText('')).toBe(false);
+    });
+});
+
+describe('isFollowingButtonText', () => {
+    it('matches "Following"', () => {
+        expect(isFollowingButtonText('Following')).toBe(true);
+    });
+
+    it('matches "Seguindo" (PT-BR)', () => {
+        expect(isFollowingButtonText('Seguindo')).toBe(true);
+    });
+
+    it('matches with whitespace', () => {
+        expect(isFollowingButtonText('  Following  ')).toBe(true);
+    });
+
+    it('rejects "Follow"', () => {
+        expect(isFollowingButtonText('Follow')).toBe(false);
+    });
+
+    it('rejects "Connect"', () => {
+        expect(isFollowingButtonText('Connect')).toBe(false);
+    });
+
+    it('rejects empty string', () => {
+        expect(isFollowingButtonText('')).toBe(false);
     });
 });

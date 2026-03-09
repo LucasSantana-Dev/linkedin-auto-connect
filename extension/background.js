@@ -340,37 +340,222 @@ function injectScriptsSequentially(
     });
 }
 
+function formatReactionContext(reactions) {
+    if (!reactions || typeof reactions !== 'object') {
+        return '';
+    }
+    var parts = [];
+    if (reactions.ENTERTAINMENT)
+        parts.push(reactions.ENTERTAINMENT + ' Funny');
+    if (reactions.PRAISE)
+        parts.push(reactions.PRAISE + ' Celebrate');
+    if (reactions.EMPATHY)
+        parts.push(reactions.EMPATHY + ' Support');
+    if (reactions.INTEREST)
+        parts.push(reactions.INTEREST + ' Insightful');
+    if (reactions.APPRECIATION)
+        parts.push(reactions.APPRECIATION + ' Love');
+    if (reactions.LIKE)
+        parts.push(reactions.LIKE + ' Like');
+    if (parts.length === 0) return '';
+    return '\nReactions: ' + parts.join(', ');
+}
+
+function inferAuthorRoleTone(authorTitle) {
+    var title = (authorTitle || '').toLowerCase();
+    if (!title) return '';
+    if (/recruit|talent|hr|people ops/.test(title)) {
+        return 'career and people-focused';
+    }
+    if (/founder|ceo|coo|cfo|director|head of|vp/.test(title)) {
+        return 'strategic and leadership-focused';
+    }
+    if (/engineer|developer|architect|devops|data|cto/.test(title)) {
+        return 'technical peer-to-peer';
+    }
+    if (/product|designer|ux|ui/.test(title)) {
+        return 'product and execution-focused';
+    }
+    return 'professional and practical';
+}
+
+function formatThreadStyleContext(commentThreadSummary) {
+    if (!commentThreadSummary ||
+        !commentThreadSummary.count) {
+        return '';
+    }
+    var openers = commentThreadSummary.commonOpeners;
+    var openerText = Array.isArray(openers) &&
+        openers.length
+        ? '\nCommon openings: ' +
+            openers.slice(0, 2).join(' | ')
+        : '';
+    return '\nComment thread style:' +
+        '\n- dominant tone: ' +
+            commentThreadSummary.styleHint +
+        '\n- dominant sentiment: ' +
+            commentThreadSummary.dominantSentiment +
+        '\n- length style: ' +
+            commentThreadSummary.brevity +
+        '\n- energy: ' +
+            commentThreadSummary.energy +
+        openerText;
+}
+
+function formatThreadTopicContext(commentThreadSummary) {
+    if (!commentThreadSummary ||
+        !commentThreadSummary.count) {
+        return '';
+    }
+    var keywords = Array.isArray(
+        commentThreadSummary.keywords
+    ) ? commentThreadSummary.keywords.slice(0, 6) : [];
+    var phrases = Array.isArray(
+        commentThreadSummary.samplePhrases
+    ) ? commentThreadSummary.samplePhrases.slice(0, 2) : [];
+    var keywordCtx = keywords.length
+        ? '\nThread keywords: ' + keywords.join(', ')
+        : '';
+    var phraseCtx = phrases.length
+        ? '\nThread phrase samples: ' +
+            phrases.join(' | ')
+        : '';
+    return keywordCtx + phraseCtx;
+}
+
+function formatImageContext(imageSignals) {
+    if (!imageSignals || !imageSignals.hasImage) {
+        return '';
+    }
+    var cues = Array.isArray(imageSignals.cues)
+        ? imageSignals.cues : [];
+    var samples = Array.isArray(imageSignals.samples)
+        ? imageSignals.samples : [];
+    var cueText = cues.length
+        ? '\nImage cues: ' + cues.join(', ')
+        : '';
+    var sampleText = samples.length
+        ? '\nImage text hints: ' +
+            samples.slice(0, 2).join(' | ')
+        : '';
+    return '\nVisual context: post has image(s).' +
+        cueText + sampleText;
+}
+
+function formatEngagementContext(reactionSummary) {
+    if (!reactionSummary ||
+        !reactionSummary.total) {
+        return '';
+    }
+    return '\nEngagement context:' +
+        '\n- total reactions: ' + reactionSummary.total +
+        '\n- dominant reaction: ' +
+            (reactionSummary.dominant || 'LIKE') +
+        '\n- intensity: ' +
+            (reactionSummary.intensity || 'low');
+}
+
+function buildHumanVoiceRules(commentThreadSummary, category) {
+    if (!commentThreadSummary ||
+        !commentThreadSummary.count) {
+        return '\n- Keep it conversational, concise,' +
+            ' and natural.';
+    }
+    var targetLen = commentThreadSummary.brevity === 'long'
+        ? '80-140 chars'
+        : commentThreadSummary.brevity === 'medium'
+            ? '55-110 chars'
+            : '35-90 chars';
+    var emojiRule = commentThreadSummary.emojiRate > 0.25
+        ? '\n- Emoji use is common here: you may use' +
+            ' at most one emoji if it feels natural.'
+        : '\n- Avoid emojis unless they feel necessary' +
+            ' for this thread vibe.';
+    var allowQuestion =
+        commentThreadSummary.questionRate > 0.35 &&
+        category !== 'achievement' &&
+        category !== 'newjob' &&
+        category !== 'critique';
+    var questionRule = allowQuestion
+        ? '\n- A short question is allowed if it' +
+            ' mirrors the thread style.'
+        : '\n- Prefer statements over questions.';
+    var energyRule = commentThreadSummary.energy === 'high'
+        ? '\n- Keep an energetic, expressive tone.'
+        : commentThreadSummary.energy === 'low'
+            ? '\n- Keep a calm, understated tone.'
+            : '\n- Keep a balanced conversational tone.';
+    return '\n- Target length: ' + targetLen + '.' +
+        emojiRule + questionRule + energyRule;
+}
+
+function tokenizeGroundingText(text) {
+    return ((text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, ' ')
+        .match(/[a-z0-9]{3,}/g)) || [];
+}
+
+function buildContextTokenSet(
+    postText, existingComments, commentThreadSummary
+) {
+    var corpus = [postText || ''];
+    if (Array.isArray(existingComments)) {
+        for (var item of existingComments.slice(0, 12)) {
+            corpus.push(item?.text || '');
+        }
+    }
+    if (Array.isArray(commentThreadSummary?.keywords)) {
+        corpus.push(commentThreadSummary.keywords.join(' '));
+    }
+    if (Array.isArray(commentThreadSummary?.samplePhrases)) {
+        corpus.push(
+            commentThreadSummary.samplePhrases.join(' ')
+        );
+    }
+    return new Set(
+        tokenizeGroundingText(corpus.join(' '))
+    );
+}
+
+function isContextGroundedComment(
+    comment, postText, existingComments, commentThreadSummary
+) {
+    var commentTokens = tokenizeGroundingText(comment);
+    if (commentTokens.length === 0) return false;
+    var contextTokens = buildContextTokenSet(
+        postText, existingComments, commentThreadSummary
+    );
+    if (contextTokens.size === 0) return true;
+    var overlap = 0;
+    for (var token of commentTokens) {
+        if (contextTokens.has(token)) overlap++;
+    }
+    var ratio = overlap / commentTokens.length;
+    var minRatio = existingComments?.length >= 2
+        ? 0.22 : 0.12;
+    return ratio >= minRatio;
+}
+
 async function generateAIComment(data) {
     const { postText, existingComments, author,
         authorTitle, lang, category, reactions,
-        apiKey } = data;
+        reactionSummary, commentThreadSummary,
+        imageSignals, apiKey } = data;
     if (!apiKey) return null;
 
-    var reactionCtx = '';
-    if (reactions && typeof reactions === 'object') {
-        var parts = [];
-        if (reactions.ENTERTAINMENT)
-            parts.push(reactions.ENTERTAINMENT +
-                ' Funny');
-        if (reactions.PRAISE)
-            parts.push(reactions.PRAISE +
-                ' Celebrate');
-        if (reactions.EMPATHY)
-            parts.push(reactions.EMPATHY +
-                ' Support');
-        if (reactions.INTEREST)
-            parts.push(reactions.INTEREST +
-                ' Insightful');
-        if (reactions.APPRECIATION)
-            parts.push(reactions.APPRECIATION +
-                ' Love');
-        if (reactions.LIKE)
-            parts.push(reactions.LIKE + ' Like');
-        if (parts.length > 0) {
-            reactionCtx = '\nReactions: ' +
-                parts.join(', ');
-        }
-    }
+    var reactionCtx = formatReactionContext(reactions);
+    var threadStyleCtx = formatThreadStyleContext(
+        commentThreadSummary
+    );
+    var threadTopicCtx = formatThreadTopicContext(
+        commentThreadSummary
+    );
+    var imageCtx = formatImageContext(imageSignals);
+    var engagementCtx = formatEngagementContext(
+        reactionSummary
+    );
 
     const commentsCtx = existingComments?.length
         ? '\n\nOther comments on this post:\n' +
@@ -393,12 +578,10 @@ async function generateAIComment(data) {
         cat === 'career' || cat === 'newjob') {
         toneGuide =
             '\nTone: ACHIEVEMENT post.' +
-            ' ONLY write "Congrats!" or' +
-            ' "Parabéns!" (if Portuguese).' +
-            ' Nothing else. No "well deserved",' +
-            ' no "merecido", no names, no details,' +
-            ' no repeating what they achieved.' +
-            ' Max 15 chars. Just congratulate.';
+            ' Start with a brief congrats and add' +
+            ' one short human follow-up linked to' +
+            ' the post theme.' +
+            ' Keep it concise and specific.';
     } else if (cat === 'critique') {
         toneGuide =
             '\nTone: OPINION post.' +
@@ -410,6 +593,13 @@ async function generateAIComment(data) {
             ' Show you understood the content.' +
             ' Share a brief related experience' +
             ' or acknowledge a specific point.';
+    }
+    var authorRoleTone = inferAuthorRoleTone(
+        authorTitle
+    );
+    if (authorRoleTone) {
+        toneGuide += '\nAuthor-role style:' +
+            ' keep it ' + authorRoleTone + '.';
     }
 
     var authorCtx = 'Post by ' +
@@ -424,6 +614,9 @@ async function generateAIComment(data) {
             ' Match the tone of the other comments.'
         : '\n- LANGUAGE: Write ONLY in English.' +
             ' Match the tone of the other comments.';
+    var humanVoiceRules = buildHumanVoiceRules(
+        commentThreadSummary, cat
+    );
 
     const prompt =
         'You are commenting on a LinkedIn post.' +
@@ -432,13 +625,24 @@ async function generateAIComment(data) {
         toneGuide +
         '\n\nRules:' +
         langRule +
+        humanVoiceRules +
         '\n- Max 120 chars, 1-2 sentences' +
         '\n- Show you understood what the post' +
         ' is about' +
-        '\n- Use proper capitalization and grammar' +
         '\n- Look at the other comments below for' +
         ' tone and style reference — write' +
         ' something similar in length and vibe' +
+        '\n- Mirror the dominant thread style' +
+        ' (tone, energy, and length) but use' +
+        ' original wording' +
+        '\n- Use the thread keywords/phrases as the' +
+        ' main base for your comment when present' +
+        '\n- Do not introduce topics that are not in' +
+        ' post text or existing comments' +
+        '\n- Sound like a real person in this' +
+        ' thread, not like an AI assistant' +
+        '\n- Prefer natural contractions and plain' +
+        ' spoken language over formal wording' +
         '\n- NEVER parrot or repeat the post text' +
         '\n- NEVER mention the author\'s name,' +
         ' degree, company, role, or any specific' +
@@ -446,9 +650,7 @@ async function generateAIComment(data) {
         '\n- NEVER say "faz sentido", "nice",' +
         ' "cool", "interesting", "Great post",' +
         ' "Love this", "Thanks for sharing"' +
-        '\n- NEVER use hashtags or emojis' +
-        '\n- NEVER ask questions — no "?", no' +
-        ' "how", "what", "why", "right?"' +
+        '\n- NEVER use hashtags' +
         '\n- NEVER invite a reply or discussion' +
         '\n- NEVER be ironic, sarcastic, offensive' +
         ', polemic, or dismissive' +
@@ -458,6 +660,10 @@ async function generateAIComment(data) {
         '\n\n' + authorCtx +
         ':\n' + (postText || '').substring(0, 800) +
         reactionCtx +
+        engagementCtx +
+        imageCtx +
+        threadStyleCtx +
+        threadTopicCtx +
         commentsCtx +
         '\n\nYour comment (raw text, no quotes,' +
         ' or "SKIP" if no good comment):';
@@ -479,8 +685,8 @@ async function generateAIComment(data) {
                         role: 'user',
                         content: prompt
                     }],
-                    max_tokens: 80,
-                    temperature: 0.7
+                    max_tokens: 110,
+                    temperature: 0.85
                 })
             }
         );
@@ -515,6 +721,18 @@ async function generateAIComment(data) {
         }
         if (comment.length < 5 ||
             comment.length > 300) {
+            return null;
+        }
+        if (!isContextGroundedComment(
+            comment,
+            postText,
+            existingComments,
+            commentThreadSummary
+        )) {
+            console.log(
+                '[LinkedIn Bot] AI comment not grounded' +
+                ' in thread context'
+            );
             return null;
         }
         return comment;

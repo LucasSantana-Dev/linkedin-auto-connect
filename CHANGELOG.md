@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [1.17.1] - 2026-03-09
+
+### Fixed
+- **PT-BR connect note context in More-menu flow**: Connect actions discovered via `More` now preserve the original profile metadata (location/headline/summary), so Brazilian-profile detection no longer falls back to English notes
+
+## [1.17.0] - 2026-03-09
+
+### Added
+- **Thread-style AI comment context**: Feed comment generation now summarizes existing comments (dominant sentiment, energy, brevity, common openers) and uses that style profile to produce comments that match the post conversation without copying phrases
+- **Visual + engagement tone context**: AI prompt now includes image signals, reaction intensity/dominant reaction, and author-role tone hints for more human-like, context-matched comments
+- **Brazilian connect-note localization**: Connect flow now detects Brazilian profiles from location/headline/summary cues and automatically sends the default invitation note in PT-BR
+
+### Changed
+- **Humanization prompt tuning**: Reduced overly rigid AI constraints (formal grammar, forced one-word congrats, blanket no-emoji/no-question behavior) and replaced with thread-driven style rules based on emoji/question/exclamation rates to generate more natural, native-sounding comments
+- **Existing-comments-first grounding**: AI comments now prioritize thread keywords/phrase anchors extracted from existing comments and reject outputs that do not overlap with post/thread context
+- **Connect fallback behavior**: When a result only exposes `Follow` (no `Connect` in direct action or More menu), Connect mode now follows the profile instead of skipping it
+
+### Fixed
+- **CI flake in human behavior timing tests**: `humanDelay()` now enforces the 500ms minimum after burst-delay calculations and clamps negative burst noise to zero, removing stochastic test failures in Node 18 matrix runs
+
 ## [1.16.0] - 2026-03-08
 
 ### Added

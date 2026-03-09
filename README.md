@@ -10,6 +10,7 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **300-char validation** — enforces LinkedIn's invitation note character limit
 - **Smart prioritization** — profiles with mutual connections and closer network degree are processed first
 - **Follow-to-Connect** — handles profiles showing "Follow" instead of "Connect" by opening the "More" menu to find the hidden Connect option
+- **Connect mode follow fallback** — if a profile has only `Follow` and no `Connect` option, Connect mode follows the person instead of skipping
 - **Email modal detection** — auto-skips profiles that require email verification (3rd+ degree with no mutuals)
 - **LATAM recruiter targeting** — Market Focus tags (LATAM, Brazil, Nearshore, Remote) + configurable recruiter region selector
 - **"Actively Hiring" filter** — leverages LinkedIn's undocumented `activelyHiring=true` URL parameter
@@ -22,6 +23,8 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Feed engagement mode** — auto-react and comment on LinkedIn feed posts based on content; smart reaction selection (Celebrate, Support, Insightful, Funny, Love) via keyword matching; scheduled recurring runs
 - **13 post categories** — hiring, achievement, technical, question, tips, story, news, humor, critique, motivation, project, jobseeking, newjob — each with dedicated comment templates
 - **Smart comment generation** — category-aware follow-ups, post-length awareness (short posts get short comments), `{keyPhrase}` templates only when extractable, `{topic}` auto-detected from post content
+- **Thread-style AI comments** — analyzes existing comments (sentiment, brevity, energy, common openers, emoji/question/exclamation style), extracts thread keywords/phrases, and mirrors the conversation vibe with original wording
+- **Context-aware tone engine** — combines post text, image cues, author title archetype, and reaction intensity/dominant reaction to make comments feel native to each post
 - **PT-BR comments** — auto-detects Portuguese posts and generates conversational PT-BR comments with language-appropriate openers/follow-ups
 - **Duplicate post guard** — persists engaged post URNs across sessions to avoid re-engaging the same posts
 - **429 rate limit backoff** — detects failed sends, exponential backoff (30s, 60s, 120s... up to 5min) after 3 consecutive failures
@@ -34,6 +37,7 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Multi-query rotation** — scheduled runs cycle through multiple saved queries automatically
 - **Recent profiles** — last 5 connection profiles shown inline in popup with avatar, name, headline, and status badge
 - **Error resilience** — tab load timeout, script injection error handling, tab close detection with notifications
+- **Human timing guardrails** — burst delays never reduce below the 500ms floor, preventing unrealistic timing spikes and test flakiness
 - **Dark mode** — respects system `prefers-color-scheme` with GitHub-inspired dark palette
 - **Activity chart** — 14-day bar chart on dashboard showing daily send volume
 - **Feed analytics** — comment success rate, reaction breakdown chart, top reaction type, skip counts on dashboard
@@ -41,6 +45,8 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Custom query mode** — toggle between tag builder and manual query input
 - **Auto-pagination** — navigates through search result pages automatically
 - **Personalized notes** — extracts first name from invite modal and injects it via `{name}` template variable
+- **Brazilian connect notes in PT-BR** — when profile cues indicate a Brazilian contact, Connect automatically switches the default invite note to Portuguese
+- **PT-BR detection kept in More-menu connect** — when Connect is triggered from the card’s `More` menu, profile context is preserved so Brazilian contacts still receive Portuguese notes
 
 ### Standalone Connector
 - **Playwright-based** — runs a full Chromium browser with persistent login session
