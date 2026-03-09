@@ -1,52 +1,48 @@
 (function () {
-    if (window.__linkedInSearchFilterActive) return;
-    window.__linkedInSearchFilterActive = true;
+    if (window.__leSearchFilter) return;
+    window.__leSearchFilter = true;
 
-    const STYLE_ID = 'le-search-filter-style';
+    console.log('[LE] search-filter.js loaded');
 
-    function injectStyle() {
-        if (document.getElementById(STYLE_ID)) return;
-        const style = document.createElement('style');
-        style.id = STYLE_ID;
-        style.textContent =
-            '[data-le-filtered="message"] {' +
-            '  opacity: 0.15 !important;' +
-            '  pointer-events: none !important;' +
-            '  transition: opacity 0.3s ease !important;' +
-            '}';
-        document.head.appendChild(style);
-    }
-
-    function dimConnectedCards() {
+    function dimCards() {
         const cards = document.querySelectorAll(
             '.entity-result, ' +
             '.reusable-search__result-container, ' +
-            'li.reusable-search__result-container'
+            'li'
         );
+        let dimmed = 0;
         for (const card of cards) {
-            if (card.getAttribute('data-le-filtered')) {
-                continue;
-            }
-            const btns = card.querySelectorAll(
-                'button, a[href*="messaging"]'
-            );
+            if (card.dataset.leDone) continue;
+            const btns = card.querySelectorAll('button, a');
             let hasConnect = false;
             let hasMessage = false;
             for (const b of btns) {
-                const t = (b.innerText || '')
+                const t = (b.textContent || '')
                     .trim().toLowerCase();
-                if (t === 'connect' || t === 'conectar') {
+                if (t.includes('connect') ||
+                    t.includes('conectar')) {
                     hasConnect = true;
                 }
-                if (t === 'message' || t === 'mensagem') {
+                if (t.includes('message') ||
+                    t.includes('mensagem')) {
                     hasMessage = true;
                 }
             }
             if (hasMessage && !hasConnect) {
-                card.setAttribute(
-                    'data-le-filtered', 'message'
+                card.style.setProperty(
+                    'opacity', '0.15', 'important'
                 );
+                card.style.setProperty(
+                    'pointer-events', 'none', 'important'
+                );
+                card.dataset.leDone = 'dim';
+                dimmed++;
+            } else if (hasConnect) {
+                card.dataset.leDone = 'ok';
             }
+        }
+        if (dimmed > 0) {
+            console.log(`[LE] dimmed ${dimmed} cards`);
         }
     }
 
@@ -71,20 +67,15 @@
     }
 
     stripFirstDegree();
-    injectStyle();
+    dimCards();
 
-    function run() {
-        injectStyle();
-        dimConnectedCards();
+    const obs = new MutationObserver(dimCards);
+    if (document.body) {
+        obs.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
     }
 
-    run();
-
-    const observer = new MutationObserver(run);
-    observer.observe(document.body || document.documentElement, {
-        childList: true,
-        subtree: true
-    });
-
-    setInterval(run, 2000);
+    setInterval(dimCards, 1500);
 })();
