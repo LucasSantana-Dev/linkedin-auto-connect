@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.22.0] - 2026-03-10
+
 ### Added
 - **Feed warmup state machine (`feedWarmupStateV1`)**: Added global feed warmup persistence with `completedRuns`, `requiredRuns`, `enabled`, `lastRunAt`, `totalLearnedPosts`, and `totalLearnedThreads`.
 - **Feed warmup popup controls**: New Feed settings for `Enable Warmup Learning`, configurable `Warmup Runs Required` (0-10), `Reset Learning Progress`, and live `Learning progress X/N` UI.
