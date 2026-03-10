@@ -148,11 +148,13 @@ window.addEventListener('message', (event) => {
             commentThreadSummary:
                 event.data.commentThreadSummary,
             imageSignals: event.data.imageSignals,
-            apiKey: event.data.apiKey
+            apiKey: event.data.apiKey,
+            goalMode: event.data.goalMode
         }, (response) => {
             window.postMessage({
                 type: 'LINKEDIN_BOT_AI_COMMENT_RESULT',
                 comment: response?.comment || null,
+                reason: response?.reason || null,
                 requestId: event.data.requestId
             }, '*');
         });

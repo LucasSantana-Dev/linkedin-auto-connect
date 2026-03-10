@@ -178,8 +178,7 @@ var CATEGORY_TEMPLATES = {
             'knowing when NOT to use it',
         'had to learn {topic} the hard way ' +
             'on a deadline, this would\'ve helped',
-        'bookmarking, {topic} always comes up ' +
-            'in interviews',
+        '{topic} keeps showing up in interviews',
         '{keyPhrase} - yep, learned that one ' +
             'the hard way',
         'we debated this exact thing on our ' +
@@ -202,15 +201,10 @@ var CATEGORY_TEMPLATES = {
     story: [],
     news: [],
     humor: [
-        'lmaooo',
-        'hahaha too real',
-        'ok I laughed',
-        'didn\'t have to call us out like that',
-        'sent this to my team chat',
-        'me every monday honestly',
-        'this is why I have trust issues with {topic}',
-        'stop it, it\'s too early for this',
-        'alright alright fair enough haha'
+        'lol too real',
+        'haha accurate',
+        'ok this got me',
+        'real one'
     ],
     critique: [
         'fair point honestly',
@@ -220,14 +214,14 @@ var CATEGORY_TEMPLATES = {
     ],
     motivation: [
         'needed to hear this today',
-        'forwarding this to a friend',
+        'good reminder today',
         'the {topic} part is so true',
         'yeah, good reminder'
     ],
     project: [
         'just checked it out, pretty cool',
-        'the {topic} part is nice, bookmarked',
-        'bookmarked, might try this out'
+        'the {topic} part is nice',
+        'the setup looks solid'
     ],
     jobseeking: [
         'sharing for reach, good luck!',
@@ -276,7 +270,7 @@ var CATEGORY_TEMPLATES_PT = {
             'quando NÃO usar',
         'tive que aprender {topic} no susto, ' +
             'isso aqui teria ajudado demais',
-        'salvando, {topic} sempre cai em entrevista',
+        '{topic} sempre cai em entrevista',
         '{keyPhrase} - é, aprendi na marra também',
         'a gente debateu exatamente isso no time ' +
             'semana passada',
@@ -296,15 +290,10 @@ var CATEGORY_TEMPLATES_PT = {
     story: [],
     news: [],
     humor: [
-        'kkkkk',
-        'hahahaha real demais',
+        'kkkk real demais',
+        'hahaha certeiro',
         'ok eu ri',
-        'não precisava me atacar assim',
-        'mandei pro grupo do time',
-        'eu toda segunda basicamente',
-        'por isso que eu tenho trauma de {topic}',
-        'para, é cedo demais pra isso',
-        'tá bom tá bom justo hahaha'
+        'real demais'
     ],
     critique: [
         'justo, faz sentido',
@@ -314,14 +303,14 @@ var CATEGORY_TEMPLATES_PT = {
     ],
     motivation: [
         'precisava ouvir isso hoje',
-        'mandei pra um amigo',
+        'bom lembrete hoje',
         'a parte de {topic} é muito real',
         'é, bom lembrete'
     ],
     project: [
         'dei uma olhada, bem legal',
-        'a parte de {topic} ficou boa, salvei',
-        'salvei, quero testar'
+        'a parte de {topic} ficou boa',
+        'curti a proposta'
     ],
     jobseeking: [
         'compartilhando, boa sorte!',
@@ -483,11 +472,10 @@ var COMPOSED_EN = {
         (c) => c[0] + ' looks simple until you ' +
             'actually build it',
         (c) => 'had to learn ' + c[0] +
-            ' on a deadline, not fun. ' +
-            'bookmarking this',
+            ' on a deadline, not fun',
         (c) => 'our team debated ' + c[0] +
             (c[1] ? ' vs ' + c[1] : '') +
-            ' just last week haha',
+            ' just last week',
         (c) => 'been using ' + c[0] +
             ' for a while but never thought ' +
             'about it this way',
@@ -521,10 +509,10 @@ var COMPOSED_EN = {
     tips: [
         (c) => c[0]
             ? 'the ' + c[0] + ' one is so true'
-            : 'bookmarking this',
+            : 'this is practical',
         (c) => 'wish I knew ' +
             (c[0] || 'this') + ' 2 years ago',
-        (c) => 'sending this to my team',
+        (c) => 'solid takeaway here',
     ],
     story: [
         (c) => 'been through something similar' +
@@ -540,14 +528,10 @@ var COMPOSED_EN = {
             (c[0] || 'this') + ' closely',
     ],
     humor: [
-        (c) => 'hahaha' +
-            (c[0] ? ' the ' + c[0] + ' part' : ''),
-        (c) => 'lol sent this to my team chat',
-        (c) => 'ok I laughed' +
-            (c[0] ? ', the ' + c[0] +
-                ' bit is too real' : ''),
-        (c) => 'didn\'t have to call us out ' +
-            'like that haha',
+        () => 'lol too real',
+        () => 'haha accurate',
+        () => 'ok this got me',
+        () => 'real one',
     ],
     critique: [
         (c) => 'fair point' +
@@ -558,7 +542,7 @@ var COMPOSED_EN = {
     ],
     motivation: [
         (c) => 'needed to hear this today',
-        (c) => 'forwarding this',
+        (c) => 'good reminder today',
         (c) => 'yeah' +
             (c[0] ? ', ' + c[0] + ' is no joke' : '') +
             '. good reminder',
@@ -566,7 +550,7 @@ var COMPOSED_EN = {
     project: [
         (c) => 'just checked it out, ' +
             (c[0] || 'this') + ' looks solid',
-        (c) => 'bookmarked, might try this',
+        (c) => 'worth following this build',
         (c) => 'nice work on the ' +
             (c[0] || 'project') + ' part',
     ],
@@ -598,7 +582,7 @@ var COMPOSED_PT = {
             ' no susto, isso teria ajudado',
         (c) => 'o time debateu ' + c[0] +
             (c[1] ? ' vs ' + c[1] : '') +
-            ' semana passada haha',
+            ' semana passada',
         (c) => 'uso ' + c[0] +
             ' faz tempo mas nunca pensei ' +
             'por esse lado',
@@ -632,10 +616,10 @@ var COMPOSED_PT = {
     tips: [
         (c) => c[0]
             ? 'a de ' + c[0] + ' é muito boa'
-            : 'salvando',
+            : 'isso é bem prático',
         (c) => 'queria ter ouvido isso ' +
             'uns 2 anos atrás',
-        (c) => 'mandei pro time',
+        (c) => 'bom ponto aqui',
     ],
     story: [
         (c) => 'passei por algo parecido' +
@@ -650,13 +634,10 @@ var COMPOSED_PT = {
             (c[0] || 'isso') + ' de perto',
     ],
     humor: [
-        (c) => 'kkkkk' +
-            (c[0] ? ' a parte de ' + c[0] : ''),
-        (c) => 'mandei pro grupo do time',
-        (c) => 'ok eu ri' +
-            (c[0] ? ', ' + c[0] +
-                ' é real demais' : ''),
-        (c) => 'não precisava atacar assim hahaha',
+        () => 'kkkk real demais',
+        () => 'hahaha certeiro',
+        () => 'ok eu ri',
+        () => 'real demais',
     ],
     critique: [
         (c) => 'justo' +
@@ -667,7 +648,7 @@ var COMPOSED_PT = {
     ],
     motivation: [
         (c) => 'precisava ouvir isso hoje',
-        (c) => 'mandei pra um amigo',
+        (c) => 'bom lembrete hoje',
         (c) => 'é' +
             (c[0] ? ', ' + c[0] + ' não é fácil' : '') +
             '. bom lembrete',
@@ -675,7 +656,7 @@ var COMPOSED_PT = {
     project: [
         (c) => 'dei uma olhada, ' +
             (c[0] || 'isso') + ' ficou bom',
-        (c) => 'salvei, quero testar',
+        (c) => 'curti a proposta',
         (c) => 'a parte de ' +
             (c[0] || 'projeto') + ' ficou massa',
     ],

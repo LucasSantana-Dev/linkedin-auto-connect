@@ -544,15 +544,24 @@ function buildContextTokenSet(
     );
 }
 
-function isContextGroundedComment(
+function getContextGroundingData(
     comment, postText, existingComments, commentThreadSummary
 ) {
     var commentTokens = tokenizeGroundingText(comment);
-    if (commentTokens.length === 0) return false;
+    if (commentTokens.length === 0) {
+        return {
+            grounded: false,
+            ratio: 0,
+            minRatio: existingComments?.length >= 2
+                ? 0.22 : 0.12
+        };
+    }
     var contextTokens = buildContextTokenSet(
         postText, existingComments, commentThreadSummary
     );
-    if (contextTokens.size === 0) return true;
+    if (contextTokens.size === 0) {
+        return { grounded: true, ratio: 1, minRatio: 0 };
+    }
     var overlap = 0;
     for (var token of commentTokens) {
         if (contextTokens.has(token)) overlap++;
@@ -560,7 +569,137 @@ function isContextGroundedComment(
     var ratio = overlap / commentTokens.length;
     var minRatio = existingComments?.length >= 2
         ? 0.22 : 0.12;
-    return ratio >= minRatio;
+    return {
+        grounded: ratio >= minRatio,
+        ratio,
+        minRatio
+    };
+}
+
+function isContextGroundedComment(
+    comment, postText, existingComments, commentThreadSummary
+) {
+    return getContextGroundingData(
+        comment,
+        postText, existingComments, commentThreadSummary
+    ).grounded;
+}
+
+function isMetricsOrSocialImpactPost(category, postText, imageSignals) {
+    var cat = (category || '').toLowerCase();
+    if (cat === 'news' || cat === 'motivation') return true;
+    var text = (
+        (postText || '') + ' ' +
+        ((imageSignals?.samples || []).join(' '))
+    ).toLowerCase();
+    return /\b(women|female|mulheres|lideran[çc]a|leadership|diversity|diversidade|inclusion|inclus[aã]o|equity|metric|metrics|kpi|report|survey|dados|n[uú]meros|estat[ií]sticas|percent|%)\b/i
+        .test(text);
+}
+
+function isCategorySignalConsistent(
+    category, reactionSummary, commentThreadSummary
+) {
+    var cat = category || 'generic';
+    var reaction = reactionSummary?.dominant || '';
+    var sentiment = commentThreadSummary?.dominantSentiment
+        || '';
+    var reactionMap = {
+        ENTERTAINMENT: ['humor'],
+        PRAISE: ['achievement', 'career', 'newjob'],
+        INTEREST: ['technical', 'tips', 'news', 'project'],
+        EMPATHY: ['jobseeking', 'story', 'motivation'],
+        APPRECIATION: ['achievement', 'motivation', 'story'],
+        LIKE: ['generic', 'news', 'story', 'project']
+    };
+    var sentimentMap = {
+        celebration: ['achievement', 'career', 'newjob'],
+        insight: ['technical', 'tips', 'news', 'project'],
+        support: ['jobseeking', 'story', 'motivation'],
+        question: ['question'],
+        agreement: ['critique', 'technical', 'news'],
+        gratitude: ['motivation', 'story', 'achievement'],
+        personal: ['story', 'motivation', 'technical'],
+        generic: ['generic', 'news', 'story', 'project']
+    };
+    var reactionAligned = Array.isArray(
+        reactionMap[reaction]
+    ) && reactionMap[reaction].includes(cat);
+    var sentimentAligned = Array.isArray(
+        sentimentMap[sentiment]
+    ) && sentimentMap[sentiment].includes(cat);
+    if (!reaction && !sentiment) return false;
+    return reactionAligned || sentimentAligned;
+}
+
+function computeCommentConfidence(context) {
+    var threadCount = Number(
+        context?.commentThreadSummary?.count ||
+        context?.existingComments?.length || 0
+    );
+    var threadEvidence = threadCount >= 3
+        ? 35 : threadCount >= 1 ? 20 : 0;
+    var reactionEvidence =
+        Number(context?.reactionSummary?.total || 0) >= 20
+            ? 15 : 0;
+    var groundingRatio = Number(context?.groundingRatio || 0);
+    var groundingEvidence = groundingRatio >= 0.22
+        ? 30 : groundingRatio >= 0.15 ? 10 : 0;
+    var categoryEvidence = isCategorySignalConsistent(
+        context?.category,
+        context?.reactionSummary,
+        context?.commentThreadSummary
+    ) ? 20 : 0;
+    var score = threadEvidence + reactionEvidence +
+        groundingEvidence + categoryEvidence;
+    return {
+        score: Math.min(100, score),
+        threadEvidence,
+        reactionEvidence,
+        groundingEvidence,
+        categoryEvidence
+    };
+}
+
+function validateCommentSafety(comment, context) {
+    var text = (comment || '').trim();
+    if (!text) return false;
+    if (text.length < 5 || text.length > 300) return false;
+    var lower = text.toLowerCase();
+    var category = context?.category || 'generic';
+    if (lower.includes('?')) return false;
+
+    var ironyRe = /\b(obviously|clearly|duh|yeah right|sure buddy|good luck with that|as if|lol sure|ironic|sarcasm|sarcastic|imagina|claro que n[aã]o)\b/i;
+    if (ironyRe.test(lower)) return false;
+
+    var polemicRe = /\b(garbage|trash|fraud|scam|ridiculous|nonsense|idiota|rid[ií]culo|absurdo|boicot|boycott|cancel culture|shut up|cala a boca)\b/i;
+    if (polemicRe.test(lower)) return false;
+
+    var discussionRe = /\b(let me know|what do you think|thoughts|agree\?|discorda|debate|discuss|dm me|reach out)\b/i;
+    if (discussionRe.test(lower)) return false;
+
+    var celebrationRe =
+        /\b(congrats|congratulations|parab[eé]ns|well deserved|muito merecido)\b/i;
+    var laughRe =
+        /\b(lol|lmao|haha+|hahaha|kkkk+|rsrs+|ri alto|too real|real demais|real one|got me|accurate|certeiro)\b/i;
+    if (category === 'humor') {
+        if (celebrationRe.test(lower)) return false;
+        if (!laughRe.test(lower)) return false;
+        if (text.length > 85) return false;
+    }
+    if (category !== 'humor' && laughRe.test(lower)) {
+        return false;
+    }
+
+    var riskyIntentRe =
+        /\b(bookmark(?:ed|ing)?|save(?:d| later)?|saved for later|use later|forward(?:ing)?|sent (this )?to (my )?team|salv(ei|ando|ar)|guardar|pra depois|usar depois|encaminh(ei|ando)|mandei pro (time|grupo))\b/i;
+    if (riskyIntentRe.test(lower) &&
+        (category !== 'technical' || isMetricsOrSocialImpactPost(
+            category, context?.postText, context?.imageSignals
+        ))) {
+        return false;
+    }
+
+    return true;
 }
 
 async function generateAIComment(data) {
@@ -569,7 +708,7 @@ async function generateAIComment(data) {
         reactionSummary, commentThreadSummary,
         imageSignals, apiKey,
         goalMode } = data;
-    if (!apiKey) return null;
+    if (!apiKey) return { comment: null, reason: null };
 
     var reactionCtx = formatReactionContext(reactions);
     var threadStyleCtx = formatThreadStyleContext(
@@ -592,14 +731,18 @@ async function generateAIComment(data) {
         : '';
 
     const cat = category || 'generic';
+    var metricsOrSocial = isMetricsOrSocialImpactPost(
+        cat, postText, imageSignals
+    );
     var toneGuide = '';
     if (cat === 'humor') {
         toneGuide =
             '\nTone: HUMOROUS post.' +
-            ' Play along with the joke.' +
-            ' Be witty or add a related joke.' +
-            ' Keep it light and fun.' +
-            ' Do NOT respond seriously to a joke.';
+            ' Keep it minimal and natural:' +
+            ' short laugh or "too real".' +
+            ' NEVER congratulate.' +
+            ' NEVER be witty, ironic, sarcastic,' +
+            ' opinionated, or edgy.';
     } else if (cat === 'achievement' ||
         cat === 'career' || cat === 'newjob') {
         toneGuide =
@@ -634,6 +777,17 @@ async function generateAIComment(data) {
                 ' NEVER use humor, irony, or sarcasm.' +
                 ' Keep it 1 sentence, under 80 chars.';
         }
+    } else if (
+        cat === 'news' ||
+        cat === 'motivation' ||
+        metricsOrSocial
+    ) {
+        toneGuide =
+            '\nTone: CONTEXT-SENSITIVE post.' +
+            ' Keep a neutral acknowledgement.' +
+            ' Do NOT over-celebrate.' +
+            ' Do NOT use "saved", "bookmarked",' +
+            ' "forwarded", or "sent to my team".';
     } else if (cat === 'technical') {
         toneGuide =
             '\nTone: TECHNICAL post.' +
@@ -665,20 +819,36 @@ async function generateAIComment(data) {
         commentThreadSummary, cat
     );
 
+    var commentPriorityCtx =
+        '\nPRIMARY CONTEXT (comments/thread):' +
+        commentsCtx +
+        threadStyleCtx +
+        threadTopicCtx;
+    var reactionPriorityCtx =
+        '\n\nSECONDARY CONTEXT (engagement):' +
+        engagementCtx +
+        reactionCtx;
+    var authorPriorityCtx =
+        '\n\nAUTHOR CONTEXT:\n' + authorCtx;
+    var postPriorityCtx =
+        '\n\nPOST TEXT (tertiary):\n' +
+        (postText || '').substring(0, 800) +
+        imageCtx;
+
     const prompt =
         'You are commenting on a LinkedIn post.' +
-        ' Write a comment that shows you READ' +
-        ' and UNDERSTOOD the post.' +
+        ' Write one safe, natural, context-aware' +
+        ' comment that fits the existing thread.' +
         toneGuide +
         '\n\nRules:' +
         langRule +
         humanVoiceRules +
         '\n- Max 120 chars, 1-2 sentences' +
-        '\n- Show you understood what the post' +
-        ' is about' +
         '\n- Existing comments are PRIMARY context.' +
         ' Match their tone, style, and length first.' +
-        ' Post text is secondary context.' +
+        '\n- Reactions are SECONDARY context.' +
+        ' Align with dominant reaction tone.' +
+        '\n- Post text is tertiary context.' +
         '\n- Look at the other comments below for' +
         ' tone and style reference — write' +
         ' something similar in length and vibe' +
@@ -703,26 +873,26 @@ async function generateAIComment(data) {
         '\n- NEVER use hashtags' +
         '\n- NEVER invite a reply or discussion' +
         '\n- NEVER ask questions' +
+        '\n- NEVER start debate or ask for opinions' +
+        '\n- NEVER use ambiguous phrasing' +
         '\n- NEVER be ironic, sarcastic, offensive' +
         ', polemic, or dismissive' +
+        '\n- NEVER say "saved/bookmarked/use later"' +
+        ' or "sent to my team" in social-impact or' +
+        ' metrics contexts' +
         '\n- For hiring/job posts NEVER use humor,' +
         ' sarcasm, or ambiguous phrasing' +
+        '\n- For humor posts use only a short laugh' +
+        ' style; never congratulate' +
         '\n- NEVER create discussion or controversy' +
         '\n- Be SAFE: if unsure, output "SKIP"' +
         '\n- Don\'t repeat what others said' +
-        '\n\n' + authorCtx + ':' +
-        commentsCtx +
-        '\n\nPost text:\n' +
-        (postText || '').substring(0, 800) +
-        reactionCtx +
-        engagementCtx +
-        imageCtx +
-        threadStyleCtx +
-        threadTopicCtx +
+        commentPriorityCtx +
+        reactionPriorityCtx +
+        authorPriorityCtx +
+        postPriorityCtx +
         '\n\nYour comment (raw text, no quotes,' +
         ' or "SKIP" if no good comment):';
-
-    var result = null;
 
     try {
         const resp = await fetch(
@@ -739,8 +909,8 @@ async function generateAIComment(data) {
                         role: 'user',
                         content: prompt
                     }],
-                    max_tokens: 110,
-                    temperature: 0.85
+                    max_tokens: 90,
+                    temperature: 0.55
                 })
             }
         );
@@ -749,12 +919,17 @@ async function generateAIComment(data) {
                 '[LinkedIn Bot] AI API error: ' +
                 resp.status
             );
-            return null;
+            return { comment: null, reason: null };
         }
         const json = await resp.json();
         let comment = json.choices?.[0]
             ?.message?.content?.trim();
-        if (!comment) return null;
+        if (!comment) {
+            return {
+                comment: null,
+                reason: 'skip-low-confidence'
+            };
+        }
         comment = comment
             .replace(/^["']|["']$/g, '')
             .replace(/^Comment:\s*/i, '')
@@ -765,17 +940,73 @@ async function generateAIComment(data) {
                 'question, skipping: "' +
                 comment.substring(0, 60) + '"'
             );
-            return null;
+            return {
+                comment: null,
+                reason: 'skip-safety-guard'
+            };
         }
         if (/^skip$/i.test(comment)) {
             console.log(
                 '[LinkedIn Bot] AI chose to SKIP'
             );
-            return null;
+            return {
+                comment: null,
+                reason: 'skip-low-confidence'
+            };
         }
         if (comment.length < 5 ||
             comment.length > 300) {
-            return null;
+            return {
+                comment: null,
+                reason: 'skip-safety-guard'
+            };
+        }
+        var grounding = getContextGroundingData(
+            comment,
+            postText,
+            existingComments,
+            commentThreadSummary
+        );
+        if (!grounding.grounded) {
+            console.log(
+                '[LinkedIn Bot] AI comment not grounded' +
+                ' in thread context'
+            );
+            return {
+                comment: null,
+                reason: 'skip-context-mismatch'
+            };
+        }
+        if (!validateCommentSafety(comment, {
+            category: cat,
+            postText,
+            imageSignals
+        })) {
+            console.log(
+                '[LinkedIn Bot] AI comment rejected by' +
+                ' safety guard'
+            );
+            return {
+                comment: null,
+                reason: 'skip-safety-guard'
+            };
+        }
+        var confidence = computeCommentConfidence({
+            category: cat,
+            reactionSummary,
+            commentThreadSummary,
+            existingComments,
+            groundingRatio: grounding.ratio
+        });
+        if (confidence.score < 60) {
+            console.log(
+                '[LinkedIn Bot] AI comment low confidence' +
+                ` (${confidence.score}), skipping`
+            );
+            return {
+                comment: null,
+                reason: 'skip-low-confidence'
+            };
         }
         if (!isContextGroundedComment(
             comment,
@@ -787,14 +1018,17 @@ async function generateAIComment(data) {
                 '[LinkedIn Bot] AI comment not grounded' +
                 ' in thread context'
             );
-            return null;
+            return {
+                comment: null,
+                reason: 'skip-context-mismatch'
+            };
         }
-        return comment;
+        return { comment, reason: null };
     } catch (e) {
         console.log(
             '[LinkedIn Bot] AI error: ' + e.message
         );
-        return null;
+        return { comment: null, reason: null };
     }
 }
 
@@ -802,9 +1036,13 @@ chrome.runtime.onMessage.addListener(
     (request, sender, sendResponse) => {
         if (request.action === 'generateAIComment') {
             generateAIComment(request).then(
-                comment => sendResponse({ comment })
+                result => sendResponse({
+                    comment: result?.comment || null,
+                    reason: result?.reason || null
+                })
             ).catch(() => sendResponse({
-                comment: null
+                comment: null,
+                reason: null
             }));
             return true;
         }

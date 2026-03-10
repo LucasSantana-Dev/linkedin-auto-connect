@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.20.1] - 2026-03-10
+
+### Added
+- **Context-first AI confidence scoring**: AI comment acceptance now uses a deterministic confidence score (thread evidence, reaction evidence, grounding ratio, and category-signal consistency) and skips low-confidence outputs.
+- **Comment safety guardrail status codes**: Feed logs now include explicit comment skip reasons (`skip-low-confidence`, `skip-safety-guard`, `skip-context-mismatch`) for precision tuning.
+- **Bridge relay coverage**: Added automated test coverage for AI relay payload forwarding (`goalMode`) and reason propagation.
+
+### Changed
+- **Prompt contract v2 for comments**: AI prompt now prioritizes existing comments/thread style first, then reaction context, then post text; includes stricter category matrix and ambiguity/discussion bans.
+- **Humor policy hardening**: Humor comments are now restricted to short natural-laugh style only, with explicit anti-congrats and anti-irony enforcement.
+- **Fallback comment safety parity**: Template/composed fallback comments now run through the same safety guardrails as AI comments before posting.
+- **Fallback classification now reaction-aware**: `buildCommentFromPost` now classifies with reaction context when available (not only post text).
+
+### Fixed
+- **Connect runtime crash on ranked targets**: Replaced stale `networked/unnetworked` log references with counters derived from the `ranked` list, fixing `ReferenceError: networked is not defined`.
+- **Feed AI goal mode relay**: Bridge now forwards `goalMode` in AI comment requests so active/passive hiring tone logic is consistently applied.
+- **Risky fallback phrasing cleanup**: Removed bookmark/save/forward/team-share wording from EN/PT template pools to avoid out-of-context or risky comments.
+
 ## [1.20.0] - 2026-03-10
 
 ### Added

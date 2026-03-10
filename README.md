@@ -56,7 +56,10 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Open-to-Work recruiter skip** — optional Connect safeguard skips recruiter-like profiles when explicit `Open to Work` signals are present on the card/profile
 - **Job-seeking signal skip** — optional Connect filter skips profiles with explicit job-seeking signals (`actively looking`, `#opentowork`, `buscando oportunidades`, etc.)
 - **Connect relevance scoring** — target ordering now prioritizes recruiter-like profiles, mutual connections, degree proximity, domain fit, and geo context for more precise outreach
+- **Connect ranking runtime stability** — ranked-target logging now uses derived counters, preventing runtime `ReferenceError` interruptions during automation
 - **Skip reason insights** — dashboard shows top skip reasons with counts (`open-to-work`, `same-company`, `duplicate`, etc.) for faster filter tuning
+- **Context-first safe commenting v2** — AI comments now prioritize thread context before post text, enforce non-polemic/non-ironic output, and skip on low-confidence context
+- **Comment skip telemetry** — feed comment decisions now log `skip-low-confidence`, `skip-safety-guard`, and `skip-context-mismatch` for faster prompt/filter calibration
 
 ### Standalone Connector
 - **Playwright-based** — runs a full Chromium browser with persistent login session
