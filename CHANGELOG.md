@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.20.0] - 2026-03-10
+
 ### Added
 - **Open to Work recruiter safeguard**: New Connect toggle to skip recruiter-like profiles when explicit Open to Work signals are detected in card/profile metadata.
 - **Job-seeking signal safeguard**: Optional Connect toggle to skip explicit job-seeking profiles (`actively looking`, `open to opportunities`, `buscando novas oportunidades`, `#opentowork`).
