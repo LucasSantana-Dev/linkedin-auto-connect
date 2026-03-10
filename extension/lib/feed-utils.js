@@ -341,9 +341,9 @@ function extractConcepts(postText) {
 
 function buildCommentFromPost(
     postText, userTemplates, existingComments,
-    goalMode
+    goalMode, reactions, safetyContext
 ) {
-    const category = classifyPost(postText);
+    const category = classifyPost(postText, reactions);
     const lang = detectLanguage(postText);
     const mode = goalMode === 'active'
         ? 'active' : 'passive';
@@ -375,7 +375,11 @@ function buildCommentFromPost(
             .replace(/\{topic\}/g, topic)
             .replace(/\{excerpt\}/g, excerpt)
             .replace(/\{category\}/g, category);
-        return comment;
+        return validateGeneratedCommentSafety(comment, {
+            ...(safetyContext || {}),
+            category,
+            postText
+        }) ? comment : null;
     }
 
     var avoidCelebration = usedSentiments.has(
@@ -405,7 +409,12 @@ function buildCommentFromPost(
         if (!pool || pool.length === 0) return null;
         const fn = pickRandom(pool);
         let comment = fn(concepts);
-        return humanize(comment);
+        comment = humanize(comment);
+        return validateGeneratedCommentSafety(comment, {
+            ...(safetyContext || {}),
+            category,
+            postText
+        }) ? comment : null;
     }
 
     const topic = extractTopic(postText);
@@ -485,7 +494,12 @@ function buildCommentFromPost(
         comment = opener + comment;
     }
 
-    return humanize(comment);
+    comment = humanize(comment);
+    return validateGeneratedCommentSafety(comment, {
+        ...(safetyContext || {}),
+        category,
+        postText
+    }) ? comment : null;
 }
 
 function isReactablePost(postEl) {
@@ -668,6 +682,61 @@ function isLowQualityComment(comment, postText) {
     if (sarcasticRe.test(c)) return true;
     if (/\?\s*$/.test(c)) return true;
     return false;
+}
+
+function isMetricsOrSocialImpactPostContext(
+    category, postText, imageSignals
+) {
+    var cat = (category || '').toLowerCase();
+    if (cat === 'news' || cat === 'motivation') return true;
+    var text = (
+        (postText || '') + ' ' +
+        ((imageSignals?.samples || []).join(' '))
+    ).toLowerCase();
+    return /\b(women|female|mulheres|lideran[çc]a|leadership|diversity|diversidade|inclusion|inclus[aã]o|equity|metric|metrics|kpi|report|survey|dados|n[uú]meros|estat[ií]sticas|percent|%)\b/i
+        .test(text);
+}
+
+function validateGeneratedCommentSafety(comment, context) {
+    var text = (comment || '').trim();
+    if (!text) return false;
+    if (text.length < 5 || text.length > 300) return false;
+    var lower = text.toLowerCase();
+    var category = context?.category || 'generic';
+    if (lower.includes('?')) return false;
+
+    var ironyRe = /\b(obviously|clearly|duh|yeah right|sure buddy|good luck with that|as if|lol sure|ironic|sarcasm|sarcastic|imagina|claro que n[aã]o)\b/i;
+    if (ironyRe.test(lower)) return false;
+
+    var polemicRe = /\b(garbage|trash|fraud|scam|ridiculous|nonsense|idiota|rid[ií]culo|absurdo|boicot|boycott|cancel culture|shut up|cala a boca)\b/i;
+    if (polemicRe.test(lower)) return false;
+
+    var discussionRe = /\b(let me know|what do you think|thoughts|agree\?|discorda|debate|discuss|dm me|reach out)\b/i;
+    if (discussionRe.test(lower)) return false;
+
+    var celebrationRe =
+        /\b(congrats|congratulations|parab[eé]ns|well deserved|muito merecido)\b/i;
+    var laughRe =
+        /\b(lol|lmao|haha+|hahaha|kkkk+|rsrs+|ri alto|too real|real demais|real one|got me|accurate|certeiro)\b/i;
+    if (category === 'humor') {
+        if (celebrationRe.test(lower)) return false;
+        if (!laughRe.test(lower)) return false;
+        if (text.length > 85) return false;
+    }
+    if (category !== 'humor' && laughRe.test(lower)) {
+        return false;
+    }
+
+    var riskyIntentRe =
+        /\b(bookmark(?:ed|ing)?|save(?:d| later)?|saved for later|use later|forward(?:ing)?|sent (this )?to (my )?team|salv(ei|ando|ar)|guardar|pra depois|usar depois|encaminh(ei|ando)|mandei pro (time|grupo))\b/i;
+    if (riskyIntentRe.test(lower) &&
+        (category !== 'technical' || isMetricsOrSocialImpactPostContext(
+            category, context?.postText, context?.imageSignals
+        ))) {
+        return false;
+    }
+
+    return true;
 }
 
 function getPostAuthorTitle(postEl) {
@@ -1154,6 +1223,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getPostReactions,
         getPostUrn,
         isLowQualityComment,
+        validateGeneratedCommentSafety,
         isLikeButton,
         isCommentButton,
         getExistingComments,

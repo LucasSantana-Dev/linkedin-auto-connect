@@ -18,6 +18,7 @@ const {
     summarizeCommentThread,
     summarizeReactions,
     getPostImageSignals,
+    validateGeneratedCommentSafety,
     SENTIMENT_PATTERNS,
     POST_CATEGORIES,
     CATEGORY_TEMPLATES,
@@ -1240,5 +1241,63 @@ describe('getPostImageSignals', () => {
         expect(signals.hasImage).toBe(true);
         expect(signals.cues).toContain('chart');
         expect(signals.cues).toContain('product');
+    });
+});
+
+describe('validateGeneratedCommentSafety', () => {
+    it('rejects congratulatory comment on humor context', () => {
+        const safe = validateGeneratedCommentSafety(
+            'congrats on this one',
+            { category: 'humor' }
+        );
+        expect(safe).toBe(false);
+    });
+
+    it('rejects saved/bookmarked language on social-impact metrics posts', () => {
+        const safe = validateGeneratedCommentSafety(
+            'bookmarked this for later',
+            {
+                category: 'news',
+                postText: 'Women in leadership reached 45% this year'
+            }
+        );
+        expect(safe).toBe(false);
+    });
+
+    it('rejects questions and discussion openers', () => {
+        expect(validateGeneratedCommentSafety(
+            'What do you think?',
+            { category: 'technical' }
+        )).toBe(false);
+        expect(validateGeneratedCommentSafety(
+            'Let me know your thoughts',
+            { category: 'technical' }
+        )).toBe(false);
+    });
+
+    it('accepts minimal laugh style for humor', () => {
+        const safe = validateGeneratedCommentSafety(
+            'lol too real',
+            { category: 'humor' }
+        );
+        expect(safe).toBe(true);
+    });
+});
+
+describe('buildCommentFromPost with reactions context', () => {
+    it('uses reactions to classify fallback tone', () => {
+        const post = 'Quick thought from today.';
+        const reactions = { ENTERTAINMENT: 8, _total: 20 };
+        const outputs = new Set();
+        for (let i = 0; i < 60; i++) {
+            const c = buildCommentFromPost(
+                post, null, [], 'passive', reactions
+            );
+            if (c) outputs.add(c.toLowerCase());
+        }
+        const hasHumor = [...outputs].some(text =>
+            /lol|haha|real one|too real|kkkk/.test(text)
+        );
+        expect(hasHumor).toBe(true);
     });
 });

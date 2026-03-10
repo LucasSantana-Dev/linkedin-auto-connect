@@ -912,6 +912,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     return a.info.degree - b.info.degree;
                 });
 
+                const networkedCount = ranked.filter(
+                    x => x.info.mutual ||
+                        x.info.degree <= 2
+                ).length;
+                const unnetworkedCount =
+                    ranked.length - networkedCount;
                 const sorted = ranked.map(x => x.target);
 
                 const totalFound = actionTargets.length;
@@ -920,8 +926,8 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
 
                 console.log(
                     `[LinkedIn Bot] ${totalFound} found` +
-                    ` (${networked.length} networked,` +
-                    ` ${unnetworked.length} unnetworked)`
+                    ` (${networkedCount} networked,` +
+                    ` ${unnetworkedCount} unnetworked)`
                 );
 
                 for (const target of actionTargets) {

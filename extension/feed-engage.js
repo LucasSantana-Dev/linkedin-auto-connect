@@ -60,7 +60,10 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     window.removeEventListener(
                         'message', handler
                     );
-                    resolve(null);
+                    resolve({
+                        comment: null,
+                        reason: 'skip-low-confidence'
+                    });
                 }, 15000
             );
             function handler(event) {
@@ -73,7 +76,10 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 window.removeEventListener(
                     'message', handler
                 );
-                resolve(event.data.comment || null);
+                resolve({
+                    comment: event.data.comment || null,
+                    reason: event.data.reason || null
+                });
             }
             window.addEventListener(
                 'message', handler
@@ -1376,60 +1382,76 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             );
                         }
 
-                        let comment = null;
-                        if (skipComment) {
-                            comment = null;
-                        } else if (aiApiKey) {
-                            console.log(
-                                '[LinkedIn Bot] Requesting' +
-                                ' AI comment...'
-                            );
-                            comment =
-                                await requestAIComment({
-                                    postText,
-                                    existingComments: existing,
-                                    author,
+            let comment = null;
+            let commentSkipReason = null;
+            if (skipComment) {
+                comment = null;
+            } else if (aiApiKey) {
+                console.log(
+                    '[LinkedIn Bot] Requesting' +
+                    ' AI comment...'
+                );
+                const aiResult =
+                    await requestAIComment({
+                        postText,
+                        existingComments: existing,
+                        author,
                                     authorTitle,
                                     lang,
                                     category,
                                     reactions: postReactions,
                                     reactionSummary,
-                                    commentThreadSummary,
-                                    imageSignals,
-                                    apiKey: aiApiKey,
-                                    goalMode
-                                });
-                            if (comment) {
-                                console.log(
-                                    '[LinkedIn Bot] AI' +
+                        commentThreadSummary,
+                        imageSignals,
+                        apiKey: aiApiKey,
+                        goalMode
+                    });
+                comment = aiResult?.comment || null;
+                commentSkipReason =
+                    aiResult?.reason || null;
+                if (comment) {
+                    console.log(
+                        '[LinkedIn Bot] AI' +
                                     ' comment: "' +
                                     comment.substring(0, 80)
                                     + '"'
                                 );
-                            } else {
-                                console.log(
-                                    '[LinkedIn Bot] AI' +
-                                    ' failed, using' +
-                                    ' template fallback'
-                                );
-                            }
-                        }
+                } else {
+                    console.log(
+                        '[LinkedIn Bot] AI' +
+                        ' skipped/fallback: ' +
+                        (commentSkipReason || 'no-reason')
+                    );
+                }
+            }
 
-                        if (!comment) {
-                            comment =
-                                buildCommentFromPost(
-                                    postText,
-                                    commentTemplates
-                                        .length > 0
-                                        ? commentTemplates
-                                        : null,
-                                    existing,
-                                    goalMode
-                                );
+                if (!comment) {
+                    comment =
+                        buildCommentFromPost(
+                        postText,
+                        commentTemplates
+                            .length > 0
+                            ? commentTemplates
+                            : null,
+                        existing,
+                        goalMode,
+                        postReactions,
+                        {
+                            category,
+                            lang,
+                            reactionSummary,
+                            commentThreadSummary,
+                            imageSignals
                         }
-                        if (comment &&
-                            typeof isLowQualityComment ===
-                                'function' &&
+                    );
+                    if (!comment && !commentSkipReason) {
+                        commentSkipReason =
+                            'skip-safety-guard';
+                    }
+                }
+            if (comment &&
+                typeof isLowQualityComment ===
+                    'function' &&
                             isLowQualityComment(
                                 comment, postText)) {
                             console.log(
@@ -1437,16 +1459,27 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 ' low quality comment: "' +
                                 comment.substring(0, 60) + '"'
                             );
-                            comment = null;
-                        }
-                        console.log(
-                            '[LinkedIn Bot] Comment: lang=' +
+                        comment = null;
+                        commentSkipReason =
+                            'skip-safety-guard';
+                    }
+                    console.log(
+                        '[LinkedIn Bot] Comment: lang=' +
                             lang + ' cat=' + category +
                             ' text="' +
-                            (comment || '').substring(0, 80) +
-                            '"'
-                        );
-                        if (comment) {
+                        (comment || '').substring(0, 80) +
+                        '"'
+                    );
+                    if (!comment && commentSkipReason) {
+                        engageLog.push({
+                            author,
+                            postText:
+                                postText.substring(0, 100),
+                            status: commentSkipReason,
+                            time: new Date().toISOString()
+                        });
+                    }
+                    if (comment) {
                             await delay(
                                 5000 + Math.random() * 8000
                             );
