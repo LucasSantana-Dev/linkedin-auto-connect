@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.21.0] - 2026-03-10
+
 ### Added
 - **Hard comment pattern learning layer (Context-First v3)**: Added deterministic thread pattern extraction (`analyzeCommentPatterns`) using up to 15 comments with recency weighting, extracting opener families, length bands, punctuation rhythm, intent/sentiment mix, frequent n-grams, and risk markers.
 - **Persistent local pattern memory**: New `commentPatternMemoryV1` storage with `lang|category` buckets (`pt|hiring`, `en|technical`, etc.), bounded maps, and decay/EMA merge strategy to keep learned style signals fresh without unbounded growth.
