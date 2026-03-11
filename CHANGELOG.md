@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Company mode runtime orchestration moved to background queue**: Multi-company runs are now coordinated by `background.js` instead of in-page navigation loops, so query-to-query navigation no longer tears down the active execution context.
+- **Company run completion semantics**: Company mode now reports a single final completion after the full search queue (or stop/error), with aggregate logs and rate counting applied once per run.
+- **Injection start race hardening**: `injectAndStart(...)` now checks current tab status immediately via `chrome.tabs.get` in addition to `tabs.onUpdated`, preventing missed injections on fast page loads.
+- **Company page-state gating before actions**: Company mode now polls page readiness every 500ms (up to 20s) and uses deterministic state (`cardsFound`, `isExplicitNoResults`, `resultsCountHint`) before attempting follows.
+- **Company card discovery resilience**: `findCompanyCards` now combines legacy selectors with safe link-based container fallback and deduplication to reduce false zero-card runs on LinkedIn DOM variants.
+- **Company rate counting precision**: Company mode now increments rate counters only for `followed` entries, preventing timeout/error log rows from consuming company follow quota.
+- **Feed originality guidance hardened**: AI prompt now emphasizes style inspiration without phrase reuse and explicitly forbids reusing contiguous 4-word spans from thread comments.
+- **AI copy-risk retry flow**: Background AI comment generation now retries once with stricter originality guidance and slightly higher creativity when the first candidate is flagged as copy-risk.
+- **Career-milestone tone policy hardened**: For `newjob`, `career`, and `achievement`, AI prompt instructions now enforce professional-neutral wording (brief congrats + neutral wish) and explicitly forbid close-friend phrasing.
+- **Release workflow hardening**: Tag releases now use `gh` CLI create/upload/verify flow with idempotent asset upload (`--clobber`), controlled retry, and tag-scoped workflow concurrency.
+
+### Fixed
+- **Companies tab hang on multi-query runs**: Fixed the “starts then hangs” failure where company-follow context could be lost during internal page navigation.
+- **Company follow button detection resilience**: `isCompanyFollowText` now accepts label variants like `Follow <Company>` / `Seguir <Empresa>` while still rejecting `Following` / `Seguindo`.
+- **False `0 company cards` on visible result pages**: Company mode now distinguishes explicit no-results pages from DOM-detection timeout failures and fails clearly when cards do not appear despite result signals.
+- **Near-duplicate feed comments**: Feed mode now blocks near-verbatim AI/fallback comments using deterministic copy-risk rules (exact match, 4-gram reuse, token containment, and trigram similarity).
+- **Overpersonal feed comments on stranger career posts**: Added deterministic distance-risk detection for EN/PT intimate phrasing (`happy for you`, `proud of you`, `muito realizado`, `orgulho de você`, etc.), with one AI retry and final `skip-distance-risk` fallback/AI skip behavior.
+- **Release asset publication reliability**: Added explicit post-upload asset verification to prevent “published release without assets” when GitHub API finalization is flaky.
+
+### Added
+- **Company orchestration regression coverage**: New `tests/company-orchestration.test.js` validates multi-query queue execution, stop behavior, step-error finalization, and scheduled company-flow reuse of the same orchestrator.
+- **Company page-state diagnostics**: Company step payload now includes `stepCode` (`ok`, `no-results`, `cards-timeout`, `challenge`) and `diagnostics` metadata for debugging.
+- **Copy-risk telemetry contract**: `LINKEDIN_BOT_AI_COMMENT_RESULT` now carries optional `diagnostics` and retry `attempts`; feed logs/analytics include explicit `skip-copy-risk` diagnostics fields.
+- **Distance-risk diagnostics contract**: AI/fallback skip diagnostics now also support `riskType: "distance"` payloads and emit explicit `skip-distance-risk` statuses in feed analytics.
+
 ## [1.22.1] - 2026-03-10
 
 ### Added
