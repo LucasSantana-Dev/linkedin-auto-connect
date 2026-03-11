@@ -1,4 +1,13 @@
 let activeTabId = null;
+let companyRunState = null;
+
+const COMPANY_FOLLOW_SCRIPTS = [
+    'lib/templates.js',
+    'lib/feed-utils.js',
+    'lib/company-utils.js',
+    'lib/human-behavior.js',
+    'company-follow.js'
+];
 
 chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
     if (info.status !== 'complete') return;
@@ -46,6 +55,210 @@ function notifyError(msg) {
         title: 'LinkedIn Engage',
         message: msg
     });
+}
+
+function buildCompanySearchUrl(query) {
+    return 'https://www.linkedin.com/search/results/' +
+        'companies/' +
+        `?keywords=${encodeURIComponent(query)}` +
+        '&origin=FACETED_SEARCH';
+}
+
+function resolveCompanySearches(query, targetCompanies) {
+    const companies = Array.isArray(targetCompanies)
+        ? targetCompanies.map(c => String(c || '').trim())
+            .filter(Boolean)
+        : [];
+    if (companies.length > 0) return companies;
+    const fallback = String(query || '').trim();
+    return fallback ? [fallback] : [];
+}
+
+function countFollowedEntries(log) {
+    return (log || []).filter(
+        entry => entry?.status === 'followed'
+    ).length;
+}
+
+function applyRunResult(result) {
+    activeTabId = null;
+    const r = result;
+    const entries = r?.log || [];
+    const logCount = r?.mode === 'company'
+        ? entries.filter(e => e.status === 'followed')
+            .length
+        : entries.filter(
+            e => {
+                if (e.status?.startsWith('skipped') ||
+                    e.status?.startsWith('skip-')) {
+                    return false;
+                }
+                if (r?.mode === 'feed' &&
+                    e.status === 'warmup-learning') {
+                    return false;
+                }
+                return true;
+            }
+        ).length;
+    if (logCount > 0 && r?.mode) {
+        const rateMode = r.mode === 'company'
+            ? 'companyFollow'
+            : r.mode === 'feed'
+                ? 'feedEngage' : 'connect';
+        for (let i = 0; i < logCount; i++) {
+            incrementCount(
+                rateMode, chrome.storage.local
+            );
+        }
+    }
+    cleanupOldKeys(chrome.storage.local);
+    chrome.notifications.create({
+        type: 'basic',
+        iconUrl: 'icons/icon128.png',
+        title: 'LinkedIn Engage',
+        message: r?.success
+            ? r.message || 'Automation complete.'
+            : 'Stopped: ' + (r?.error || 'Unknown')
+    });
+    if (r?.log?.length && r?.mode) {
+        const key = r.mode === 'company'
+            ? 'companyFollowHistory'
+            : r.mode === 'feed'
+                ? 'feedEngageHistory'
+                : null;
+        if (key) {
+            chrome.storage.local.get(key, (data) => {
+                const existing = data[key] || [];
+                const merged = existing
+                    .concat(r.log).slice(-500);
+                chrome.storage.local.set({
+                    [key]: merged
+                });
+            });
+        }
+    }
+    if (r?.mode === 'feed') {
+        persistFeedWarmupAfterRun(r).catch(() => {});
+        if (r.warmupActive) {
+            recordEngagement({
+                mode: 'feed',
+                status: 'warmup-run',
+                warmupRun: true,
+                warmupPostsLearned:
+                    Number(r.warmupPostsLearned) || 0,
+                warmupThreadsLearned:
+                    Number(r.warmupThreadsLearned) || 0
+            }, chrome.storage.local);
+        }
+    }
+}
+
+function finalizeCompanyRun(result, broadcastToPopup) {
+    if (!companyRunState?.active) return;
+    companyRunState.active = false;
+    companyRunState = null;
+    applyRunResult(result);
+    if (broadcastToPopup) {
+        chrome.runtime.sendMessage({
+            action: 'done',
+            result
+        });
+    }
+}
+
+function handleCompanyStepDone(result) {
+    if (!companyRunState?.active) return;
+    const state = companyRunState;
+    const stepResult = result || {};
+    const stepCode = stepResult.stepCode || (
+        stepResult.success ? 'ok' : 'unknown'
+    );
+    const stepLog = Array.isArray(stepResult.log)
+        ? stepResult.log : [];
+    if (stepLog.length > 0) {
+        state.log.push(...stepLog);
+    }
+
+    const explicit = Number(stepResult.followedThisStep);
+    const followedThisStep = Number.isFinite(explicit)
+        ? Math.max(0, explicit)
+        : countFollowedEntries(stepLog);
+    state.totalFollowed = Math.min(
+        state.limit,
+        state.totalFollowed + followedThisStep
+    );
+
+    if (stepCode === 'cards-timeout' ||
+        !stepResult.success) {
+        finalizeCompanyRun({
+            success: false,
+            mode: 'company',
+            error: stepResult.error ||
+                (stepCode === 'cards-timeout'
+                    ? 'No company cards detected ' +
+                        'within timeout.'
+                    : 'Unknown error'),
+            log: state.log
+        }, true);
+        return;
+    }
+
+    if (state.stopRequested) {
+        finalizeCompanyRun({
+            success: false,
+            mode: 'company',
+            error: 'Stopped by user.',
+            log: state.log
+        }, true);
+        return;
+    }
+
+    if (state.totalFollowed >= state.limit ||
+        state.queryIndex >= state.searches.length - 1) {
+        finalizeCompanyRun({
+            success: true,
+            mode: 'company',
+            message: `Followed ${state.totalFollowed} companies.`,
+            log: state.log
+        }, true);
+        return;
+    }
+
+    state.queryIndex += 1;
+    const nextQuery = state.searches[state.queryIndex];
+    const nextUrl = buildCompanySearchUrl(nextQuery);
+
+    chrome.tabs.update(
+        state.tabId,
+        { url: nextUrl, active: true },
+        (tab) => {
+            if (chrome.runtime.lastError || !tab) {
+                finalizeCompanyRun({
+                    success: false,
+                    mode: 'company',
+                    error: 'Failed to open company search: ' +
+                        (chrome.runtime.lastError?.message
+                            || 'unknown error'),
+                    log: state.log
+                }, true);
+                return;
+            }
+            activeTabId = tab.id;
+            injectAndStart(
+                tab.id,
+                COMPANY_FOLLOW_SCRIPTS,
+                'LINKEDIN_COMPANY_FOLLOW_START',
+                {
+                    ...state.config,
+                    query: nextQuery,
+                    progressOffset: state.totalFollowed,
+                    globalLimit: state.limit,
+                    queryIndex: state.queryIndex + 1,
+                    queryTotal: state.searches.length
+                }
+            );
+        }
+    );
 }
 
 function launchAutomation(config) {
@@ -209,41 +422,72 @@ function launchAutomation(config) {
 }
 
 function launchCompanyFollow(config) {
-    const companies = config.targetCompanies || [];
-    const query = config.query || '';
-    const searches = companies.length > 0
-        ? companies.map(c => c.trim()).filter(Boolean)
-        : [query];
+    if (companyRunState?.active) {
+        finalizeCompanyRun({
+            success: false,
+            mode: 'company',
+            error: 'Stopped by new company run.',
+            log: companyRunState.log || []
+        }, true);
+    }
 
-    const firstQuery = searches[0] || query;
-    let searchUrl =
-        'https://www.linkedin.com/search/results/' +
-        'companies/' +
-        `?keywords=${encodeURIComponent(firstQuery)}` +
-        '&origin=FACETED_SEARCH';
+    const searches = resolveCompanySearches(
+        config.query,
+        config.targetCompanies
+    );
+    if (!searches.length) {
+        notifyError('No company search terms provided.');
+        return;
+    }
+
+    const nextConfig = {
+        ...config,
+        targetCompanies: Array.isArray(config.targetCompanies)
+            ? config.targetCompanies : [],
+        query: searches[0]
+    };
+
+    companyRunState = {
+        active: true,
+        stopRequested: false,
+        tabId: null,
+        searches,
+        queryIndex: 0,
+        limit: Math.max(1, parseInt(config.limit, 10) || 50),
+        totalFollowed: 0,
+        log: [],
+        config: nextConfig
+    };
+
+    const searchUrl = buildCompanySearchUrl(searches[0]);
 
     chrome.tabs.create(
         { url: searchUrl, active: true },
         (tab) => {
             if (chrome.runtime.lastError || !tab) {
-                notifyError(
-                    'Failed to open company search: ' +
-                    (chrome.runtime.lastError?.message
-                        || 'unknown error')
-                );
+                finalizeCompanyRun({
+                    success: false,
+                    mode: 'company',
+                    error: 'Failed to open company search: ' +
+                        (chrome.runtime.lastError?.message
+                            || 'unknown error'),
+                    log: []
+                }, true);
                 return;
             }
+            companyRunState.tabId = tab.id;
             activeTabId = tab.id;
-            injectAndStart(tab.id,
-                ['lib/templates.js',
-                    'lib/feed-utils.js',
-                    'lib/company-utils.js',
-                    'lib/human-behavior.js',
-                    'company-follow.js'],
+            injectAndStart(
+                tab.id,
+                COMPANY_FOLLOW_SCRIPTS,
                 'LINKEDIN_COMPANY_FOLLOW_START',
                 {
-                    ...config,
-                    companySearchQueue: searches.slice(1)
+                    ...companyRunState.config,
+                    query: searches[0],
+                    progressOffset: 0,
+                    globalLimit: companyRunState.limit,
+                    queryIndex: 1,
+                    queryTotal: searches.length
                 }
             );
         }
@@ -308,14 +552,16 @@ function launchNurture(target, config) {
 }
 
 function injectAndStart(tabId, scripts, msgType, config) {
+    let started = false;
     const timeout = setTimeout(() => {
+        if (started) return;
         chrome.tabs.onUpdated.removeListener(listener);
         notifyError('Tab took too long to load.');
     }, 60000);
 
-    function listener(updatedId, info) {
-        if (updatedId !== tabId ||
-            info.status !== 'complete') return;
+    function begin() {
+        if (started) return;
+        started = true;
         clearTimeout(timeout);
         chrome.tabs.onUpdated.removeListener(listener);
 
@@ -343,7 +589,19 @@ function injectAndStart(tabId, scripts, msgType, config) {
         });
     }
 
+    function listener(updatedId, info) {
+        if (updatedId !== tabId ||
+            info.status !== 'complete') return;
+        begin();
+    }
+
     chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.get(tabId, (tab) => {
+        if (chrome.runtime.lastError || !tab) return;
+        if (tab.status === 'complete') {
+            begin();
+        }
+    });
 }
 
 function injectScriptsSequentially(
@@ -664,6 +922,249 @@ function normalizeCompareText(text) {
         .trim();
 }
 
+var COPY_GUARD_STOP_WORDS = new Set([
+    'the', 'and', 'for', 'with', 'that', 'this',
+    'from', 'are', 'was', 'were', 'have', 'has',
+    'had', 'you', 'your', 'our', 'their', 'just',
+    'very', 'more', 'about', 'como', 'para', 'com',
+    'uma', 'que', 'isso', 'esse', 'essa', 'muito',
+    'mais', 'dos', 'das', 'nos', 'nas', 'de', 'em'
+]);
+
+function normalizeCopyGuardText(text) {
+    return (text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function tokenizeCopyGuard(text) {
+    return normalizeCopyGuardText(text)
+        .split(' ')
+        .map(function(token) {
+            return token.trim();
+        })
+        .filter(function(token) {
+            return token.length >= 3 &&
+                !COPY_GUARD_STOP_WORDS.has(token);
+        });
+}
+
+function extractFourWordSnippets(tokens) {
+    var snippets = new Set();
+    if (!Array.isArray(tokens) || tokens.length < 4) {
+        return snippets;
+    }
+    for (var i = 0; i <= tokens.length - 4; i++) {
+        snippets.add(tokens.slice(i, i + 4).join(' '));
+    }
+    return snippets;
+}
+
+function buildCharTrigramSet(text) {
+    var normalized = normalizeCopyGuardText(text);
+    var compact = normalized.replace(/\s+/g, ' ').trim();
+    var grams = new Set();
+    if (!compact) return grams;
+    if (compact.length < 3) {
+        grams.add(compact);
+        return grams;
+    }
+    for (var i = 0; i <= compact.length - 3; i++) {
+        grams.add(compact.slice(i, i + 3));
+    }
+    return grams;
+}
+
+function roundCopyMetric(value) {
+    return Math.round((Number(value) || 0) * 1000) / 1000;
+}
+
+function computeTokenContainment(baseTokens, referenceTokens) {
+    if (!Array.isArray(baseTokens) || baseTokens.length === 0) {
+        return 0;
+    }
+    var referenceSet = new Set(referenceTokens || []);
+    var overlap = 0;
+    for (var token of baseTokens) {
+        if (referenceSet.has(token)) overlap++;
+    }
+    return overlap / baseTokens.length;
+}
+
+function computeJaccardSimilarity(setA, setB) {
+    var a = setA instanceof Set ? setA : new Set();
+    var b = setB instanceof Set ? setB : new Set();
+    if (a.size === 0 && b.size === 0) return 0;
+    var intersection = 0;
+    for (var value of a) {
+        if (b.has(value)) intersection++;
+    }
+    var unionSize = a.size + b.size - intersection;
+    if (unionSize <= 0) return 0;
+    return intersection / unionSize;
+}
+
+function assessCommentCopyRisk(comment, existingComments) {
+    var normalized = normalizeCopyGuardText(comment);
+    var commentTokens = tokenizeCopyGuard(comment);
+    var commentSnippets = extractFourWordSnippets(commentTokens);
+    var commentTrigrams = buildCharTrigramSet(comment);
+    var diagnostics = {
+        risky: false,
+        tokenOverlap: 0,
+        charSimilarity: 0,
+        matchedSnippet: '',
+        ruleHit: null
+    };
+    var list = Array.isArray(existingComments)
+        ? existingComments : [];
+    var bestRank = 99;
+    for (var item of list) {
+        var priorText = String(item?.text || '').trim();
+        if (!priorText) continue;
+        var priorNormalized = normalizeCopyGuardText(priorText);
+        var priorTokens = tokenizeCopyGuard(priorText);
+        var tokenOverlap = computeTokenContainment(
+            commentTokens, priorTokens
+        );
+        var charSimilarity = computeJaccardSimilarity(
+            commentTrigrams,
+            buildCharTrigramSet(priorText)
+        );
+        var priorSnippets = extractFourWordSnippets(priorTokens);
+        var matchedSnippet = '';
+        for (var snippet of commentSnippets) {
+            if (priorSnippets.has(snippet)) {
+                matchedSnippet = snippet;
+                break;
+            }
+        }
+        var rank = 0;
+        var ruleHit = null;
+        if (normalized && priorNormalized &&
+            normalized === priorNormalized) {
+            rank = 1;
+            ruleHit = 'exact-normalized';
+        } else if (matchedSnippet) {
+            rank = 2;
+            ruleHit = 'shared-4gram';
+        } else if (tokenOverlap >= 0.72) {
+            rank = 3;
+            ruleHit = 'high-token-containment';
+        } else if (tokenOverlap >= 0.62 &&
+            charSimilarity >= 0.82) {
+            rank = 4;
+            ruleHit = 'medium-token-high-char';
+        } else if (commentTokens.length > 0 &&
+            commentTokens.length <= 4 &&
+            (tokenOverlap >= 0.9 ||
+                charSimilarity >= 0.9)) {
+            rank = 5;
+            ruleHit = 'short-near-clone';
+        }
+        if (!ruleHit) continue;
+        if (rank < bestRank ||
+            (rank === bestRank && (
+                tokenOverlap > diagnostics.tokenOverlap ||
+                charSimilarity > diagnostics.charSimilarity
+            ))) {
+            bestRank = rank;
+            diagnostics = {
+                risky: true,
+                tokenOverlap: roundCopyMetric(tokenOverlap),
+                charSimilarity: roundCopyMetric(charSimilarity),
+                matchedSnippet: matchedSnippet || '',
+                ruleHit
+            };
+        }
+    }
+    return diagnostics;
+}
+
+var DISTANCE_GUARD_CATEGORIES = new Set([
+    'newjob', 'career', 'achievement'
+]);
+var DISTANCE_DIRECT_PHRASES = [
+    'happy for you',
+    'so proud of you',
+    'proud of you',
+    'thrilled for you',
+    'you deserve this so much',
+    'muito realizado',
+    'muito realizada',
+    'feliz por voce',
+    'feliz por vc',
+    'orgulho de voce',
+    'orgulho de vc',
+    'orgulhoso de voce',
+    'orgulhosa de voce',
+    'orgulhoso de vc',
+    'orgulhosa de vc',
+    'tenho orgulho de voce',
+    'tenho orgulho de vc',
+    'te admiro'
+];
+var DISTANCE_SECOND_PERSON_TOKENS = new Set([
+    'you', 'your', 'voce', 'vc', 'te'
+]);
+var DISTANCE_CLOSENESS_TOKENS = [
+    'proud', 'orgulho', 'happy', 'feliz',
+    'realizado', 'realizada', 'admire',
+    'admiro', 'deserve', 'merece'
+];
+
+function isCareerDistanceCategory(category) {
+    return DISTANCE_GUARD_CATEGORIES.has(
+        String(category || '').toLowerCase()
+    );
+}
+
+function assessStrangerDistanceRisk(comment, category) {
+    var diagnostics = {
+        risky: false,
+        riskType: 'distance',
+        ruleHit: null,
+        matchedSnippet: ''
+    };
+    if (!isCareerDistanceCategory(category)) {
+        return diagnostics;
+    }
+    var normalized = normalizeCopyGuardText(comment);
+    if (!normalized) return diagnostics;
+    for (var phrase of DISTANCE_DIRECT_PHRASES) {
+        if (normalized.includes(phrase)) {
+            return {
+                risky: true,
+                riskType: 'distance',
+                ruleHit: 'direct-intimacy-phrase',
+                matchedSnippet: phrase
+            };
+        }
+    }
+    var tokens = normalized.split(' ').filter(Boolean);
+    var hasSecondPerson = tokens.some(function(token) {
+        return DISTANCE_SECOND_PERSON_TOKENS.has(token);
+    });
+    if (!hasSecondPerson) return diagnostics;
+    for (var token of tokens) {
+        for (var cue of DISTANCE_CLOSENESS_TOKENS) {
+            if (token === cue || token.startsWith(cue)) {
+                return {
+                    risky: true,
+                    riskType: 'distance',
+                    ruleHit: 'pronoun-emotional-closeness',
+                    matchedSnippet: cue
+                };
+            }
+        }
+    }
+    return diagnostics;
+}
+
 function collectPatternTokens(guidance, bucket) {
     var set = new Set();
     var sources = []
@@ -798,18 +1299,20 @@ function buildHumanVoiceRules(commentThreadSummary, category) {
             ' for this thread vibe.';
     var allowQuestion =
         commentThreadSummary.questionRate > 0.35 &&
-        category !== 'achievement' &&
-        category !== 'newjob' &&
+        !isCareerDistanceCategory(category) &&
         category !== 'critique';
     var questionRule = allowQuestion
         ? '\n- A short question is allowed if it' +
             ' mirrors the thread style.'
         : '\n- Prefer statements over questions.';
-    var energyRule = commentThreadSummary.energy === 'high'
-        ? '\n- Keep an energetic, expressive tone.'
-        : commentThreadSummary.energy === 'low'
-            ? '\n- Keep a calm, understated tone.'
-            : '\n- Keep a balanced conversational tone.';
+    var energyRule = isCareerDistanceCategory(category)
+        ? '\n- Keep a professional and emotionally' +
+            ' neutral tone.'
+        : commentThreadSummary.energy === 'high'
+            ? '\n- Keep an energetic, expressive tone.'
+            : commentThreadSummary.energy === 'low'
+                ? '\n- Keep a calm, understated tone.'
+                : '\n- Keep a balanced conversational tone.';
     return '\n- Target length: ' + targetLen + '.' +
         emojiRule + questionRule + energyRule;
 }
@@ -967,6 +1470,8 @@ function validateCommentSafety(comment, context) {
     var lower = text.toLowerCase();
     var category = context?.category || 'generic';
     if (lower.includes('?')) return false;
+    var distanceRisk = assessStrangerDistanceRisk(text, category);
+    if (distanceRisk.risky) return false;
 
     var ironyRe = /\b(obviously|clearly|duh|yeah right|sure buddy|good luck with that|as if|lol sure|ironic|sarcasm|sarcastic|imagina|claro que n[aã]o)\b/i;
     if (ironyRe.test(lower)) return false;
@@ -1069,11 +1574,12 @@ async function generateAIComment(data) {
     } else if (cat === 'achievement' ||
         cat === 'career' || cat === 'newjob') {
         toneGuide =
-            '\nTone: ACHIEVEMENT post.' +
-            ' Start with a brief congrats and add' +
-            ' one short human follow-up linked to' +
-            ' the post theme.' +
-            ' Keep it concise and specific.';
+            '\nTone: CAREER MILESTONE post.' +
+            ' Use professional-neutral wording:' +
+            ' brief congrats plus a neutral wish.' +
+            ' Keep emotional intensity low.' +
+            ' Avoid close-friend wording or' +
+            ' emotional assumptions.';
     } else if (cat === 'critique') {
         toneGuide =
             '\nTone: OPINION post.' +
@@ -1141,6 +1647,13 @@ async function generateAIComment(data) {
     var humanVoiceRules = buildHumanVoiceRules(
         commentThreadSummary, cat
     );
+    var distanceToneRule = isCareerDistanceCategory(cat)
+        ? '\n- For career milestones: match thread' +
+            ' formality and length, not emotional intensity.' +
+            '\n- Keep the tone professional and neutral.' +
+            '\n- NEVER say "happy for you", "so proud of you",' +
+            ' "muito realizado", or "feliz por você".'
+        : '';
 
     var commentPriorityCtx =
         '\nPRIMARY CONTEXT (thread comments first):' +
@@ -1168,6 +1681,7 @@ async function generateAIComment(data) {
         '\n\nRules:' +
         langRule +
         humanVoiceRules +
+        distanceToneRule +
         '\n- Max 120 chars, 1-2 sentences' +
         '\n- Existing comments are PRIMARY context.' +
         ' Match their tone, style, and length first.' +
@@ -1184,8 +1698,10 @@ async function generateAIComment(data) {
         ' phrases from existing comments' +
         '\n- Match sentence shape and tone intensity' +
         ' from the pattern profile' +
-        '\n- Use the thread keywords/phrases as the' +
-        ' main base for your comment when present' +
+        '\n- Use thread keywords as themes only,' +
+        ' never as reusable phrase blocks' +
+        '\n- NEVER reuse 4+ contiguous words from any' +
+        ' existing comment' +
         '\n- Do not introduce topics that are not in' +
         ' post text or existing comments' +
         '\n- Sound like a real person in this' +
@@ -1225,134 +1741,209 @@ async function generateAIComment(data) {
         ' or "SKIP" if no good comment):';
 
     try {
-        const resp = await fetch(
-            'https://api.groq.com/openai/v1/' +
-            'chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + apiKey
-                },
-                body: JSON.stringify({
-                    model: 'llama-3.3-70b-versatile',
-                    messages: [{
-                        role: 'user',
-                        content: prompt
-                    }],
-                    max_tokens: 90,
-                    temperature: 0.55
-                })
+        var copyRiskDiagnostics = null;
+        var distanceRiskDiagnostics = null;
+        var copyRiskAttempts = 0;
+        var retryGuardReason = null;
+        for (var attempt = 1; attempt <= 2; attempt++) {
+            copyRiskAttempts = attempt;
+            var retryPrompt = prompt;
+            if (attempt === 2) {
+                retryPrompt +=
+                    '\n\nRetry with stronger constraints:' +
+                    '\n- Keep the same vibe but rewrite from scratch.' +
+                    '\n- Do not reuse any 4-word span from existing comments.';
+                if (retryGuardReason === 'distance') {
+                    retryPrompt +=
+                        '\n- Keep wording professional and emotionally neutral.' +
+                        '\n- Do not assume personal closeness with the author.' +
+                        '\n- Avoid phrases like "happy for you",' +
+                        ' "proud of you", "muito realizado",' +
+                        ' or "feliz por você".';
+                }
+                retryPrompt +=
+                    '\n- If originality or tone safety is uncertain,' +
+                    ' return SKIP.';
             }
-        );
-        if (!resp.ok) {
-            console.log(
-                '[LinkedIn Bot] AI API error: ' +
-                resp.status
+            var temperature = attempt === 1 ? 0.55 : 0.7;
+            const resp = await fetch(
+                'https://api.groq.com/openai/v1/' +
+                'chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'llama-3.3-70b-versatile',
+                        messages: [{
+                            role: 'user',
+                            content: retryPrompt
+                        }],
+                        max_tokens: 90,
+                        temperature
+                    })
+                }
             );
-            return { comment: null, reason: null };
-        }
-        const json = await resp.json();
-        let comment = json.choices?.[0]
-            ?.message?.content?.trim();
-        if (!comment) {
-            return {
-                comment: null,
-                reason: 'skip-low-confidence'
-            };
-        }
-        comment = comment
-            .replace(/^["']|["']$/g, '')
-            .replace(/^Comment:\s*/i, '')
-            .trim();
-        if (/\?\s*$/.test(comment)) {
-            console.log(
-                '[LinkedIn Bot] AI generated a ' +
-                'question, skipping: "' +
-                comment.substring(0, 60) + '"'
-            );
-            return {
-                comment: null,
-                reason: 'skip-safety-guard'
-            };
-        }
-        if (/^skip$/i.test(comment)) {
-            console.log(
-                '[LinkedIn Bot] AI chose to SKIP'
-            );
-            return {
-                comment: null,
-                reason: 'skip-low-confidence'
-            };
-        }
-        if (comment.length < 5 ||
-            comment.length > 300) {
-            return {
-                comment: null,
-                reason: 'skip-safety-guard'
-            };
-        }
-        var grounding = getContextGroundingData(
-            comment,
-            postText,
-            existingComments,
-            commentThreadSummary
-        );
-        if (!grounding.grounded) {
-            console.log(
-                '[LinkedIn Bot] AI comment not grounded' +
-                ' in thread context'
-            );
-            return {
-                comment: null,
-                reason: 'skip-context-mismatch'
-            };
-        }
-        if (!validateCommentSafety(comment, {
-            category: cat,
-            postText,
-            imageSignals
-        })) {
-            console.log(
-                '[LinkedIn Bot] AI comment rejected by' +
-                ' safety guard'
-            );
-            return {
-                comment: null,
-                reason: 'skip-safety-guard'
-            };
-        }
-        if (allowLowSignalRecovery !== true) {
-            var patternFit = validateCommentPatternFit(
-                comment,
-                patternProfile,
-                bucket,
-                { existingComments }
-            );
-            if (!patternFit.ok) {
+            if (!resp.ok) {
+                console.log(
+                    '[LinkedIn Bot] AI API error: ' +
+                    resp.status
+                );
+                return { comment: null, reason: null };
+            }
+            const json = await resp.json();
+            let comment = json.choices?.[0]
+                ?.message?.content?.trim();
+            if (!comment) {
                 return {
                     comment: null,
-                    reason: patternFit.reason || 'skip-pattern-fit'
+                    reason: 'skip-low-confidence'
                 };
             }
-        }
-        var confidence = computeCommentConfidence({
-            category: cat,
-            reactionSummary,
-            commentThreadSummary,
-            existingComments,
-            groundingRatio: grounding.ratio
-        });
-        if (confidence.score < 60) {
-            console.log(
-                '[LinkedIn Bot] AI comment low confidence' +
-                ` (${confidence.score}), skipping`
+            comment = comment
+                .replace(/^["']|["']$/g, '')
+                .replace(/^Comment:\s*/i, '')
+                .trim();
+            if (/\?\s*$/.test(comment)) {
+                console.log(
+                    '[LinkedIn Bot] AI generated a ' +
+                    'question, skipping: "' +
+                    comment.substring(0, 60) + '"'
+                );
+                return {
+                    comment: null,
+                    reason: 'skip-safety-guard'
+                };
+            }
+            if (/^skip$/i.test(comment)) {
+                console.log(
+                    '[LinkedIn Bot] AI chose to SKIP'
+                );
+                return {
+                    comment: null,
+                    reason: 'skip-low-confidence'
+                };
+            }
+            if (comment.length < 5 ||
+                comment.length > 300) {
+                return {
+                    comment: null,
+                    reason: 'skip-safety-guard'
+                };
+            }
+            var grounding = getContextGroundingData(
+                comment,
+                postText,
+                existingComments,
+                commentThreadSummary
             );
+            if (!grounding.grounded) {
+                console.log(
+                    '[LinkedIn Bot] AI comment not grounded' +
+                    ' in thread context'
+                );
+                return {
+                    comment: null,
+                    reason: 'skip-context-mismatch'
+                };
+            }
+            var distanceRisk = assessStrangerDistanceRisk(
+                comment, cat
+            );
+            if (distanceRisk.risky) {
+                distanceRiskDiagnostics = distanceRisk;
+                if (attempt < 2) {
+                    retryGuardReason = 'distance';
+                    continue;
+                }
+                return {
+                    comment: null,
+                    reason: 'skip-distance-risk',
+                    diagnostics: distanceRiskDiagnostics,
+                    attempts: copyRiskAttempts
+                };
+            }
+            if (!validateCommentSafety(comment, {
+                category: cat,
+                postText,
+                imageSignals
+            })) {
+                console.log(
+                    '[LinkedIn Bot] AI comment rejected by' +
+                    ' safety guard'
+                );
+                return {
+                    comment: null,
+                    reason: 'skip-safety-guard'
+                };
+            }
+            if (allowLowSignalRecovery !== true) {
+                var patternFit = validateCommentPatternFit(
+                    comment,
+                    patternProfile,
+                    bucket,
+                    { existingComments }
+                );
+                if (!patternFit.ok) {
+                    return {
+                        comment: null,
+                        reason: patternFit.reason ||
+                            'skip-pattern-fit'
+                    };
+                }
+            }
+            var copyRisk = assessCommentCopyRisk(
+                comment,
+                existingComments
+            );
+            if (copyRisk.risky) {
+                copyRiskDiagnostics = copyRisk;
+                if (attempt < 2) {
+                    retryGuardReason = 'copy';
+                    continue;
+                }
+                return {
+                    comment: null,
+                    reason: 'skip-copy-risk',
+                    diagnostics: copyRiskDiagnostics,
+                    attempts: copyRiskAttempts
+                };
+            }
+            var confidence = computeCommentConfidence({
+                category: cat,
+                reactionSummary,
+                commentThreadSummary,
+                existingComments,
+                groundingRatio: grounding.ratio
+            });
+            if (confidence.score < 60) {
+                console.log(
+                    '[LinkedIn Bot] AI comment low confidence' +
+                    ` (${confidence.score}), skipping`
+                );
+                return {
+                    comment: null,
+                    reason: 'skip-low-confidence'
+                };
+            }
             return {
-                comment: null,
-                reason: 'skip-low-confidence'
+                comment,
+                reason: null,
+                diagnostics: null,
+                attempts: copyRiskAttempts
             };
         }
-        return { comment, reason: null };
+        return {
+            comment: null,
+            reason: retryGuardReason === 'distance'
+                ? 'skip-distance-risk'
+                : 'skip-copy-risk',
+            diagnostics: retryGuardReason === 'distance'
+                ? distanceRiskDiagnostics
+                : copyRiskDiagnostics,
+            attempts: copyRiskAttempts
+        };
     } catch (e) {
         console.log(
             '[LinkedIn Bot] AI error: ' + e.message
@@ -1367,11 +1958,15 @@ chrome.runtime.onMessage.addListener(
             generateAIComment(request).then(
                 result => sendResponse({
                     comment: result?.comment || null,
-                    reason: result?.reason || null
+                    reason: result?.reason || null,
+                    diagnostics: result?.diagnostics || null,
+                    attempts: Number(result?.attempts) || 0
                 })
             ).catch(() => sendResponse({
                 comment: null,
-                reason: null
+                reason: null,
+                diagnostics: null,
+                attempts: 0
             }));
             return true;
         }
@@ -1488,6 +2083,24 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (request.action === 'stop') {
+            if (companyRunState?.active) {
+                companyRunState.stopRequested = true;
+                if (companyRunState.tabId) {
+                    chrome.tabs.sendMessage(
+                        companyRunState.tabId,
+                        { action: 'stop' },
+                        () => {}
+                    );
+                }
+                finalizeCompanyRun({
+                    success: false,
+                    mode: 'company',
+                    error: 'Stopped by user.',
+                    log: companyRunState.log || []
+                }, true);
+                sendResponse({ status: 'stopping' });
+                return true;
+            }
             if (activeTabId) {
                 chrome.tabs.sendMessage(
                     activeTabId,
@@ -1500,6 +2113,12 @@ chrome.runtime.onMessage.addListener(
                 );
             }
             sendResponse({ status: 'stopping' });
+            return true;
+        }
+
+        if (request.action === 'companyStepDone') {
+            handleCompanyStepDone(request.result);
+            sendResponse({ status: 'received' });
             return true;
         }
 
@@ -1554,71 +2173,11 @@ chrome.runtime.onMessage.addListener(
         }
 
         if (request.action === 'done') {
-            activeTabId = null;
-            const r = request.result;
-            const logCount = (r?.log || []).filter(
-                e => {
-                    if (e.status?.startsWith('skipped') ||
-                        e.status?.startsWith('skip-')) {
-                        return false;
-                    }
-                    if (r?.mode === 'feed' &&
-                        e.status === 'warmup-learning') {
-                        return false;
-                    }
-                    return true;
-                }
-            ).length;
-            if (logCount > 0 && r?.mode) {
-                const rateMode = r.mode === 'company'
-                    ? 'companyFollow'
-                    : r.mode === 'feed'
-                        ? 'feedEngage' : 'connect';
-                for (let i = 0; i < logCount; i++) {
-                    incrementCount(
-                        rateMode, chrome.storage.local
-                    );
-                }
-            }
-            cleanupOldKeys(chrome.storage.local);
-            chrome.notifications.create({
-                type: 'basic',
-                iconUrl: 'icons/icon128.png',
-                title: 'LinkedIn Engage',
-                message: r?.success
-                    ? r.message || 'Automation complete.'
-                    : 'Stopped: ' + (r?.error || 'Unknown')
-            });
-            if (r?.log?.length && r?.mode) {
-                const key = r.mode === 'company'
-                    ? 'companyFollowHistory'
-                    : r.mode === 'feed'
-                        ? 'feedEngageHistory'
-                        : null;
-                if (key) {
-                    chrome.storage.local.get(key, (data) => {
-                        const existing = data[key] || [];
-                        const merged = existing
-                            .concat(r.log).slice(-500);
-                        chrome.storage.local.set({
-                            [key]: merged
-                        });
-                    });
-                }
-            }
-            if (r?.mode === 'feed') {
-                persistFeedWarmupAfterRun(r).catch(() => {});
-                if (r.warmupActive) {
-                    recordEngagement({
-                        mode: 'feed',
-                        status: 'warmup-run',
-                        warmupRun: true,
-                        warmupPostsLearned:
-                            Number(r.warmupPostsLearned) || 0,
-                        warmupThreadsLearned:
-                            Number(r.warmupThreadsLearned) || 0
-                    }, chrome.storage.local);
-                }
+            if (companyRunState?.active &&
+                request.result?.mode === 'company') {
+                handleCompanyStepDone(request.result);
+            } else {
+                applyRunResult(request.result);
             }
         }
 

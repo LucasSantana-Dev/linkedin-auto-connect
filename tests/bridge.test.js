@@ -14,7 +14,12 @@ describe('bridge AI relay', () => {
                     if (payload.action === 'generateAIComment') {
                         cb({
                             comment: null,
-                            reason: 'skip-low-confidence'
+                            reason: 'skip-copy-risk',
+                            diagnostics: {
+                                ruleHit: 'shared-4gram',
+                                tokenOverlap: 0.81
+                            },
+                            attempts: 2
                         });
                         return;
                     }
@@ -35,7 +40,7 @@ describe('bridge AI relay', () => {
         delete global.chrome;
     });
 
-    it('forwards goalMode and returns reason in AI result relay', async () => {
+    it('forwards goalMode and returns diagnostics in AI result relay', async () => {
         const postSpy = jest.spyOn(window, 'postMessage');
 
         window.dispatchEvent(new MessageEvent('message', {
@@ -77,8 +82,61 @@ describe('bridge AI relay', () => {
         expect(postSpy).toHaveBeenCalledWith(
             expect.objectContaining({
                 type: 'LINKEDIN_BOT_AI_COMMENT_RESULT',
-                reason: 'skip-low-confidence',
+                reason: 'skip-copy-risk',
+                diagnostics: expect.objectContaining({
+                    ruleHit: 'shared-4gram'
+                }),
+                attempts: 2,
                 requestId: 42
+            }),
+            '*'
+        );
+        postSpy.mockRestore();
+    });
+
+    it('relays distance-risk diagnostics from background', () => {
+        chrome.runtime.sendMessage = jest.fn((payload, cb) => {
+            if (payload.action === 'generateAIComment') {
+                cb({
+                    comment: null,
+                    reason: 'skip-distance-risk',
+                    diagnostics: {
+                        risky: true,
+                        riskType: 'distance',
+                        ruleHit: 'direct-intimacy-phrase',
+                        matchedSnippet: 'happy for you'
+                    },
+                    attempts: 2
+                });
+                return;
+            }
+            if (typeof cb === 'function') cb({});
+        });
+        const postSpy = jest.spyOn(window, 'postMessage');
+
+        window.dispatchEvent(new MessageEvent('message', {
+            source: window,
+            data: {
+                type: 'LINKEDIN_BOT_AI_COMMENT',
+                requestId: 7,
+                postText: 'post',
+                existingComments: [],
+                author: 'A',
+                category: 'newjob',
+                apiKey: 'k'
+            }
+        }));
+
+        expect(postSpy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                type: 'LINKEDIN_BOT_AI_COMMENT_RESULT',
+                reason: 'skip-distance-risk',
+                diagnostics: expect.objectContaining({
+                    riskType: 'distance',
+                    ruleHit: 'direct-intimacy-phrase'
+                }),
+                attempts: 2,
+                requestId: 7
             }),
             '*'
         );

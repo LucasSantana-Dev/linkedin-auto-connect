@@ -32,6 +32,13 @@ window.addEventListener('message', (event) => {
             result: event.data.result
         });
     }
+    if (event.data?.type ===
+        'LINKEDIN_BOT_COMPANY_STEP_DONE') {
+        chrome.runtime.sendMessage({
+            action: 'companyStepDone',
+            result: event.data.result
+        });
+    }
     if (event.data?.type === 'LINKEDIN_BOT_SET_FUSE_LIMIT') {
         chrome.storage.local.set({
             fuseLimitHit: {
@@ -158,6 +165,8 @@ window.addEventListener('message', (event) => {
                 type: 'LINKEDIN_BOT_AI_COMMENT_RESULT',
                 comment: response?.comment || null,
                 reason: response?.reason || null,
+                diagnostics: response?.diagnostics || null,
+                attempts: Number(response?.attempts) || 0,
                 requestId: event.data.requestId
             }, '*');
         });

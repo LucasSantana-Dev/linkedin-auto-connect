@@ -3,9 +3,12 @@
  */
 const {
     extractCompanyInfo,
+    findCompanyCards,
+    getCompanySearchPageState,
     matchesTargetCompanies,
     isFollowingText,
-    isNextPageButton
+    isNextPageButton,
+    isCompanyFollowText
 } = require('../extension/lib/company-utils');
 
 function createCard({ name, subtitle, companyUrl }) {
@@ -106,6 +109,38 @@ describe('extractCompanyInfo', () => {
         expect(info.name).toBe('Company Name');
         document.body.removeChild(card);
     });
+
+    it('falls back to generic company link text when title selector is absent', () => {
+        const card = document.createElement('div');
+        const link = document.createElement('a');
+        link.href = 'https://linkedin.com/company/hotjar?trk=test';
+        link.textContent = 'Hotjar | by Contentsquare';
+        card.appendChild(link);
+
+        document.body.appendChild(card);
+        const info = extractCompanyInfo(card);
+        expect(info.name).toBe('Hotjar | by Contentsquare');
+        expect(info.companyUrl).toBe(
+            'https://linkedin.com/company/hotjar'
+        );
+        document.body.removeChild(card);
+    });
+
+    it('falls back to company URL slug when visible name is unavailable', () => {
+        const card = document.createElement('div');
+        const link = document.createElement('a');
+        link.href = 'https://linkedin.com/company/hotjar-labs/';
+        link.textContent = '';
+        card.appendChild(link);
+
+        document.body.appendChild(card);
+        const info = extractCompanyInfo(card);
+        expect(info.name).toBe('hotjar labs');
+        expect(info.companyUrl).toBe(
+            'https://linkedin.com/company/hotjar-labs/'
+        );
+        document.body.removeChild(card);
+    });
 });
 
 describe('matchesTargetCompanies', () => {
@@ -198,5 +233,114 @@ describe('isNextPageButton', () => {
 
     it('returns false for null', () => {
         expect(isNextPageButton(null)).toBe(false);
+    });
+});
+
+describe('isCompanyFollowText', () => {
+    it('matches Follow label with company name', () => {
+        expect(isCompanyFollowText('Follow Acme Inc'))
+            .toBe(true);
+    });
+
+    it('matches Seguir label with company name', () => {
+        expect(isCompanyFollowText('Seguir Empresa XPTO'))
+            .toBe(true);
+    });
+
+    it('rejects Following variants', () => {
+        expect(isCompanyFollowText('Following Acme Inc'))
+            .toBe(false);
+        expect(isCompanyFollowText('Seguindo Empresa XPTO'))
+            .toBe(false);
+    });
+});
+
+describe('findCompanyCards', () => {
+    afterEach(() => {
+        document.body.textContent = '';
+    });
+
+    it('finds legacy class-based cards', () => {
+        const card = document.createElement('div');
+        card.className = 'entity-result';
+        document.body.appendChild(card);
+        expect(findCompanyCards(document).length).toBe(1);
+    });
+
+    it('falls back to stable container from company link', () => {
+        const li = document.createElement('li');
+        const wrapper = document.createElement('div');
+        const link = document.createElement('a');
+        link.href = 'https://www.linkedin.com/company/acme/';
+        link.textContent = 'Acme';
+        const btn = document.createElement('button');
+        btn.textContent = 'Follow';
+        wrapper.appendChild(link);
+        wrapper.appendChild(btn);
+        li.appendChild(wrapper);
+        document.body.appendChild(li);
+
+        const cards = findCompanyCards(document);
+        expect(cards.length).toBe(1);
+        expect(cards[0]).toBe(li);
+    });
+
+    it('deduplicates cards matched by class and fallback', () => {
+        const card = document.createElement('div');
+        card.className = 'entity-result';
+        const link = document.createElement('a');
+        link.href = 'https://www.linkedin.com/company/acme/';
+        link.textContent = 'Acme';
+        const btn = document.createElement('button');
+        btn.textContent = 'Follow';
+        card.appendChild(link);
+        card.appendChild(btn);
+        document.body.appendChild(card);
+
+        const cards = findCompanyCards(document);
+        expect(cards.length).toBe(1);
+        expect(cards[0]).toBe(card);
+    });
+});
+
+describe('getCompanySearchPageState', () => {
+    afterEach(() => {
+        document.body.textContent = '';
+    });
+
+    it('detects explicit no-results in English', () => {
+        document.body.textContent = 'No results found';
+        const state = getCompanySearchPageState(document);
+        expect(state.cardsFound).toBe(false);
+        expect(state.isExplicitNoResults).toBe(true);
+    });
+
+    it('detects explicit no-results in Portuguese', () => {
+        document.body.textContent = 'Nenhum resultado encontrado';
+        const state = getCompanySearchPageState(document);
+        expect(state.cardsFound).toBe(false);
+        expect(state.isExplicitNoResults).toBe(true);
+    });
+
+    it('parses non-zero results count hints', () => {
+        document.body.textContent = 'About 6,600 results';
+        const state = getCompanySearchPageState(document);
+        expect(state.resultsCountHint).toBe(6600);
+        expect(state.isExplicitNoResults).toBe(false);
+    });
+
+    it('distinguishes timeout-like state from explicit no-results', () => {
+        document.body.textContent = 'About 132 results';
+        const state = getCompanySearchPageState(document);
+        expect(state.cardsFound).toBe(false);
+        expect(state.resultsCountHint).toBe(132);
+        expect(state.isExplicitNoResults).toBe(false);
+    });
+
+    it('treats zero result count as explicit no-results', () => {
+        document.body.textContent = '0 resultados';
+        const state = getCompanySearchPageState(document);
+        expect(state.resultsCountHint).toBe(0);
+        expect(state.isExplicitNoResults).toBe(true);
     });
 });
