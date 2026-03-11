@@ -2,6 +2,8 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
     window.linkedInCompanyFollowInjected = true;
 
     const delay = ms => new Promise(r => setTimeout(r, ms));
+    const CARD_POLL_MS = 500;
+    const CARD_TIMEOUT_MS = 20000;
     let stopRequested = false;
     const followLog = [];
     let consecutiveFails = 0;
@@ -12,6 +14,12 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             pauseChance: 0.05, scrollMultiplier: 1
         };
 
+    function countFollowedEntries(log) {
+        return (log || []).filter(
+            entry => entry?.status === 'followed'
+        ).length;
+    }
+
     function detectChallenge() {
         const url = window.location.href;
         if (/checkpoint|authwall|challenge/i.test(url)) {
@@ -19,6 +27,52 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
         }
         const text = document.body?.innerText || '';
         return /security verification|unusual activity|verificação de segurança/i.test(text);
+    }
+
+    function getPageState() {
+        if (typeof getCompanySearchPageState === 'function') {
+            return getCompanySearchPageState(document);
+        }
+        const cards = findCompanyCards();
+        return {
+            cards,
+            cardsFound: cards.length > 0,
+            isExplicitNoResults: false,
+            resultsCountHint: null,
+            resultsCountText: '',
+            selectorHits: {}
+        };
+    }
+
+    async function waitForCompanyPageState() {
+        const startedAt = Date.now();
+        let state = getPageState();
+        while (!state.cardsFound &&
+            !state.isExplicitNoResults &&
+            Date.now() - startedAt < CARD_TIMEOUT_MS) {
+            await delay(CARD_POLL_MS);
+            state = getPageState();
+        }
+        return {
+            state,
+            waitedMs: Date.now() - startedAt,
+            timedOut: !state.cardsFound &&
+                !state.isExplicitNoResults
+        };
+    }
+
+    function buildDiagnostics(query, waitResult) {
+        const state = waitResult.state || {};
+        return {
+            query: query || '',
+            waitedMs: waitResult.waitedMs || 0,
+            timedOut: waitResult.timedOut === true,
+            resultsCountHint: state.resultsCountHint,
+            resultsCountText: state.resultsCountText || '',
+            selectorHits: state.selectorHits || {},
+            cardsFound: state.cardsFound === true,
+            url: window.location.href
+        };
     }
 
     function findCompanyCards() {
@@ -59,20 +113,9 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
         }, '*');
     }
 
-    function navigateToCompanySearch(query) {
-        const url =
-            'https://www.linkedin.com/search/results/' +
-            'companies/' +
-            `?keywords=${encodeURIComponent(query)}` +
-            '&origin=FACETED_SEARCH';
-        window.location.href = url;
-    }
-
     async function processCurrentPage(
-        companies, limit, totalFollowed
+        cards, companies, limit, totalFollowed
     ) {
-        await delay(2000);
-        const cards = findCompanyCards();
         console.log(
             `[LinkedIn Bot] ${cards.length} company ` +
             `cards on page`
@@ -209,74 +252,123 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             '[LinkedIn Bot] Company follow started',
             config
         );
-        const limit = config?.limit || 50;
+        const limit = config?.globalLimit ||
+            config?.limit || 50;
+        const progressOffset = Math.max(
+            0,
+            Number(config?.progressOffset) || 0
+        );
         const companies = config?.targetCompanies || [];
-        const searchQueue =
-            config?.companySearchQueue || [];
-        let totalFollowed = 0;
+        const query = config?.query || '';
+        let totalFollowed = progressOffset;
         stopRequested = false;
         followLog.length = 0;
 
         try {
+            const waitResult = await waitForCompanyPageState();
+            const diagnostics = buildDiagnostics(
+                query,
+                waitResult
+            );
+
+            if (waitResult.state?.isExplicitNoResults &&
+                !waitResult.state?.cardsFound) {
+                followLog.push({
+                    name: query || 'Company search',
+                    subtitle: '',
+                    companyUrl: '',
+                    query,
+                    status: 'skipped-no-results',
+                    time: new Date().toISOString()
+                });
+                return {
+                    success: true,
+                    mode: 'company',
+                    stepCode: 'no-results',
+                    message: 'No results for current query.',
+                    followedThisStep: 0,
+                    diagnostics,
+                    log: followLog
+                };
+            }
+
+            if (waitResult.timedOut ||
+                !waitResult.state?.cardsFound) {
+                followLog.push({
+                    name: query || 'Company search',
+                    subtitle: '',
+                    companyUrl: '',
+                    query,
+                    status: 'error-no-cards-detected',
+                    details: 'No company cards detected ' +
+                        'within timeout.',
+                    diagnostics,
+                    time: new Date().toISOString()
+                });
+                return {
+                    success: false,
+                    mode: 'company',
+                    stepCode: 'cards-timeout',
+                    error: 'No company cards detected ' +
+                        'within timeout.',
+                    followedThisStep: 0,
+                    diagnostics,
+                    log: followLog
+                };
+            }
+
             totalFollowed = await processCurrentPage(
-                companies, limit, totalFollowed
+                waitResult.state.cards,
+                companies,
+                limit,
+                totalFollowed
             );
             if (totalFollowed === -1) {
                 return {
                     success: false,
                     mode: 'company',
+                    stepCode: 'challenge',
                     error: 'CAPTCHA or security ' +
                         'challenge detected',
+                    followedThisStep: countFollowedEntries(
+                        followLog
+                    ),
+                    diagnostics,
                     log: followLog
                 };
             }
-
-            let queueIdx = 0;
-            while (totalFollowed < limit &&
-                !stopRequested &&
-                queueIdx < searchQueue.length) {
-                const nextCompany =
-                    searchQueue[queueIdx++];
-                console.log(
-                    '[LinkedIn Bot] Searching: ' +
-                    nextCompany
-                );
-                navigateToCompanySearch(nextCompany);
-                await delay(5000);
-
-                for (let i = 0; i < 10; i++) {
-                    if (findCompanyCards().length > 0) {
-                        break;
-                    }
-                    await delay(1000);
-                }
-
-                totalFollowed = await processCurrentPage(
-                    companies, limit, totalFollowed
-                );
-                if (totalFollowed === -1) {
-                    return {
-                        success: false,
-                        mode: 'company',
-                        error: 'CAPTCHA or security ' +
-                            'challenge detected',
-                        log: followLog
-                    };
-                }
-            }
+            const followedThisStep =
+                countFollowedEntries(followLog);
 
             return {
                 success: true,
                 mode: 'company',
-                message: `Followed ${totalFollowed} ` +
-                    `companies.`,
+                stepCode: 'ok',
+                message: `Followed ${followedThisStep} ` +
+                    `companies in this search.`,
+                followedThisStep,
+                diagnostics,
                 log: followLog
             };
         } catch (error) {
             return {
                 success: false,
                 mode: 'company',
+                stepCode: 'cards-timeout',
                 error: error.message,
+                followedThisStep: countFollowedEntries(
+                    followLog
+                ),
+                diagnostics: {
+                    query,
+                    waitedMs: 0,
+                    timedOut: false,
+                    resultsCountHint: null,
+                    resultsCountText: '',
+                    selectorHits: {},
+                    cardsFound: false,
+                    url: window.location.href
+                },
                 log: followLog
             };
         }
@@ -292,7 +384,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             runCompanyFollow(event.data.config)
                 .then(result => {
                     window.postMessage({
-                        type: 'LINKEDIN_BOT_DONE',
+                        type: 'LINKEDIN_BOT_COMPANY_STEP_DONE',
                         result
                     }, '*');
                 });

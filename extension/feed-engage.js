@@ -62,7 +62,9 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     );
                     resolve({
                         comment: null,
-                        reason: 'skip-low-confidence'
+                        reason: 'skip-low-confidence',
+                        diagnostics: null,
+                        attempts: 0
                     });
                 }, 15000
             );
@@ -78,7 +80,9 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 );
                 resolve({
                     comment: event.data.comment || null,
-                    reason: event.data.reason || null
+                    reason: event.data.reason || null,
+                    diagnostics: event.data.diagnostics || null,
+                    attempts: Number(event.data.attempts) || 0
                 });
             }
             window.addEventListener(
@@ -1502,6 +1506,8 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
                         let commentSkipReason = null;
                         let usedLowSignalRecovery = false;
+                        let copyRiskDiagnostics = null;
+                        let copyRiskAttempts = null;
                         let detectedLang = detectLanguage(postText);
                         if (existing.length > 0) {
                             var ptComments = existing
@@ -1622,6 +1628,13 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 comment = aiResult?.comment || null;
                                 commentSkipReason =
                                     aiResult?.reason || null;
+                                copyRiskDiagnostics =
+                                    aiResult?.diagnostics || null;
+                                if (Number(aiResult?.attempts) > 0) {
+                                    copyRiskAttempts = Number(
+                                        aiResult.attempts
+                                    );
+                                }
                                 if (comment) {
                                     console.log(
                                         '[LinkedIn Bot] AI comment: "' +
@@ -1637,6 +1650,12 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
                             var canFallback = !skipComment;
                             if (!comment && canFallback) {
+                                var fallbackOptions = {
+                                    allowLowSignalRecovery:
+                                        usedLowSignalRecovery,
+                                    lastRejectReason: null,
+                                    lastRejectDiagnostics: null
+                                };
                                 comment = buildCommentFromPost(
                                     postText,
                                     commentTemplates.length > 0
@@ -1654,15 +1673,27 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                         existingComments: existing
                                     },
                                     effectivePatternProfile,
-                                    {
-                                        allowLowSignalRecovery:
-                                            usedLowSignalRecovery
-                                    }
+                                    fallbackOptions
                                 );
-                                if (!comment && !commentSkipReason) {
-                                    commentSkipReason = effectivePatternProfile
-                                        ? 'skip-pattern-fit'
-                                        : 'skip-safety-guard';
+                                if (!comment &&
+                                    fallbackOptions.lastRejectReason) {
+                                    commentSkipReason =
+                                        fallbackOptions.lastRejectReason;
+                                    if (commentSkipReason ===
+                                        'skip-distance-risk' ||
+                                        commentSkipReason ===
+                                        'skip-copy-risk') {
+                                        copyRiskDiagnostics =
+                                            fallbackOptions
+                                                .lastRejectDiagnostics;
+                                        copyRiskAttempts =
+                                            copyRiskAttempts || 0;
+                                    }
+                                } else if (!comment && !commentSkipReason) {
+                                    commentSkipReason =
+                                        effectivePatternProfile
+                                            ? 'skip-pattern-fit'
+                                            : 'skip-safety-guard';
                                 }
                             }
                             if (comment &&
@@ -1701,6 +1732,19 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                         patternSnapshot?.styleFamily,
                                     patternLengthBand:
                                         patternSnapshot?.lengthBand,
+                                    copyRiskRule:
+                                        copyRiskDiagnostics?.ruleHit || null,
+                                    copyRiskTokenOverlap:
+                                        copyRiskDiagnostics
+                                            ?.tokenOverlap ?? null,
+                                    copyRiskCharSimilarity:
+                                        copyRiskDiagnostics
+                                            ?.charSimilarity ?? null,
+                                    copyRiskMatchedSnippet:
+                                        copyRiskDiagnostics
+                                            ?.matchedSnippet || null,
+                                    copyRiskAttempts:
+                                        copyRiskAttempts ?? null,
                                     time: new Date().toISOString()
                                 });
                                 window.postMessage({
@@ -1724,7 +1768,20 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                                 ?.styleFamily || null,
                                         patternLengthBand:
                                             patternSnapshot
-                                                ?.lengthBand || null
+                                                ?.lengthBand || null,
+                                        copyRiskRule:
+                                            copyRiskDiagnostics?.ruleHit || null,
+                                        copyRiskTokenOverlap:
+                                            copyRiskDiagnostics
+                                                ?.tokenOverlap ?? null,
+                                        copyRiskCharSimilarity:
+                                            copyRiskDiagnostics
+                                                ?.charSimilarity ?? null,
+                                        copyRiskMatchedSnippet:
+                                            copyRiskDiagnostics
+                                                ?.matchedSnippet || null,
+                                        copyRiskAttempts:
+                                            copyRiskAttempts ?? null
                                     }
                                 }, '*');
                             }

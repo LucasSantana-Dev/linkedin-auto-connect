@@ -168,7 +168,7 @@ var CATEGORY_TEMPLATES = {
     achievement: [
         'congrats!',
         'congrats, good luck!',
-        'happy for you!',
+        'congrats on this milestone!',
         'congrats!'
     ],
     technical: [
@@ -234,7 +234,7 @@ var CATEGORY_TEMPLATES = {
     newjob: [
         'congrats, good luck!',
         'congrats!',
-        'happy for you!',
+        'wishing you success in this role!',
         'congrats, good luck!'
     ],
     generic: []
@@ -496,7 +496,7 @@ var COMPOSED_EN = {
     achievement: [
         (c) => 'congrats!',
         (c) => 'congrats, good luck!',
-        (c) => 'happy for you!',
+        (c) => 'congrats on this milestone!',
     ],
     question: [
         (c) => 'honestly depends, ' +

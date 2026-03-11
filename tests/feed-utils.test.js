@@ -20,6 +20,7 @@ const {
     summarizeReactions,
     getPostImageSignals,
     getPostCommentSignal,
+    assessCommentCopyRisk,
     validateCommentPatternFit,
     validateGeneratedCommentSafety,
     SENTIMENT_PATTERNS,
@@ -1177,7 +1178,7 @@ describe('buildCommentFromPost with context', () => {
         expect(result).toBeTruthy();
     });
 
-    it('avoids celebration when others celebrate', () => {
+    it('keeps career congratulations professional-neutral', () => {
         const post = 'Excited to share I got promoted!';
         const existing = [
             {
@@ -1197,12 +1198,12 @@ describe('buildCommentFromPost with context', () => {
                 buildCommentFromPost(post, null, existing)
             );
         }
-        const celebrationRe =
-            /congrat|parabéns|amazing|awesome|🎉|👏/i;
-        const allCelebration = [...results].every(
-            c => celebrationRe.test(c)
+        const overpersonalRe =
+            /happy for you|proud of you|muito realizado|feliz por voc[eê]/i;
+        const hasOverpersonal = [...results].some(
+            c => overpersonalRe.test(c)
         );
-        expect(allCelebration).toBe(false);
+        expect(hasOverpersonal).toBe(false);
     });
 
     it('user templates bypass context filtering', () => {
@@ -1366,6 +1367,32 @@ describe('validateGeneratedCommentSafety', () => {
         );
         expect(safe).toBe(true);
     });
+
+    it('rejects overpersonal congratulations in career categories', () => {
+        expect(validateGeneratedCommentSafety(
+            'happy for you on this new role',
+            { category: 'newjob' }
+        )).toBe(false);
+        expect(validateGeneratedCommentSafety(
+            'muito realizado com essa conquista',
+            { category: 'achievement' }
+        )).toBe(false);
+        expect(validateGeneratedCommentSafety(
+            'orgulho de você, parabéns',
+            { category: 'career' }
+        )).toBe(false);
+    });
+
+    it('accepts neutral congratulations in career categories', () => {
+        expect(validateGeneratedCommentSafety(
+            'parabéns pela nova posição, sucesso nessa etapa',
+            { category: 'newjob' }
+        )).toBe(true);
+        expect(validateGeneratedCommentSafety(
+            'congrats on the new role, wishing you success',
+            { category: 'achievement' }
+        )).toBe(true);
+    });
 });
 
 describe('buildCommentFromPost with reactions context', () => {
@@ -1493,6 +1520,44 @@ describe('validateCommentPatternFit', () => {
     });
 });
 
+describe('assessCommentCopyRisk', () => {
+    it('rejects near-duplicate wording by token containment', () => {
+        const result = assessCommentCopyRisk(
+            'MVPs fast with vibe coding are useful for demos.',
+            [{
+                text: 'Vibe coding is very useful to create MVPs very fast today.'
+            }]
+        );
+        expect(result.risky).toBe(true);
+        expect(result.ruleHit).toBe('high-token-containment');
+    });
+
+    it('rejects shared contiguous four-word snippets', () => {
+        const result = assessCommentCopyRisk(
+            'Clear prompts make outputs better in demos.',
+            [{
+                text: 'Honestly clear prompts make outputs better for demos.'
+            }]
+        );
+        expect(result.risky).toBe(true);
+        expect(result.ruleHit).toBe('shared-4gram');
+        expect(result.matchedSnippet).toContain('clear prompts');
+    });
+
+    it('accepts original wording on the same topic', () => {
+        const result = assessCommentCopyRisk(
+            'Fast MVP delivery comes from prompt clarity and tight iteration.',
+            [{
+                text: 'Vibe coding is useful to create MVPs fast.'
+            }, {
+                text: 'Clear prompts make outputs better for demos.'
+            }]
+        );
+        expect(result.risky).toBe(false);
+        expect(result.ruleHit).toBeNull();
+    });
+});
+
 describe('buildCommentFromPost with pattern discipline', () => {
     it('skips fallback when pattern signal is low', () => {
         const result = buildCommentFromPost(
@@ -1537,5 +1602,64 @@ describe('buildCommentFromPost with pattern discipline', () => {
             { allowLowSignalRecovery: true }
         );
         expect(result).toBe('solid point on latency');
+    });
+
+    it('rejects fallback output when copy-risk is detected', () => {
+        const options = {
+            allowLowSignalRecovery: true
+        };
+        const existing = [{
+            text: 'solid point on production latency',
+            sentiment: 'insight'
+        }];
+        const result = buildCommentFromPost(
+            'Strong technical perspective on latency',
+            ['solid point on production latency'],
+            existing,
+            'passive',
+            { INTEREST: 5, _total: 40 },
+            {
+                category: 'technical',
+                existingComments: existing
+            },
+            null,
+            options
+        );
+        expect(result).toBeNull();
+        expect(options.lastRejectReason).toBe('skip-copy-risk');
+        expect(options.lastRejectDiagnostics).toEqual(
+            expect.objectContaining({
+                risky: true,
+                ruleHit: 'exact-normalized'
+            })
+        );
+    });
+
+    it('rejects fallback output when distance-risk is detected', () => {
+        const options = {
+            allowLowSignalRecovery: true
+        };
+        const result = buildCommentFromPost(
+            'Excited to announce I accepted a new role',
+            ['happy for you!'],
+            [],
+            'passive',
+            { PRAISE: 6, _total: 40 },
+            {
+                category: 'newjob',
+                existingComments: []
+            },
+            null,
+            options
+        );
+        expect(result).toBeNull();
+        expect(options.lastRejectReason).toBe('skip-distance-risk');
+        expect(options.lastRejectDiagnostics).toEqual(
+            expect.objectContaining({
+                risky: true,
+                riskType: 'distance',
+                ruleHit: expect.any(String)
+            })
+        );
     });
 });
