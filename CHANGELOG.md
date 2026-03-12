@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-03-12
+
 ### Changed
 - **Connect supports broader multi-area targeting**: Search Builder now includes 18 professional area presets (`tech`, `finance`, `real-estate`, `headhunting`, `legal-judicial-media`, `environmental-engineering`, `sanitary-engineering`, `healthcare`, `education`, `marketing`, `sales`, `graphic-design`, `art-direction`, `branding`, `ui-ux`, `motion-design`, `video-editing`, `videomaker`) with EN/PT-BR role+industry taxonomy, selector options, and role-priority coverage.
 - **Neutral Connect defaults on first load**: Role, Industry, and Market tags are no longer preselected by default, avoiding implicit tech/LATAM bias for new users.
