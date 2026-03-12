@@ -6,7 +6,7 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 
 ### Chrome Extension
 - **Tag-based search builder** — compose LinkedIn search queries by selecting Role, Industry, Market Focus, and Level tags
-- **Area presets for non-tech networking** — one-click presets for Tech, Finance, Real Estate, Headhunting, Legal/Judicial Media, Environmental, Sanitary, Healthcare, Education, Marketing, and Sales
+- **Area presets for non-tech networking** — one-click presets for Tech, Finance, Real Estate, Headhunting, Legal/Judicial Media, Environmental, Sanitary, Healthcare, Education, Marketing, Sales, Graphic Design, Art Direction, Branding, UI/UX, Motion Design, Video Editing, and Videomaker
 - **Area-aware note templates** — Senior, Mid-Level, Junior, Lead, General Networking, and Custom with role-neutral wording adapted to the selected area
 - **300-char validation** — enforces LinkedIn's invitation note character limit
 - **Smart prioritization** — profiles with mutual connections and closer network degree are processed first
@@ -22,7 +22,7 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Connection log export** — download CSV of sent/skipped profiles with timestamps
 - **Scheduled runs** — recurring automation via Chrome Alarms API (configurable interval)
 - **Engagement mode** — visit profiles + follow as alternative when connect invites are exhausted; toggle in popup or auto-fallback on quota hit
-- **Company follow mode** — background-managed queue runs one target-company search at a time with resilient re-injection across navigation; each step polls for DOM readiness (up to 20s), differentiates explicit `no results` pages from card-detection timeouts, and emits a single final completion when the full queue finishes; 60 curated mid-size (150-500 employee) LATAM-hiring companies as defaults; scheduled recurring runs with batch rotation
+- **Company follow mode** — background-managed queue runs one target-company search at a time with resilient re-injection across navigation; each step polls for DOM readiness (up to 20s), differentiates explicit `no results` pages from card-detection timeouts, and emits a single final completion when the full queue finishes; supports creative company-area presets (Graphic Design, Art Direction, Branding, UI/UX, Motion Design, Video Editing, Videomaker) with default query + curated global/Brazil company lists; custom preset keeps LATAM defaults; scheduled recurring runs keep batch rotation when target companies are set and fall back to single-query preset runs when target companies are empty
 - **Feed engagement mode** — auto-react and comment on LinkedIn feed posts based on content; smart reaction selection (Celebrate, Support, Insightful, Funny, Love) via keyword matching; scheduled recurring runs
 - **Warmup-first feed learning** — first feed runs (default: 2) run in react+learn mode only (no comments) so thread patterns are learned before comment unlock
 - **Feed warmup controls** — configurable warmup enable/disable, required run count (0-10), live progress indicator, and reset action in popup
@@ -204,9 +204,10 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 | Weekly Limit | 150 | Max invites per week (auto-enforced) |
 | Schedule | Off | Recurring runs every N hours (Chrome must be open) |
 | Query Rotation | Empty | Multiple queries (one per line) cycled on each scheduled run |
-| Area Preset | Custom | One-click role/industry targeting for 11 supported professional areas |
+| Area Preset | Custom | One-click role/industry targeting for 18 supported professional areas |
+| Company Area Preset | Custom | Company-mode preset (`custom` + 7 creative presets) with default company search query and curated target-company defaults |
 | Company Query | Empty | Search term for company follow mode |
-| Target Companies | Empty | Only follow companies matching these names (one per line) |
+| Target Companies | Empty | Only follow companies matching these names (one per line); `Load defaults` is preset-aware and custom keeps LATAM defaults |
 | Feed React | On | React to feed posts (smart reaction based on content) |
 | Feed Comment | Off | Comment on feed posts using templates |
 | Enable Warmup Learning | On | For feed mode, force first N runs to react+learn only (no comments) |

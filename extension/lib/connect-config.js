@@ -210,6 +210,118 @@
                     'vendas',
                     'comercial'
                 ]
+            },
+            'graphic-design': {
+                role: [
+                    '"graphic designer"',
+                    '"visual designer"',
+                    '"designer grafico"',
+                    '"designer visual"',
+                    '"creative designer"'
+                ],
+                industry: [
+                    '"graphic design"',
+                    '"visual design"',
+                    '"creative services"',
+                    'design',
+                    '"comunicacao visual"'
+                ]
+            },
+            'art-direction': {
+                role: [
+                    '"art director"',
+                    '"associate art director"',
+                    '"creative director"',
+                    '"diretor de arte"',
+                    '"direcao de arte"'
+                ],
+                industry: [
+                    '"art direction"',
+                    '"creative direction"',
+                    'advertising',
+                    '"brand campaigns"',
+                    '"direcao de arte"'
+                ]
+            },
+            branding: {
+                role: [
+                    '"brand strategist"',
+                    '"brand designer"',
+                    '"branding specialist"',
+                    '"estrategista de marca"',
+                    '"designer de marca"'
+                ],
+                industry: [
+                    'branding',
+                    '"brand strategy"',
+                    '"brand identity"',
+                    '"identidade visual"',
+                    '"gestao de marca"'
+                ]
+            },
+            'ui-ux': {
+                role: [
+                    '"ui ux designer"',
+                    '"ux designer"',
+                    '"ui designer"',
+                    '"product designer"',
+                    '"designer de produto"'
+                ],
+                industry: [
+                    '"user experience"',
+                    '"user interface"',
+                    '"product design"',
+                    '"design de produto"',
+                    '"design de experiencia"'
+                ]
+            },
+            'motion-design': {
+                role: [
+                    '"motion designer"',
+                    '"motion graphics designer"',
+                    'animator',
+                    '"designer de motion"',
+                    '"motion artist"'
+                ],
+                industry: [
+                    '"motion design"',
+                    '"motion graphics"',
+                    'animation',
+                    '"video animation"',
+                    '"design de motion"'
+                ]
+            },
+            'video-editing': {
+                role: [
+                    '"video editor"',
+                    '"post production editor"',
+                    '"editor de video"',
+                    '"editor audiovisual"',
+                    '"montador de video"'
+                ],
+                industry: [
+                    '"video production"',
+                    '"post production"',
+                    'audiovisual',
+                    '"video editing"',
+                    '"producao de video"'
+                ]
+            },
+            videomaker: {
+                role: [
+                    'videomaker',
+                    '"video producer"',
+                    '"content creator"',
+                    '"produtor audiovisual"',
+                    '"filmmaker"'
+                ],
+                industry: [
+                    '"video content"',
+                    '"content production"',
+                    '"media production"',
+                    '"criacao de conteudo"',
+                    '"producao audiovisual"'
+                ]
             }
         };
 
@@ -225,7 +337,207 @@
             'education',
             'marketing',
             'sales',
+            'graphic-design',
+            'art-direction',
+            'branding',
+            'ui-ux',
+            'motion-design',
+            'video-editing',
+            'videomaker',
             'custom'
+        ]);
+
+        const COMPANY_AREA_PRESETS = {
+            custom: {
+                defaultQuery: '',
+                defaultTargetCompanies: []
+            },
+            'graphic-design': {
+                defaultQuery:
+                    '"graphic design" OR "designer grafico" OR ' +
+                    '"visual design" OR "comunicacao visual"',
+                defaultTargetCompanies: [
+                    'Canva',
+                    'Adobe',
+                    'Figma',
+                    '99designs',
+                    'Pentagram',
+                    'Landor',
+                    'Interbrand',
+                    'Wolff Olins',
+                    'Design Bridge and Partners',
+                    'FutureBrand',
+                    'AKQA',
+                    'Huge',
+                    'Nubank',
+                    'iFood',
+                    'VTEX',
+                    'QuintoAndar',
+                    'Globo',
+                    'C6 Bank'
+                ]
+            },
+            'art-direction': {
+                defaultQuery:
+                    '"art direction" OR "art director" OR ' +
+                    '"direcao de arte" OR "diretor de arte"',
+                defaultTargetCompanies: [
+                    'WPP',
+                    'Ogilvy',
+                    'VML',
+                    'BBDO',
+                    'Publicis Groupe',
+                    'Dentsu',
+                    'TBWA',
+                    'Leo Burnett',
+                    'AlmapBBDO',
+                    'Africa Creative',
+                    'BETC Havas',
+                    'DM9',
+                    'AKQA',
+                    'R/GA',
+                    'Natura',
+                    'Magazine Luiza',
+                    'Mercado Livre',
+                    'Nubank'
+                ]
+            },
+            branding: {
+                defaultQuery:
+                    'branding OR "brand strategy" OR ' +
+                    '"identidade visual" OR "estrategia de marca"',
+                defaultTargetCompanies: [
+                    'Interbrand',
+                    'Landor',
+                    'Wolff Olins',
+                    'FutureBrand',
+                    'Design Bridge and Partners',
+                    'Pentagram',
+                    'Lippincott',
+                    'Siegel+Gale',
+                    'Nubank',
+                    'iFood',
+                    'Natura',
+                    'Boticario',
+                    'Ambev',
+                    'Magazine Luiza',
+                    'Mercado Livre',
+                    'VTEX',
+                    'QuintoAndar',
+                    'Globo'
+                ]
+            },
+            'ui-ux': {
+                defaultQuery:
+                    '"ui ux" OR "ux design" OR "product design" OR ' +
+                    '"design de produto" OR "design de experiencia"',
+                defaultTargetCompanies: [
+                    'Figma',
+                    'Adobe',
+                    'Canva',
+                    'Airbnb',
+                    'Google',
+                    'Microsoft',
+                    'Shopify',
+                    'Notion',
+                    'Nubank',
+                    'iFood',
+                    'Mercado Livre',
+                    'QuintoAndar',
+                    'VTEX',
+                    'C6 Bank',
+                    'PicPay',
+                    'Stone',
+                    'CI&T',
+                    'Thoughtworks'
+                ]
+            },
+            'motion-design': {
+                defaultQuery:
+                    '"motion design" OR "motion graphics" OR ' +
+                    'animation OR "design de motion"',
+                defaultTargetCompanies: [
+                    'Buck',
+                    'Giant Ant',
+                    'Ordinary Folk',
+                    'School of Motion',
+                    'Blender Studio',
+                    'Adobe',
+                    'Canva',
+                    'Google',
+                    'Netflix',
+                    'Spotify',
+                    'Globo',
+                    'Nubank',
+                    'iFood',
+                    'Mercado Livre',
+                    'VTEX',
+                    'Hotmart',
+                    'Take Blip',
+                    'Loft'
+                ]
+            },
+            'video-editing': {
+                defaultQuery:
+                    '"video editing" OR "editor de video" OR ' +
+                    '"post production" OR "editor audiovisual"',
+                defaultTargetCompanies: [
+                    'Adobe',
+                    'Blackmagic Design',
+                    'Avid',
+                    'Frame.io',
+                    'Canva',
+                    'YouTube',
+                    'Netflix',
+                    'Vimeo',
+                    'Paramount',
+                    'Warner Bros Discovery',
+                    'Globo',
+                    'SBT',
+                    'Record TV',
+                    'Nubank',
+                    'iFood',
+                    'Mercado Livre',
+                    'Hotmart',
+                    'Take Blip'
+                ]
+            },
+            videomaker: {
+                defaultQuery:
+                    'videomaker OR "video producer" OR ' +
+                    '"produtor audiovisual" OR "criador de conteudo"',
+                defaultTargetCompanies: [
+                    'YouTube',
+                    'TikTok',
+                    'Meta',
+                    'Netflix',
+                    'Prime Video',
+                    'Vimeo',
+                    'Canva',
+                    'Adobe',
+                    'Globo',
+                    'Nubank',
+                    'iFood',
+                    'Mercado Livre',
+                    'Magazine Luiza',
+                    'QuintoAndar',
+                    'VTEX',
+                    'Hotmart',
+                    'Take Blip',
+                    'RD Station'
+                ]
+            }
+        };
+
+        const COMPANY_AREA_PRESET_VALUES = Object.freeze([
+            'custom',
+            'graphic-design',
+            'art-direction',
+            'branding',
+            'ui-ux',
+            'motion-design',
+            'video-editing',
+            'videomaker'
         ]);
 
         const ROLE_PRIORITY = [
@@ -265,7 +577,27 @@
             '"marketing manager"',
             '"sales manager"',
             '"account executive"',
-            '"business development"'
+            '"business development"',
+            '"ui ux designer"',
+            '"ux designer"',
+            '"ui designer"',
+            '"product designer"',
+            '"graphic designer"',
+            '"visual designer"',
+            '"designer grafico"',
+            '"art director"',
+            '"creative director"',
+            '"diretor de arte"',
+            '"brand strategist"',
+            '"brand designer"',
+            '"branding specialist"',
+            '"motion designer"',
+            '"motion graphics designer"',
+            '"video editor"',
+            '"post production editor"',
+            'videomaker',
+            '"video producer"',
+            '"produtor audiovisual"'
         ];
 
         const AREA_LABELS = {
@@ -295,6 +627,28 @@
             education: { en: 'education', pt: 'educacao' },
             marketing: { en: 'marketing', pt: 'marketing' },
             sales: { en: 'sales', pt: 'vendas' },
+            'graphic-design': {
+                en: 'graphic design',
+                pt: 'design grafico'
+            },
+            'art-direction': {
+                en: 'art direction',
+                pt: 'direcao de arte'
+            },
+            branding: { en: 'branding', pt: 'branding' },
+            'ui-ux': {
+                en: 'ui/ux design',
+                pt: 'design de ui ux'
+            },
+            'motion-design': {
+                en: 'motion design',
+                pt: 'design de motion'
+            },
+            'video-editing': {
+                en: 'video editing',
+                pt: 'edicao de video'
+            },
+            videomaker: { en: 'video production', pt: 'videomaker' },
             custom: { en: 'your field', pt: 'sua area' }
         };
 
@@ -315,6 +669,29 @@
         function normalizeAreaPreset(value) {
             if (isValidAreaPreset(value)) return value;
             return 'custom';
+        }
+
+        function isValidCompanyAreaPreset(value) {
+            return COMPANY_AREA_PRESET_VALUES.includes(value);
+        }
+
+        function normalizeCompanyAreaPreset(value) {
+            if (isValidCompanyAreaPreset(value)) return value;
+            return 'custom';
+        }
+
+        function getCompanyAreaPresetDefaultQuery(value) {
+            const normalized = normalizeCompanyAreaPreset(value);
+            const preset = COMPANY_AREA_PRESETS[normalized] ||
+                COMPANY_AREA_PRESETS.custom;
+            return String(preset.defaultQuery || '').trim();
+        }
+
+        function getCompanyAreaPresetDefaultTargetCompanies(value) {
+            const normalized = normalizeCompanyAreaPreset(value);
+            const preset = COMPANY_AREA_PRESETS[normalized] ||
+                COMPANY_AREA_PRESETS.custom;
+            return uniqueList(preset.defaultTargetCompanies || []);
         }
 
         function shouldResetAreaPresetOnManualTag(group) {
@@ -493,6 +870,17 @@
                 changed = true;
             }
 
+            const normalizedCompanyAreaPreset =
+                normalizeCompanyAreaPreset(
+                    next.companyAreaPreset
+                );
+            if (next.companyAreaPreset !==
+                normalizedCompanyAreaPreset) {
+                next.companyAreaPreset =
+                    normalizedCompanyAreaPreset;
+                changed = true;
+            }
+
             const hasExcluded = String(
                 next.excludedCompanies || ''
             ).trim().length > 0;
@@ -522,8 +910,13 @@
             STATE_TAG_VERSION,
             AREA_PRESETS,
             AREA_PRESET_VALUES,
+            COMPANY_AREA_PRESET_VALUES,
             isValidAreaPreset,
             normalizeAreaPreset,
+            isValidCompanyAreaPreset,
+            normalizeCompanyAreaPreset,
+            getCompanyAreaPresetDefaultQuery,
+            getCompanyAreaPresetDefaultTargetCompanies,
             shouldResetAreaPresetOnManualTag,
             parseExcludedCompanies,
             applyAreaPresetToTags,

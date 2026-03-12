@@ -568,11 +568,26 @@
             <div class="section">
                 <div class="section-label">Company Search</div>
                 <div class="input-group">
+                    <label for="companyAreaPresetSelect">
+                        Company Area Preset
+                    </label>
+                    <select id="companyAreaPresetSelect">
+                        <option value="custom">Custom</option>
+                        <option value="graphic-design">Graphic Design</option>
+                        <option value="art-direction">Art Direction</option>
+                        <option value="branding">Branding</option>
+                        <option value="ui-ux">UI/UX</option>
+                        <option value="motion-design">Motion Design</option>
+                        <option value="video-editing">Video Editing</option>
+                        <option value="videomaker">Videomaker</option>
+                    </select>
+                </div>
+                <div class="input-group">
                     <label for="companyQueryInput">Search query</label>
                     <input type="text" class="custom-query-input"
                         id="companyQueryInput"
                         style="display:block;"
-                        placeholder="e.g. Google, Microsoft, tech startup..." />
+                        placeholder="e.g. motion design studios, video producer..." />
                 </div>
                 <div class="input-group">
                     <label for="targetCompanies">
@@ -598,11 +613,11 @@
                         background:var(--input-bg);
                         color:var(--primary);
                         cursor:pointer;">
-                        Load LATAM defaults
+                        Load defaults
                     </button>
                 </div>
                 <div style="font-size:10px; color:var(--text-muted);">
-                    70+ companies that hire from LATAM.
+                    Preset defaults include global + Brazil companies.
                     Fill in to only follow matching companies.
                 </div>
             </div>
@@ -864,6 +879,13 @@
                     <option value="education">Education</option>
                     <option value="marketing">Marketing</option>
                     <option value="sales">Sales</option>
+                    <option value="graphic-design">Graphic Design</option>
+                    <option value="art-direction">Art Direction</option>
+                    <option value="branding">Branding</option>
+                    <option value="ui-ux">UI/UX</option>
+                    <option value="motion-design">Motion Design</option>
+                    <option value="video-editing">Video Editing</option>
+                    <option value="videomaker">Videomaker</option>
                 </select>
             </div>
 
@@ -939,6 +961,41 @@
                 <span class="tag" data-group="role" data-value="&quot;business development&quot;">Business Development</span>
                 <span class="tag" data-group="role" data-value="vendedor">Vendedor</span>
                 <span class="tag" data-group="role" data-value="&quot;executivo de contas&quot;">Executivo de Contas</span>
+                <span class="tag" data-group="role" data-value="&quot;graphic designer&quot;">Graphic Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;visual designer&quot;">Visual Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;designer grafico&quot;">Designer Grafico</span>
+                <span class="tag" data-group="role" data-value="&quot;designer visual&quot;">Designer Visual</span>
+                <span class="tag" data-group="role" data-value="&quot;creative designer&quot;">Creative Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;art director&quot;">Art Director</span>
+                <span class="tag" data-group="role" data-value="&quot;associate art director&quot;">Associate Art Director</span>
+                <span class="tag" data-group="role" data-value="&quot;creative director&quot;">Creative Director</span>
+                <span class="tag" data-group="role" data-value="&quot;diretor de arte&quot;">Diretor de Arte</span>
+                <span class="tag" data-group="role" data-value="&quot;direcao de arte&quot;">Direcao de Arte</span>
+                <span class="tag" data-group="role" data-value="&quot;brand strategist&quot;">Brand Strategist</span>
+                <span class="tag" data-group="role" data-value="&quot;brand designer&quot;">Brand Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;branding specialist&quot;">Branding Specialist</span>
+                <span class="tag" data-group="role" data-value="&quot;estrategista de marca&quot;">Estrategista de Marca</span>
+                <span class="tag" data-group="role" data-value="&quot;designer de marca&quot;">Designer de Marca</span>
+                <span class="tag" data-group="role" data-value="&quot;ui ux designer&quot;">UI/UX Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;ux designer&quot;">UX Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;ui designer&quot;">UI Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;product designer&quot;">Product Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;designer de produto&quot;">Designer de Produto</span>
+                <span class="tag" data-group="role" data-value="&quot;motion designer&quot;">Motion Designer</span>
+                <span class="tag" data-group="role" data-value="&quot;motion graphics designer&quot;">Motion Graphics Designer</span>
+                <span class="tag" data-group="role" data-value="animator">Animator</span>
+                <span class="tag" data-group="role" data-value="&quot;designer de motion&quot;">Designer de Motion</span>
+                <span class="tag" data-group="role" data-value="&quot;motion artist&quot;">Motion Artist</span>
+                <span class="tag" data-group="role" data-value="&quot;video editor&quot;">Video Editor</span>
+                <span class="tag" data-group="role" data-value="&quot;post production editor&quot;">Post Production Editor</span>
+                <span class="tag" data-group="role" data-value="&quot;editor de video&quot;">Editor de Video</span>
+                <span class="tag" data-group="role" data-value="&quot;editor audiovisual&quot;">Editor Audiovisual</span>
+                <span class="tag" data-group="role" data-value="&quot;montador de video&quot;">Montador de Video</span>
+                <span class="tag" data-group="role" data-value="videomaker">Videomaker</span>
+                <span class="tag" data-group="role" data-value="&quot;video producer&quot;">Video Producer</span>
+                <span class="tag" data-group="role" data-value="&quot;content creator&quot;">Content Creator</span>
+                <span class="tag" data-group="role" data-value="&quot;produtor audiovisual&quot;">Produtor Audiovisual</span>
+                <span class="tag" data-group="role" data-value="&quot;filmmaker&quot;">Filmmaker</span>
             </div>
 
             <div class="tag-group">
@@ -1007,6 +1064,39 @@
                 <span class="tag" data-group="industry" data-value="commercial">Commercial</span>
                 <span class="tag" data-group="industry" data-value="vendas">Vendas</span>
                 <span class="tag" data-group="industry" data-value="comercial">Comercial</span>
+                <span class="tag" data-group="industry" data-value="&quot;graphic design&quot;">Graphic Design</span>
+                <span class="tag" data-group="industry" data-value="&quot;visual design&quot;">Visual Design</span>
+                <span class="tag" data-group="industry" data-value="&quot;creative services&quot;">Creative Services</span>
+                <span class="tag" data-group="industry" data-value="design">Design</span>
+                <span class="tag" data-group="industry" data-value="&quot;comunicacao visual&quot;">Comunicacao Visual</span>
+                <span class="tag" data-group="industry" data-value="&quot;art direction&quot;">Art Direction</span>
+                <span class="tag" data-group="industry" data-value="&quot;creative direction&quot;">Creative Direction</span>
+                <span class="tag" data-group="industry" data-value="&quot;brand campaigns&quot;">Brand Campaigns</span>
+                <span class="tag" data-group="industry" data-value="&quot;direcao de arte&quot;">Direcao de Arte</span>
+                <span class="tag" data-group="industry" data-value="&quot;brand strategy&quot;">Brand Strategy</span>
+                <span class="tag" data-group="industry" data-value="&quot;brand identity&quot;">Brand Identity</span>
+                <span class="tag" data-group="industry" data-value="&quot;identidade visual&quot;">Identidade Visual</span>
+                <span class="tag" data-group="industry" data-value="&quot;gestao de marca&quot;">Gestao de Marca</span>
+                <span class="tag" data-group="industry" data-value="&quot;user experience&quot;">User Experience</span>
+                <span class="tag" data-group="industry" data-value="&quot;user interface&quot;">User Interface</span>
+                <span class="tag" data-group="industry" data-value="&quot;product design&quot;">Product Design</span>
+                <span class="tag" data-group="industry" data-value="&quot;design de produto&quot;">Design de Produto</span>
+                <span class="tag" data-group="industry" data-value="&quot;design de experiencia&quot;">Design de Experiencia</span>
+                <span class="tag" data-group="industry" data-value="&quot;motion design&quot;">Motion Design</span>
+                <span class="tag" data-group="industry" data-value="&quot;motion graphics&quot;">Motion Graphics</span>
+                <span class="tag" data-group="industry" data-value="animation">Animation</span>
+                <span class="tag" data-group="industry" data-value="&quot;video animation&quot;">Video Animation</span>
+                <span class="tag" data-group="industry" data-value="&quot;design de motion&quot;">Design de Motion</span>
+                <span class="tag" data-group="industry" data-value="&quot;video production&quot;">Video Production</span>
+                <span class="tag" data-group="industry" data-value="&quot;post production&quot;">Post Production</span>
+                <span class="tag" data-group="industry" data-value="audiovisual">Audiovisual</span>
+                <span class="tag" data-group="industry" data-value="&quot;video editing&quot;">Video Editing</span>
+                <span class="tag" data-group="industry" data-value="&quot;producao de video&quot;">Producao de Video</span>
+                <span class="tag" data-group="industry" data-value="&quot;video content&quot;">Video Content</span>
+                <span class="tag" data-group="industry" data-value="&quot;content production&quot;">Content Production</span>
+                <span class="tag" data-group="industry" data-value="&quot;media production&quot;">Media Production</span>
+                <span class="tag" data-group="industry" data-value="&quot;criacao de conteudo&quot;">Criacao de Conteudo</span>
+                <span class="tag" data-group="industry" data-value="&quot;producao audiovisual&quot;">Producao Audiovisual</span>
             </div>
 
             <div class="tag-group">

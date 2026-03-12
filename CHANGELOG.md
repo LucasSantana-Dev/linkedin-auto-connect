@@ -4,10 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.24.0] - 2026-03-12
+
 ### Changed
-- **Connect supports multi-area targeting beyond tech**: Search Builder now includes 11 professional area presets (`tech`, `finance`, `real-estate`, `headhunting`, `legal-judicial-media`, `environmental-engineering`, `sanitary-engineering`, `healthcare`, `education`, `marketing`, `sales`) that apply role + industry tags in one action.
+- **Connect supports broader multi-area targeting**: Search Builder now includes 18 professional area presets (`tech`, `finance`, `real-estate`, `headhunting`, `legal-judicial-media`, `environmental-engineering`, `sanitary-engineering`, `healthcare`, `education`, `marketing`, `sales`, `graphic-design`, `art-direction`, `branding`, `ui-ux`, `motion-design`, `video-editing`, `videomaker`) with EN/PT-BR role+industry taxonomy, selector options, and role-priority coverage.
 - **Neutral Connect defaults on first load**: Role, Industry, and Market tags are no longer preselected by default, avoiding implicit tech/LATAM bias for new users.
 - **Connect templates are now area-aware and role-neutral**: Built-in Senior/Mid/Junior/Lead/Networking templates adapt wording to the selected area preset and no longer assume software-engineering identity by default.
+- **Companies preset-aware defaults and scheduling**: Companies mode now supports a `companyAreaPreset` selector (`custom` + 7 creative presets), preset-aware default company lists, start-time query fallback from preset defaults when query/targets are empty, and scheduled single-query fallback when target-company rotation is empty.
 - **Company mode runtime orchestration moved to background queue**: Multi-company runs are now coordinated by `background.js` instead of in-page navigation loops, so query-to-query navigation no longer tears down the active execution context.
 - **Company run completion semantics**: Company mode now reports a single final completion after the full search queue (or stop/error), with aggregate logs and rate counting applied once per run.
 - **Injection start race hardening**: `injectAndStart(...)` now checks current tab status immediately via `chrome.tabs.get` in addition to `tabs.onUpdated`, preventing missed injections on fast page loads.
@@ -31,7 +34,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Connect config migration + schema hardening**: Popup state migration now upgrades legacy `myCompany` to `excludedCompanies`, normalizes `areaPreset`, and bumps tag-state version for multi-area behavior consistency.
+- **Creative company preset helper API**: Shared config now exposes `normalizeCompanyAreaPreset(...)`, `getCompanyAreaPresetDefaultQuery(...)`, and `getCompanyAreaPresetDefaultTargetCompanies(...)` for consistent popup/background behavior.
 - **Connect runtime regression coverage**: Added tests for area preset/query composition, excluded-company matching (case/accent-insensitive), and background forwarding of `areaPreset + excludedCompanies` on direct and scheduled runs.
+- **Creative preset regression coverage**: Added tests for creative preset validity/query priority, company preset default-query/default-target resolution, and company start/schedule fallback behavior when `companyAreaPreset` must supply the query.
 - **Company orchestration regression coverage**: New `tests/company-orchestration.test.js` validates multi-query queue execution, stop behavior, step-error finalization, and scheduled company-flow reuse of the same orchestrator.
 - **Company page-state diagnostics**: Company step payload now includes `stepCode` (`ok`, `no-results`, `cards-timeout`, `challenge`) and `diagnostics` metadata for debugging.
 - **Copy-risk telemetry contract**: `LINKEDIN_BOT_AI_COMMENT_RESULT` now carries optional `diagnostics` and retry `attempts`; feed logs/analytics include explicit `skip-copy-risk` diagnostics fields.
