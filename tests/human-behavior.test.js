@@ -200,9 +200,23 @@ describe('mouseJitter', () => {
 
 describe('typingDelay', () => {
     test('longer text takes longer', () => {
-        const short = typingDelay(10);
-        const long = typingDelay(200);
-        expect(long).toBeGreaterThan(short);
+        const shortSamples = Array.from(
+            { length: 100 },
+            () => typingDelay(10)
+        );
+        const longSamples = Array.from(
+            { length: 100 },
+            () => typingDelay(200)
+        );
+        const shortAvg = shortSamples.reduce(
+            (a, b) => a + b,
+            0
+        ) / shortSamples.length;
+        const longAvg = longSamples.reduce(
+            (a, b) => a + b,
+            0
+        ) / longSamples.length;
+        expect(longAvg).toBeGreaterThan(shortAvg);
     });
 
     test('minimum floor', () => {
