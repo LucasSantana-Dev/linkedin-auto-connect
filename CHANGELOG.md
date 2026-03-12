@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.25.0] - 2026-03-12
+
 ### Changed
 - **Connect-first popup IA with progressive disclosure**: Popup now prioritizes core controls per mode and moves lower-frequency controls into collapsed accordions (`Refine Filters`, `Audience Filters`, `Message`, `Automation`, `Tools`) with targeted EN/PT helper hints.
 - **Dashboard cognitive load reduction**: Options dashboard now uses tabbed navigation (`Overview`, `Activity`, `Feed`, `Nurture`, `Logs`) instead of a single long scroll, while preserving existing metrics/cards/tables and automation behavior.
