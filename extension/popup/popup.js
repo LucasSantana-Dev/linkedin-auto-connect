@@ -15,6 +15,7 @@ const DEFAULT_ROLE_TERMS_LIMIT = 6;
 const DEFAULT_FEED_WARMUP_RUNS = 2;
 const DEFAULT_TEMPLATE_KEY = 'networking';
 const DEFAULT_AREA_PRESET = 'custom';
+const DEFAULT_COMPANY_AREA_PRESET = 'custom';
 let useCustomQuery = false;
 
 const DEFAULT_LATAM_COMPANIES = [
@@ -57,6 +58,48 @@ function setAreaPresetSelectValue(value) {
         ? normalizeAreaPreset(value)
         : (value || DEFAULT_AREA_PRESET);
     select.value = normalized || DEFAULT_AREA_PRESET;
+}
+
+function getSelectedCompanyAreaPreset() {
+    const select = document.getElementById(
+        'companyAreaPresetSelect'
+    );
+    const value = select?.value || DEFAULT_COMPANY_AREA_PRESET;
+    if (typeof normalizeCompanyAreaPreset === 'function') {
+        return normalizeCompanyAreaPreset(value);
+    }
+    return value || DEFAULT_COMPANY_AREA_PRESET;
+}
+
+function setCompanyAreaPresetSelectValue(value) {
+    const select = document.getElementById(
+        'companyAreaPresetSelect'
+    );
+    if (!select) return;
+    const normalized = typeof normalizeCompanyAreaPreset
+        === 'function'
+        ? normalizeCompanyAreaPreset(value)
+        : (value || DEFAULT_COMPANY_AREA_PRESET);
+    select.value = normalized || DEFAULT_COMPANY_AREA_PRESET;
+}
+
+function getCompanyPresetDefaultQuery(companyAreaPreset) {
+    if (typeof getCompanyAreaPresetDefaultQuery === 'function') {
+        return getCompanyAreaPresetDefaultQuery(
+            companyAreaPreset
+        );
+    }
+    return '';
+}
+
+function getCompanyPresetDefaultTargets(companyAreaPreset) {
+    if (typeof getCompanyAreaPresetDefaultTargetCompanies ===
+        'function') {
+        return getCompanyAreaPresetDefaultTargetCompanies(
+            companyAreaPreset
+        );
+    }
+    return [];
 }
 
 function refreshTemplatesForArea() {
@@ -351,6 +394,7 @@ function saveState() {
             'scheduleInterval').value,
         savedQueries: document.getElementById(
             'savedQueries').value,
+        companyAreaPreset: getSelectedCompanyAreaPreset(),
         companyQuery: document.getElementById(
             'companyQueryInput').value,
         targetCompanies: document.getElementById(
@@ -413,6 +457,9 @@ function loadState() {
     chrome.storage.local.get('popupState', ({ popupState }) => {
         if (!popupState) {
             setAreaPresetSelectValue(DEFAULT_AREA_PRESET);
+            setCompanyAreaPresetSelectValue(
+                DEFAULT_COMPANY_AREA_PRESET
+            );
             refreshTemplatesForArea();
             setActiveTemplate(DEFAULT_TEMPLATE_KEY);
             updateQueryPreview();
@@ -548,6 +595,9 @@ function loadState() {
             document.getElementById('companyQueryInput').value =
                 popupState.companyQuery;
         }
+        setCompanyAreaPresetSelectValue(
+            popupState.companyAreaPreset || 'custom'
+        );
         if (popupState.targetCompanies) {
             document.getElementById('targetCompanies').value =
                 popupState.targetCompanies;
@@ -996,19 +1046,32 @@ async function startConnect() {
 }
 
 function startCompanyFollow() {
-    const query = document.getElementById(
+    const queryInput = document.getElementById(
         'companyQueryInput'
-    ).value.trim();
+    );
+    const query = queryInput.value.trim();
     const raw = document.getElementById(
         'targetCompanies'
     ).value.trim();
+    const companyAreaPreset = getSelectedCompanyAreaPreset();
     const targetCompanies = raw
         ? raw.split('\n').map(s => s.trim()).filter(Boolean)
         : [];
+    let resolvedQuery = query;
 
-    if (!query && targetCompanies.length === 0) {
+    if (!resolvedQuery && targetCompanies.length === 0) {
+        resolvedQuery = getCompanyPresetDefaultQuery(
+            companyAreaPreset
+        );
+        if (resolvedQuery) {
+            queryInput.value = resolvedQuery;
+            saveState();
+        }
+    }
+
+    if (!resolvedQuery && targetCompanies.length === 0) {
         setStatusMessage(
-            'Enter a search query or add target companies.',
+            'Enter a search query, select a company preset, or add target companies.',
             'warning'
         );
         return;
@@ -1025,8 +1088,9 @@ function startCompanyFollow() {
 
     chrome.runtime.sendMessage({
         action: 'startCompanyFollow',
-        query: query || 'software technology',
+        query: resolvedQuery,
         limit,
+        companyAreaPreset,
         targetCompanies
     }, handleLaunchResponse);
 }
@@ -1523,6 +1587,22 @@ document.getElementById('aiApiKeyInput')
         chrome.storage.local.set({ groqApiKey: key });
         saveState();
     });
+document.getElementById('companyAreaPresetSelect')
+    .addEventListener('change', () => {
+        const preset = getSelectedCompanyAreaPreset();
+        const queryInput = document.getElementById(
+            'companyQueryInput'
+        );
+        if (!queryInput.value.trim()) {
+            const defaultQuery = getCompanyPresetDefaultQuery(
+                preset
+            );
+            if (defaultQuery) {
+                queryInput.value = defaultQuery;
+            }
+        }
+        saveState();
+    });
 document.getElementById('companyQueryInput')
     .addEventListener('input', saveState);
 document.getElementById('targetCompanies')
@@ -1533,12 +1613,23 @@ document.getElementById('skipKeywordsInput')
     .addEventListener('input', saveState);
 document.getElementById('loadDefaultCompanies')
     .addEventListener('click', () => {
+        const preset = getSelectedCompanyAreaPreset();
+        const presetTargets =
+            getCompanyPresetDefaultTargets(preset);
+        const targetValue = preset !== 'custom' &&
+            presetTargets.length > 0
+            ? presetTargets.join('\n')
+            : DEFAULT_LATAM_COMPANIES;
         document.getElementById('targetCompanies')
-            .value = DEFAULT_LATAM_COMPANIES;
+            .value = targetValue;
         const queryInput = document.getElementById(
             'companyQueryInput');
         if (!queryInput.value.trim()) {
-            queryInput.value = 'software technology';
+            const defaultQuery = getCompanyPresetDefaultQuery(
+                preset
+            );
+            queryInput.value = defaultQuery ||
+                'software technology';
         }
         saveState();
     });

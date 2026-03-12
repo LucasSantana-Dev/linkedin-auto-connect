@@ -226,6 +226,11 @@ describe('background connect runtime config', () => {
         delete global.isValidAreaPreset;
         delete global.normalizeAreaPreset;
         delete global.shouldResetAreaPresetOnManualTag;
+        delete global.COMPANY_AREA_PRESET_VALUES;
+        delete global.isValidCompanyAreaPreset;
+        delete global.normalizeCompanyAreaPreset;
+        delete global.getCompanyAreaPresetDefaultQuery;
+        delete global.getCompanyAreaPresetDefaultTargetCompanies;
         delete global.parseExcludedCompanies;
         delete global.applyAreaPresetToTags;
         delete global.buildConnectQueryFromTags;

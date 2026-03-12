@@ -1,3 +1,7 @@
+const {
+    getCompanyAreaPresetDefaultQuery
+} = require('../extension/lib/connect-config');
+
 describe('company orchestration in background', () => {
     let runtimeListener;
     let alarmListener;
@@ -56,6 +60,11 @@ describe('company orchestration in background', () => {
         global.recordNurtureEngagement = jest.fn();
         global.buildQueryFromTags = jest.fn(() => '');
         global.cleanExpiredNurtures = jest.fn();
+
+        const connectConfig = require(
+            '../extension/lib/connect-config'
+        );
+        Object.assign(global, connectConfig);
 
         let tabIdCounter = 100;
         const tabMap = new Map();
@@ -251,6 +260,22 @@ describe('company orchestration in background', () => {
         delete global.recordNurtureEngagement;
         delete global.buildQueryFromTags;
         delete global.cleanExpiredNurtures;
+        delete global.STATE_TAG_VERSION;
+        delete global.AREA_PRESETS;
+        delete global.AREA_PRESET_VALUES;
+        delete global.COMPANY_AREA_PRESET_VALUES;
+        delete global.isValidAreaPreset;
+        delete global.normalizeAreaPreset;
+        delete global.isValidCompanyAreaPreset;
+        delete global.normalizeCompanyAreaPreset;
+        delete global.getCompanyAreaPresetDefaultQuery;
+        delete global.getCompanyAreaPresetDefaultTargetCompanies;
+        delete global.shouldResetAreaPresetOnManualTag;
+        delete global.parseExcludedCompanies;
+        delete global.applyAreaPresetToTags;
+        delete global.buildConnectQueryFromTags;
+        delete global.getConnectTemplates;
+        delete global.migrateConnectPopupState;
     });
 
     it('executes multi-company queue and emits one final done', async () => {
@@ -451,6 +476,23 @@ describe('company orchestration in background', () => {
         expect(done[0].result.error).toContain('timeout');
     });
 
+    it('start uses company preset default query when query and targets are empty', async () => {
+        const defaultQuery = getCompanyAreaPresetDefaultQuery('ui-ux');
+        const response = await sendRequest({
+            action: 'startCompanyFollow',
+            query: '',
+            limit: 10,
+            companyAreaPreset: 'ui-ux',
+            targetCompanies: []
+        });
+
+        expect(response).toEqual({ status: 'started' });
+        expect(createdTabs).toHaveLength(1);
+        expect(createdTabs[0].url).toContain(
+            encodeURIComponent(defaultQuery)
+        );
+    });
+
     it('scheduled company run uses queue orchestration', async () => {
         storageData.popupState = {
             targetCompanies: 'Acme\nBeta',
@@ -501,5 +543,32 @@ describe('company orchestration in background', () => {
 
         expect(doneMessages()).toHaveLength(1);
         expect(doneMessages()[0].result.mode).toBe('company');
+    });
+
+    it('scheduled company run uses preset default query when no target companies are set', async () => {
+        const defaultQuery = getCompanyAreaPresetDefaultQuery(
+            'graphic-design'
+        );
+        storageData.popupState = {
+            targetCompanies: '',
+            companyQuery: '',
+            companyAreaPreset: 'graphic-design',
+            limit: '10'
+        };
+        storageData.companySchedule = {
+            enabled: true,
+            intervalHours: 24,
+            batchSize: 2
+        };
+        storageData.companyRotationIndex = 0;
+
+        alarmListener({ name: 'companySchedule' });
+        await tick();
+
+        expect(createdTabs).toHaveLength(1);
+        expect(createdTabs[0].url).toContain(
+            encodeURIComponent(defaultQuery)
+        );
+        expect(updatedTabs).toHaveLength(0);
     });
 });

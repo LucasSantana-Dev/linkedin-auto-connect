@@ -93,13 +93,23 @@ function buildCompanySearchUrl(query) {
         '&origin=FACETED_SEARCH';
 }
 
-function resolveCompanySearches(query, targetCompanies) {
+function resolveCompanySearches(
+    query,
+    targetCompanies,
+    companyAreaPreset
+) {
     const companies = Array.isArray(targetCompanies)
         ? targetCompanies.map(c => String(c || '').trim())
             .filter(Boolean)
         : [];
     if (companies.length > 0) return companies;
-    const fallback = String(query || '').trim();
+    let fallback = String(query || '').trim();
+    if (!fallback &&
+        typeof getCompanyAreaPresetDefaultQuery === 'function') {
+        fallback = getCompanyAreaPresetDefaultQuery(
+            companyAreaPreset
+        );
+    }
     return fallback ? [fallback] : [];
 }
 
@@ -468,7 +478,8 @@ function launchCompanyFollow(config) {
 
     const searches = resolveCompanySearches(
         config.query,
-        config.targetCompanies
+        config.targetCompanies,
+        config.companyAreaPreset
     );
     if (!searches.length) {
         notifyError('No company search terms provided.');
@@ -477,6 +488,12 @@ function launchCompanyFollow(config) {
 
     const nextConfig = {
         ...config,
+        companyAreaPreset:
+            typeof normalizeCompanyAreaPreset === 'function'
+                ? normalizeCompanyAreaPreset(
+                    config.companyAreaPreset
+                )
+                : (config.companyAreaPreset || 'custom'),
         targetCompanies: Array.isArray(config.targetCompanies)
             ? config.targetCompanies : [],
         query: searches[0]
@@ -2032,6 +2049,14 @@ chrome.runtime.onMessage.addListener(
                     return;
                 }
                 request.rateRemaining = status.remaining;
+                request.companyAreaPreset =
+                    typeof normalizeCompanyAreaPreset ===
+                        'function'
+                        ? normalizeCompanyAreaPreset(
+                            request.companyAreaPreset
+                        )
+                        : (request.companyAreaPreset ||
+                            'custom');
                 launchCompanyFollow(request);
                 sendResponse({ status: 'started' });
             });
@@ -2608,32 +2633,72 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                     .split('\n')
                     .map(s => s.trim())
                     .filter(Boolean);
-                if (!allCompanies.length) return;
-
-                const batchSize =
-                    schedule.batchSize || 10;
-                const startIdx =
-                    (data.companyRotationIndex || 0)
-                    % allCompanies.length;
-                const batch = allCompanies.slice(
-                    startIdx, startIdx + batchSize
-                );
-                const nextIdx = startIdx + batch.length;
-                chrome.storage.local.set({
-                    companyRotationIndex:
-                        nextIdx >= allCompanies.length
-                            ? 0 : nextIdx
-                });
-
                 const limit = parseInt(
                     state.limit
                 ) || 50;
+                const companyAreaPreset =
+                    typeof normalizeCompanyAreaPreset ===
+                        'function'
+                        ? normalizeCompanyAreaPreset(
+                            state.companyAreaPreset
+                        )
+                        : (state.companyAreaPreset ||
+                            'custom');
+
+                if (allCompanies.length > 0) {
+                    const batchSize =
+                        schedule.batchSize || 10;
+                    const startIdx =
+                        (data.companyRotationIndex || 0)
+                        % allCompanies.length;
+                    const batch = allCompanies.slice(
+                        startIdx, startIdx + batchSize
+                    );
+                    const nextIdx = startIdx + batch.length;
+                    chrome.storage.local.set({
+                        companyRotationIndex:
+                            nextIdx >= allCompanies.length
+                                ? 0 : nextIdx
+                    });
+
+                    launchCompanyFollow({
+                        query: state.companyQuery
+                            || 'software technology',
+                        limit,
+                        companyAreaPreset,
+                        targetCompanies: batch
+                    });
+
+                    chrome.notifications.create({
+                        type: 'basic',
+                        iconUrl: 'icons/icon128.png',
+                        title: 'LinkedIn Engage',
+                        message:
+                            `Scheduled company follow: ` +
+                            `batch of ${batch.length} ` +
+                            `(${batch[0]}...)`
+                    });
+                    return;
+                }
+
+                let fallbackQuery = String(
+                    state.companyQuery || ''
+                ).trim();
+                if (!fallbackQuery &&
+                    typeof getCompanyAreaPresetDefaultQuery
+                        === 'function') {
+                    fallbackQuery =
+                        getCompanyAreaPresetDefaultQuery(
+                            companyAreaPreset
+                        );
+                }
+                if (!fallbackQuery) return;
 
                 launchCompanyFollow({
-                    query: state.companyQuery
-                        || 'software technology',
+                    query: fallbackQuery,
                     limit,
-                    targetCompanies: batch
+                    companyAreaPreset,
+                    targetCompanies: []
                 });
 
                 chrome.notifications.create({
@@ -2642,8 +2707,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                     title: 'LinkedIn Engage',
                     message:
                         `Scheduled company follow: ` +
-                        `batch of ${batch.length} ` +
-                        `(${batch[0]}...)`
+                        `query "${fallbackQuery}"`
                 });
             }
         );

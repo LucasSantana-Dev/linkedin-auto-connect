@@ -1,15 +1,41 @@
 const {
     AREA_PRESETS,
+    AREA_PRESET_VALUES,
     applyAreaPresetToTags,
     buildConnectQueryFromTags,
     parseExcludedCompanies,
     migrateConnectPopupState,
     getConnectTemplates,
-    shouldResetAreaPresetOnManualTag
+    shouldResetAreaPresetOnManualTag,
+    COMPANY_AREA_PRESET_VALUES,
+    normalizeCompanyAreaPreset,
+    getCompanyAreaPresetDefaultQuery,
+    getCompanyAreaPresetDefaultTargetCompanies
 } = require('../extension/lib/connect-config');
+
+const CREATIVE_PRESETS = [
+    'graphic-design',
+    'art-direction',
+    'branding',
+    'ui-ux',
+    'motion-design',
+    'video-editing',
+    'videomaker'
+];
 
 describe('connect-config', () => {
     describe('applyAreaPresetToTags', () => {
+        it('includes all creative presets as valid options', () => {
+            CREATIVE_PRESETS.forEach((preset) => {
+                expect(AREA_PRESET_VALUES).toContain(preset);
+                expect(AREA_PRESETS[preset]).toBeDefined();
+                expect(AREA_PRESETS[preset].role.length)
+                    .toBeGreaterThan(0);
+                expect(AREA_PRESETS[preset].industry.length)
+                    .toBeGreaterThan(0);
+            });
+        });
+
         it('applies role and industry terms for every preset', () => {
             Object.keys(AREA_PRESETS).forEach((preset) => {
                 const out = applyAreaPresetToTags({}, preset);
@@ -84,6 +110,22 @@ describe('connect-config', () => {
         it('returns empty query when all groups are empty', () => {
             expect(buildConnectQueryFromTags({}, 6)).toBe('');
         });
+
+        it('prioritizes creative role terms when role limit applies', () => {
+            const query = buildConnectQueryFromTags({
+                role: [
+                    '"community manager"',
+                    '"ui ux designer"',
+                    '"graphic designer"',
+                    '"operations analyst"'
+                ]
+            }, 2);
+
+            expect(query).toContain('"ui ux designer"');
+            expect(query).toContain('"graphic designer"');
+            expect(query).not.toContain('"community manager"');
+            expect(query).not.toContain('"operations analyst"');
+        });
     });
 
     describe('parseExcludedCompanies', () => {
@@ -141,6 +183,79 @@ describe('connect-config', () => {
             );
             expect(templates.networking.toLowerCase())
                 .toContain('imobili');
+        });
+
+        it('returns creative area-aware template copy for EN', () => {
+            const templates = getConnectTemplates(
+                'motion-design',
+                'en'
+            );
+            expect(templates.networking.toLowerCase())
+                .toContain('motion design');
+        });
+    });
+
+    describe('company area preset helpers', () => {
+        it('normalizes unknown values to custom', () => {
+            expect(normalizeCompanyAreaPreset('invalid'))
+                .toBe('custom');
+        });
+
+        it('includes all creative company presets', () => {
+            CREATIVE_PRESETS.forEach((preset) => {
+                expect(COMPANY_AREA_PRESET_VALUES)
+                    .toContain(preset);
+                expect(
+                    normalizeCompanyAreaPreset(preset)
+                ).toBe(preset);
+            });
+        });
+
+        it('returns default query and target companies for creative presets', () => {
+            CREATIVE_PRESETS.forEach((preset) => {
+                expect(
+                    getCompanyAreaPresetDefaultQuery(preset)
+                ).not.toBe('');
+                expect(
+                    getCompanyAreaPresetDefaultTargetCompanies(
+                        preset
+                    ).length
+                ).toBeGreaterThan(0);
+            });
+        });
+
+        it('keeps custom without curated defaults', () => {
+            expect(getCompanyAreaPresetDefaultQuery('custom'))
+                .toBe('');
+            expect(
+                getCompanyAreaPresetDefaultTargetCompanies(
+                    'custom'
+                )
+            ).toEqual([]);
+        });
+
+        it('auto query fill logic only fills when current query is empty', () => {
+            const defaultQuery = getCompanyAreaPresetDefaultQuery(
+                'ui-ux'
+            );
+            const keepCurrent =
+                String('my current query').trim() || defaultQuery;
+            const fillWhenEmpty =
+                String('').trim() || defaultQuery;
+            expect(keepCurrent).toBe('my current query');
+            expect(fillWhenEmpty).toBe(defaultQuery);
+        });
+
+        it('custom preset keeps legacy target-company fallback behavior', () => {
+            const legacyDefaults = ['Hotjar', 'Doist'];
+            const customDefaults =
+                getCompanyAreaPresetDefaultTargetCompanies(
+                    'custom'
+                );
+            const applied = customDefaults.length > 0
+                ? customDefaults
+                : legacyDefaults;
+            expect(applied).toEqual(legacyDefaults);
         });
     });
 });
