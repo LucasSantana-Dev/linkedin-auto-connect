@@ -673,6 +673,40 @@
                         style="display:block;"
                         placeholder="e.g. motion design studios, video producer..." />
                 </div>
+                <div class="row">
+                    <div class="input-group">
+                        <label for="companyUsageGoalSelect">
+                            Usage Goal
+                        </label>
+                        <select id="companyUsageGoalSelect">
+                            <option value="talent_watchlist">Talent Watchlist</option>
+                            <option value="brand_watchlist">Brand Watchlist</option>
+                            <option value="competitor_watch">Competitor Watch</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="companyExpectedResultsSelect">
+                            Expected Results
+                        </label>
+                        <select id="companyExpectedResultsSelect">
+                            <option value="precise">Precise (50-300)</option>
+                            <option value="balanced" selected>Balanced (300-1200)</option>
+                            <option value="broad">Broad (1200+)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="checkbox-group" style="margin-bottom:0;">
+                    <label for="companyTemplateAutoCheckbox">
+                        Auto-select template
+                    </label>
+                    <input type="checkbox"
+                        id="companyTemplateAutoCheckbox"
+                        checked />
+                </div>
+                <div class="input-group">
+                    <label for="companyTemplateSelect">Template</label>
+                    <select id="companyTemplateSelect"></select>
+                </div>
                 <div class="input-group">
                     <label for="targetCompanies">
                         Target companies (optional, one per line)
@@ -801,6 +835,40 @@
                         id="jobsQueryInput"
                         style="display:block;"
                         placeholder="e.g. product designer remote brazil" />
+                </div>
+                <div class="row">
+                    <div class="input-group">
+                        <label for="jobsUsageGoalSelect">
+                            Usage Goal
+                        </label>
+                        <select id="jobsUsageGoalSelect">
+                            <option value="high_fit_easy_apply">High Fit Easy Apply</option>
+                            <option value="market_scan">Market Scan</option>
+                            <option value="target_company_roles">Target Company Roles</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="jobsExpectedResultsSelect">
+                            Expected Results
+                        </label>
+                        <select id="jobsExpectedResultsSelect">
+                            <option value="precise">Precise (50-300)</option>
+                            <option value="balanced" selected>Balanced (300-1200)</option>
+                            <option value="broad">Broad (1200+)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="checkbox-group" style="margin-bottom:0;">
+                    <label for="jobsTemplateAutoCheckbox">
+                        Auto-select template
+                    </label>
+                    <input type="checkbox"
+                        id="jobsTemplateAutoCheckbox"
+                        checked />
+                </div>
+                <div class="input-group">
+                    <label for="jobsTemplateSelect">Template</label>
+                    <select id="jobsTemplateSelect"></select>
                 </div>
                 <div class="checkbox-group" style="margin-bottom:0;">
                     <label for="jobsEasyApplyOnlyCheckbox">
@@ -1249,6 +1317,44 @@
                     <option value="video-editing">Video Editing</option>
                     <option value="videomaker">Videomaker</option>
                 </select>
+            </div>
+
+            <div class="row">
+                <div class="input-group">
+                    <label for="connectUsageGoalSelect">
+                        Usage Goal
+                    </label>
+                    <select id="connectUsageGoalSelect">
+                        <option value="recruiter_outreach">Recruiter Outreach</option>
+                        <option value="peer_networking">Peer Networking</option>
+                        <option value="decision_makers">Decision Makers</option>
+                        <option value="brazil_focus">Brazil Focus</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="connectExpectedResultsSelect">
+                        Expected Results
+                    </label>
+                    <select id="connectExpectedResultsSelect">
+                        <option value="precise">Precise (50-300)</option>
+                        <option value="balanced" selected>Balanced (300-1200)</option>
+                        <option value="broad">Broad (1200+)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="checkbox-group" style="margin-top:4px;">
+                <label for="connectTemplateAutoCheckbox">
+                    Auto-select template
+                </label>
+                <input type="checkbox"
+                    id="connectTemplateAutoCheckbox"
+                    checked />
+            </div>
+
+            <div class="input-group" style="margin-bottom:8px;">
+                <label for="connectTemplateSelect">Template</label>
+                <select id="connectTemplateSelect"></select>
             </div>
 
             <div class="accordion"
@@ -1828,6 +1934,7 @@
         </div>
     </div>
 
+    <script src="../lib/search-templates.js"></script>
     <script src="../lib/connect-config.js"></script>
     <script src="../lib/ui-layout.js"></script>
     <script src="popup.js"></script>

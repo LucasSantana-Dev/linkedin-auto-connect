@@ -255,6 +255,11 @@ describe('background connect runtime config', () => {
             limit: 5,
             areaPreset: 'finance',
             excludedCompanies: ['Acme', 'Beta'],
+            connectUsageGoal: 'decision_makers',
+            connectExpectedResults: 'balanced',
+            connectTemplateAuto: true,
+            connectTemplateId:
+                'connect.business.decision_makers.balanced',
             sendNote: false
         });
 
@@ -265,6 +270,10 @@ describe('background connect runtime config', () => {
         const payload = sentToContent[0].payload;
         expect(payload.areaPreset).toBe('finance');
         expect(payload.excludedCompanies).toEqual(['Acme', 'Beta']);
+        expect(payload.templateMeta).toMatchObject({
+            usageGoal: 'decision_makers',
+            expectedResultsBucket: 'balanced'
+        });
     });
 
     it('scheduled connect run reuses areaPreset and excludedCompanies', async () => {
@@ -273,6 +282,9 @@ describe('background connect runtime config', () => {
             tagVersion: 5,
             areaPreset: 'finance',
             excludedCompanies: 'Acme\nBeta',
+            connectUsageGoal: 'decision_makers',
+            connectExpectedResults: 'balanced',
+            connectTemplateAuto: true,
             limit: '10',
             roleTermsLimit: 6,
             region: '103644278',
@@ -287,6 +299,10 @@ describe('background connect runtime config', () => {
         const payload = sentToContent[0].payload;
         expect(payload.areaPreset).toBe('finance');
         expect(payload.excludedCompanies).toEqual(['Acme', 'Beta']);
+        expect(payload.templateMeta).toMatchObject({
+            usageGoal: 'decision_makers',
+            expectedResultsBucket: 'balanced'
+        });
     });
 
     it('migrates legacy myCompany into excludedCompanies for schedule', async () => {

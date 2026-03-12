@@ -429,10 +429,24 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
         running = true;
 
         try {
-            const result = await runJobsAssist(event.data.config || {});
+            const result = await runJobsAssist(
+                event.data.config || {}
+            );
+            const runtimeResult = result &&
+                typeof result === 'object'
+                ? { ...result }
+                : result;
+            const templateMeta = event.data.config
+                ?.templateMeta;
+            if (runtimeResult &&
+                typeof runtimeResult === 'object' &&
+                templateMeta &&
+                !runtimeResult.templateMeta) {
+                runtimeResult.templateMeta = templateMeta;
+            }
             window.postMessage({
                 type: 'LINKEDIN_BOT_DONE',
-                result
+                result: runtimeResult
             }, '*');
         } catch (err) {
             window.postMessage({
@@ -441,7 +455,9 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                     success: false,
                     mode: 'jobs',
                     error: err?.message || 'Unknown jobs runtime error',
-                    log: jobsLog
+                    log: jobsLog,
+                    templateMeta:
+                        event.data.config?.templateMeta
                 }
             }, '*');
         } finally {
