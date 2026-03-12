@@ -7,10 +7,15 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - **Connect-first popup IA with progressive disclosure**: Popup now prioritizes core controls per mode and moves lower-frequency controls into collapsed accordions (`Refine Filters`, `Audience Filters`, `Message`, `Automation`, `Tools`) with targeted EN/PT helper hints.
 - **Dashboard cognitive load reduction**: Options dashboard now uses tabbed navigation (`Overview`, `Activity`, `Feed`, `Nurture`, `Logs`) instead of a single long scroll, while preserving existing metrics/cards/tables and automation behavior.
+- **Coverage gate alignment for releases**: Jest coverage is now formally enforced for shared testable modules (`extension/lib/**`) with minimum thresholds of `80%` statements and `80%` lines.
 
 ### Added
 - **UI-only popup persistence (`popupState.ui`)**: Added optional persistence for accordion open/closed state, last-open subpanel, and connect tag-search text without changing automation contracts/state keys.
 - **UI-only dashboard persistence (`dashboardState.activeTab`)**: Added persisted dashboard tab restore via `chrome.storage.local` with safe tab normalization.
+- **Coverage runner script**: Added `npm run test:coverage` for local/CI coverage gate validation.
+
+### Fixed
+- **Release docs asset mismatch**: README release section now references the actual published asset format (`linkedin-engage-v<version>.zip`) instead of generic `extension.zip`.
 
 ## [1.24.0] - 2026-03-12
 

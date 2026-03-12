@@ -234,7 +234,7 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-This creates a GitHub Release with auto-generated release notes and a downloadable `extension.zip`.
+This creates a GitHub Release with auto-generated release notes and a downloadable `linkedin-engage-v<version>.zip` asset.
 
 If a previous tag release appears without assets, re-upload with:
 ```bash
@@ -242,6 +242,8 @@ gh release upload <tag> linkedin-engage-<tag>.zip --clobber
 ```
 
 Workflows currently use `actions/checkout@v6` and `actions/setup-node@v6` for Node 24-ready GitHub Actions runtime compatibility.
+
+Coverage policy is enforced in Jest for shared testable modules (`extension/lib/**`) with release gate minimums of `80%` statements and `80%` lines.
 
 ## Disclaimer
 
