@@ -286,7 +286,12 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                     mode: 'company',
                     stepCode: 'no-results',
                     message: 'No results for current query.',
+                    runStatus: 'success',
+                    reason: 'unknown',
                     followedThisStep: 0,
+                    processedCount: 0,
+                    actionCount: 0,
+                    skippedCount: 0,
                     diagnostics,
                     log: followLog
                 };
@@ -311,7 +316,12 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                     stepCode: 'cards-timeout',
                     error: 'No company cards detected ' +
                         'within timeout.',
+                    runStatus: 'failed',
+                    reason: 'runtime-error',
                     followedThisStep: 0,
+                    processedCount: 0,
+                    actionCount: 0,
+                    skippedCount: 0,
                     diagnostics,
                     log: followLog
                 };
@@ -330,8 +340,44 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                     stepCode: 'challenge',
                     error: 'CAPTCHA or security ' +
                         'challenge detected',
+                    runStatus: 'failed',
+                    reason: 'challenge',
                     followedThisStep: countFollowedEntries(
                         followLog
+                    ),
+                    processedCount: followLog.length,
+                    actionCount: countFollowedEntries(
+                        followLog
+                    ),
+                    skippedCount: Math.max(
+                        0,
+                        followLog.length -
+                            countFollowedEntries(followLog)
+                    ),
+                    diagnostics,
+                    log: followLog
+                };
+            }
+            if (stopRequested) {
+                return {
+                    success: false,
+                    mode: 'company',
+                    stepCode: 'stopped',
+                    runStatus: 'canceled',
+                    reason: 'stopped-by-user',
+                    stoppedByUser: true,
+                    message: 'Run canceled by user.',
+                    followedThisStep: countFollowedEntries(
+                        followLog
+                    ),
+                    processedCount: followLog.length,
+                    actionCount: countFollowedEntries(
+                        followLog
+                    ),
+                    skippedCount: Math.max(
+                        0,
+                        followLog.length -
+                            countFollowedEntries(followLog)
                     ),
                     diagnostics,
                     log: followLog
@@ -346,7 +392,15 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                 stepCode: 'ok',
                 message: `Followed ${followedThisStep} ` +
                     `companies in this search.`,
+                runStatus: 'success',
+                reason: 'unknown',
                 followedThisStep,
+                processedCount: followLog.length,
+                actionCount: followedThisStep,
+                skippedCount: Math.max(
+                    0,
+                    followLog.length - followedThisStep
+                ),
                 diagnostics,
                 log: followLog
             };
@@ -356,8 +410,19 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                 mode: 'company',
                 stepCode: 'cards-timeout',
                 error: error.message,
+                runStatus: 'failed',
+                reason: 'runtime-error',
                 followedThisStep: countFollowedEntries(
                     followLog
+                ),
+                processedCount: followLog.length,
+                actionCount: countFollowedEntries(
+                    followLog
+                ),
+                skippedCount: Math.max(
+                    0,
+                    followLog.length -
+                        countFollowedEntries(followLog)
                 ),
                 diagnostics: {
                     query,

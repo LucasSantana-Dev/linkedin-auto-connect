@@ -27,6 +27,8 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **CAPTCHA detection** — auto-stops on security challenges (checkpoint, captcha, verification pages)
 - **Connection log export** — download CSV of sent/skipped profiles with timestamps
 - **Scheduled runs** — recurring automation via Chrome Alarms API (configurable interval)
+- **Deterministic run outcomes** — every Connect/Feed/Companies/Jobs run emits normalized outcome metadata (`runStatus`, `reason`, `processedCount`, `actionCount`, `skippedCount`)
+- **Consistent stop behavior** — clicking `Stop` now finalizes runs as `canceled` (not success/failure), with stable popup messaging and history diagnostics
 - **Engagement mode** — visit profiles + follow as alternative when connect invites are exhausted; toggle in popup or auto-fallback on quota hit
 - **Company follow mode** — background-managed queue runs one target-company search at a time with resilient re-injection across navigation; each step polls for DOM readiness (up to 20s), differentiates explicit `no results` pages from card-detection timeouts, and emits a single final completion when the full queue finishes; supports creative company-area presets (Graphic Design, Art Direction, Branding, UI/UX, Motion Design, Video Editing, Videomaker) with default query + curated global/Brazil company lists; custom preset keeps LATAM defaults; scheduled recurring runs keep batch rotation when target companies are set and fall back to single-query preset runs when target companies are empty
 - **Jobs assist mode (LinkedIn Easy Apply)** — ranks visible jobs by best-fit signals (title/seniority/location/recency/company), skips non-easy-apply/already-applied/excluded-company listings, and prepares applications in semi-auto mode without submitting
@@ -243,6 +245,7 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 | Jobs Profile Cache | Off | Optional encrypted local cache of structured applicant fields; unlocked via session passphrase |
 | Feed React | On | React to feed posts (smart reaction based on content) |
 | Feed Comment | Off | Comment on feed posts using templates |
+| Departure-only Guard | On | If a post only announces leaving a company (no new role in same post), comments stay neutral and non-congratulatory |
 | Enable Warmup Learning | On | For feed mode, force first N runs to react+learn only (no comments) |
 | Warmup Runs Required | 2 | Number of learn-only feed runs before comments unlock (0-10) |
 | Role Terms Limit | 6 | Maximum number of role tags included in the `OR` role query (1-10) to keep results precise |

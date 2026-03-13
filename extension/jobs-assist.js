@@ -325,6 +325,11 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                 mode: 'jobs',
                 error: 'Security challenge detected.',
                 stepCode: 'challenge',
+                runStatus: 'failed',
+                reason: 'challenge',
+                processedCount: 0,
+                actionCount: 0,
+                skippedCount: 0,
                 log: []
             };
         }
@@ -335,6 +340,11 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                 success: true,
                 mode: 'jobs',
                 message: 'No jobs found on current page.',
+                runStatus: 'failed',
+                reason: 'no-items-processed',
+                processedCount: 0,
+                actionCount: 0,
+                skippedCount: 0,
                 log: [{
                     status: 'skipped-no-results',
                     time: new Date().toISOString()
@@ -357,6 +367,11 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                     mode: 'jobs',
                     error: 'Security challenge detected.',
                     stepCode: 'challenge',
+                    runStatus: 'failed',
+                    reason: 'challenge',
+                    processedCount: processed,
+                    actionCount: Math.max(0, processed - skipped),
+                    skippedCount: skipped,
                     log: jobsLog
                 };
             }
@@ -403,17 +418,42 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                     success: true,
                     mode: 'jobs',
                     message: 'Job application prepared. Review and submit manually.',
+                    runStatus: 'success',
+                    reason: 'unknown',
+                    processedCount: processed,
+                    actionCount: Math.max(0, processed - skipped),
+                    skippedCount: skipped,
                     log: jobsLog
                 };
             }
         }
 
+        if (stopRequested) {
+            return {
+                success: false,
+                mode: 'jobs',
+                runStatus: 'canceled',
+                reason: 'stopped-by-user',
+                stoppedByUser: true,
+                message: 'Run canceled by user.',
+                processedCount: processed,
+                actionCount: Math.max(0, processed - skipped),
+                skippedCount: skipped,
+                log: jobsLog
+            };
+        }
+
         return {
             success: true,
             mode: 'jobs',
-            message: stopRequested
-                ? 'Stopped by user.'
-                : 'No job reached manual-review stage.',
+            message: 'No job reached manual-review stage.',
+            runStatus: processed > 0 ? 'success' : 'failed',
+            reason: processed > 0
+                ? 'unknown'
+                : 'no-items-processed',
+            processedCount: processed,
+            actionCount: Math.max(0, processed - skipped),
+            skippedCount: skipped,
             log: jobsLog
         };
     }
@@ -455,6 +495,19 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                     success: false,
                     mode: 'jobs',
                     error: err?.message || 'Unknown jobs runtime error',
+                    runStatus: 'failed',
+                    reason: 'runtime-error',
+                    processedCount: jobsLog.length,
+                    actionCount: jobsLog.filter(entry =>
+                        !/^skipped|^skip-/.test(
+                            String(entry?.status || '')
+                        )
+                    ).length,
+                    skippedCount: jobsLog.filter(entry =>
+                        /^skipped|^skip-/.test(
+                            String(entry?.status || '')
+                        )
+                    ).length,
                     log: jobsLog,
                     templateMeta:
                         event.data.config?.templateMeta

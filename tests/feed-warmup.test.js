@@ -78,6 +78,21 @@ describe('feed warmup state', () => {
         expect(empty.completedRuns).toBe(1);
     });
 
+    test('does not increment completed runs for canceled runs', () => {
+        const state = sanitizeFeedWarmupState({
+            completedRuns: 1,
+            requiredRuns: 2,
+            enabled: true
+        });
+        const canceled = applyFeedWarmupRunResult(state, {
+            mode: 'feed',
+            warmupActive: true,
+            runStatus: 'canceled',
+            processedPosts: 5
+        });
+        expect(canceled.completedRuns).toBe(1);
+    });
+
     test('resets warmup progress with provided config', () => {
         const reset = resetFeedWarmupState({
             feedWarmupEnabled: false,

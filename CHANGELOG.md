@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- **Deterministic run outcome contract**: Connect/Feed/Companies/Jobs now normalize every run into `runStatus` (`success`, `failed`, `canceled`) with canonical reason codes and deterministic counters (`processedCount`, `actionCount`, `skippedCount`).
+- **Manual stop semantics**: User-triggered stop now finalizes as `canceled` instead of success/failure across popup/background/runtime flows.
+- **Strict success criteria**: Runs are only successful when at least one item is processed and no runtime error occurs; zero-processed runs now resolve as failed (`no-items-processed`).
+- **Warmup progression hardening**: Feed warmup run progression now keys off normalized `runStatus=success` plus processed posts, so canceled/failed runs never advance unlock progress.
+
+### Fixed
+- **Departure-only comment guard**: Feed AI/fallback now blocks congratulatory wording on posts announcing departure from a company unless the same post also includes explicit new-job signals.
+- **Career transition context detection**: Added deterministic EN/PT transition signal detection (`departure-only` vs `departure + new role`) and applied it to prompt tone guidance plus comment safety validation.
+- **Neutral transition fallback templates**: Added dedicated EN/PT neutral transition templates so departure-only posts avoid milestone congratulations while still allowing respectful acknowledgements.
+
 ## [1.26.1] - 2026-03-12
 
 ### Fixed

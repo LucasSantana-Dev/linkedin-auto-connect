@@ -54,6 +54,8 @@ describe('background connect runtime config', () => {
 
         const connectConfig = require('../extension/lib/connect-config');
         Object.assign(global, connectConfig);
+        const runOutcome = require('../extension/lib/run-outcome');
+        Object.assign(global, runOutcome);
 
         let tabIdCounter = 300;
         const tabMap = new Map();
@@ -246,6 +248,10 @@ describe('background connect runtime config', () => {
         delete global.evaluateJobCandidate;
         delete global.rankJobsForApply;
         delete global.buildLinkedInJobsSearchUrl;
+        delete global.RUN_STATUS_SUCCESS;
+        delete global.RUN_STATUS_FAILED;
+        delete global.RUN_STATUS_CANCELED;
+        delete global.normalizeRunOutcome;
     });
 
     it('forwards areaPreset and excludedCompanies to content on start', async () => {

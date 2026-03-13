@@ -65,6 +65,10 @@ describe('company orchestration in background', () => {
             '../extension/lib/connect-config'
         );
         Object.assign(global, connectConfig);
+        const runOutcome = require(
+            '../extension/lib/run-outcome'
+        );
+        Object.assign(global, runOutcome);
 
         let tabIdCounter = 100;
         const tabMap = new Map();
@@ -286,6 +290,10 @@ describe('company orchestration in background', () => {
         delete global.evaluateJobCandidate;
         delete global.rankJobsForApply;
         delete global.buildLinkedInJobsSearchUrl;
+        delete global.RUN_STATUS_SUCCESS;
+        delete global.RUN_STATUS_FAILED;
+        delete global.RUN_STATUS_CANCELED;
+        delete global.normalizeRunOutcome;
     });
 
     it('executes multi-company queue and emits one final done', async () => {

@@ -259,6 +259,26 @@ describe('computeStats', () => {
         expect(s.byMode.jobs).toBe(2);
         expect(s.bySkipReason['skipped-excluded-company']).toBe(1);
     });
+
+    test('tracks run-level analytics without inflating throughput totals', () => {
+        const s = computeStats([
+            {
+                entryType: 'run',
+                mode: 'feed',
+                runStatus: 'canceled',
+                timestamp: '2026-03-10T10:00:00Z'
+            },
+            {
+                mode: 'feed',
+                status: 'insightful+commented',
+                commented: true,
+                timestamp: '2026-03-10T10:05:00Z'
+            }
+        ]);
+        expect(s.total).toBe(1);
+        expect(s.byRunStatus.canceled).toBe(1);
+        expect(s.byMode.feed).toBe(1);
+    });
 });
 
 describe('computeAcceptanceByTemplate', () => {

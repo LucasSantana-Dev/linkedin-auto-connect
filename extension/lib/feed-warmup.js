@@ -86,10 +86,21 @@ function applyFeedWarmupRunResult(state, runResult) {
     );
     var processedPosts = Math.max(
         0,
-        Math.floor(Number(result.processedPosts) || 0)
+        Math.floor(Number(
+            result.processedPosts ??
+            result.processedCount
+        ) || 0)
     );
     var isWarmupRun = result.warmupActive === true;
-    var succeeded = result.success === true;
+    var runStatus = String(
+        result.runStatus ||
+        (result.success === true
+            ? 'success'
+            : result.success === false
+                ? 'failed'
+                : '')
+    ).toLowerCase();
+    var succeeded = runStatus === 'success';
 
     var next = {
         ...normalized,

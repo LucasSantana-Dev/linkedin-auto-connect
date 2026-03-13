@@ -21,6 +21,7 @@ function computeStats(log) {
             byReaction: {},
             byTemplate: {},
             bySkipReason: {},
+            byRunStatus: {},
             byHour: {},
             byDayOfWeek: {},
             warmupRuns: 0,
@@ -41,6 +42,7 @@ function computeStats(log) {
     const byReaction = {};
     const byTemplate = {};
     const bySkipReason = {};
+    const byRunStatus = {};
     const byHour = {};
     const byDayOfWeek = {};
     const dayNames = [
@@ -49,13 +51,24 @@ function computeStats(log) {
     ];
     let commentCount = 0;
     let engagedCount = 0;
+    let meaningfulCount = 0;
     let warmupRuns = 0;
     let warmupPostsLearned = 0;
     let warmupThreadsLearned = 0;
     const days = new Set();
 
     for (const e of log) {
+        if (e.entryType === 'run') {
+            const runStatus = String(
+                e.runStatus || 'unknown'
+            );
+            byRunStatus[runStatus] =
+                (byRunStatus[runStatus] || 0) + 1;
+            continue;
+        }
+
         const mode = e.mode || 'unknown';
+        meaningfulCount++;
         byMode[mode] = (byMode[mode] || 0) + 1;
 
         if (e.category) {
@@ -114,16 +127,17 @@ function computeStats(log) {
     const bestDay = topKey(byDayOfWeek);
     const activeDays = days.size;
     const avgPerDay = activeDays > 0
-        ? Math.round(log.length / activeDays * 10) / 10
+        ? Math.round(meaningfulCount / activeDays * 10) / 10
         : 0;
 
     return {
-        total: log.length,
+        total: meaningfulCount,
         byMode,
         byCategory,
         byReaction,
         byTemplate,
         bySkipReason,
+        byRunStatus,
         byHour,
         byDayOfWeek,
         warmupRuns,

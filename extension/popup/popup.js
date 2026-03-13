@@ -2231,6 +2231,34 @@ document.getElementById('stopBtn').addEventListener('click', () => {
 let lastReportedSent = 0;
 let lastConnectionLog = [];
 
+function deriveDoneRunStatus(response) {
+    const source = response && typeof response === 'object'
+        ? response
+        : {};
+    const direct = String(source.runStatus || '').toLowerCase();
+    if (direct === 'success' || direct === 'failed' ||
+        direct === 'canceled') {
+        return direct;
+    }
+    const text = String(
+        source.error || source.message || source.reason || ''
+    ).toLowerCase();
+    if (source.stoppedByUser === true ||
+        /stopped by user|canceled by user|cancelled by user/.test(text)) {
+        return 'canceled';
+    }
+    const processed = Number(
+        source.processedCount ?? source.processedPosts
+    ) || 0;
+    if (String(source.error || '').trim()) {
+        return 'failed';
+    }
+    if (processed <= 0) {
+        return 'failed';
+    }
+    return source.success === false ? 'failed' : 'success';
+}
+
 document.getElementById('exportBtn').addEventListener('click', () => {
     if (!lastConnectionLog.length) return;
     const escape = (s) =>
@@ -2332,15 +2360,26 @@ chrome.runtime.onMessage.addListener((request) => {
             }
         }
 
-        if (response?.success) {
+        const runStatus = deriveDoneRunStatus(response);
+        if (runStatus === 'success') {
             setStatusMessage(
                 'Success! ' + (response.message || ''),
                 'success'
             );
             startBtn.textContent = 'Done!';
+        } else if (runStatus === 'canceled') {
+            setStatusMessage(
+                response?.message || 'Run canceled by user.',
+                'warning'
+            );
+            startBtn.disabled = false;
+            startBtn.textContent = 'Start Again';
         } else {
             setStatusMessage(
-                'Error: ' + (response?.error || 'Unknown error.'),
+                'Error: ' +
+                (response?.error ||
+                    response?.message ||
+                    'No items processed.'),
                 'error'
             );
             startBtn.disabled = false;

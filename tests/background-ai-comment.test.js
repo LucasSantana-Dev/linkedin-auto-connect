@@ -154,6 +154,8 @@ describe('background AI comment copy guard', () => {
             preferredOpeners: ['solid point'],
             topNgrams: ['vibe coding', 'clear prompts']
         }));
+        const runOutcome = require('../extension/lib/run-outcome');
+        Object.assign(global, runOutcome);
         setupChrome();
         require('../extension/background');
     });
@@ -162,6 +164,10 @@ describe('background AI comment copy guard', () => {
         delete global.chrome;
         delete global.importScripts;
         delete global.buildPatternGuidance;
+        delete global.RUN_STATUS_SUCCESS;
+        delete global.RUN_STATUS_FAILED;
+        delete global.RUN_STATUS_CANCELED;
+        delete global.normalizeRunOutcome;
         delete global.fetch;
     });
 
@@ -273,5 +279,111 @@ describe('background AI comment copy guard', () => {
             })
         );
         expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    it('injects departure-only anti-congrats instruction into prompt', async () => {
+        const request = {
+            ...baseRequest(),
+            category: 'achievement',
+            postText: 'Today is my last day at Acme and I am leaving ' +
+                'after a long journey.',
+            existingComments: [{
+                text: 'Wishing you the best in this transition.'
+            }, {
+                text: 'All the best in your next chapter.'
+            }, {
+                text: 'Great transition message.'
+            }],
+            reactionSummary: {
+                total: 45,
+                dominant: 'PRAISE',
+                intensity: 'high'
+            },
+            commentThreadSummary: {
+                count: 3,
+                dominantSentiment: 'celebration',
+                dominantLanguage: 'en',
+                keywords: ['transition', 'chapter', 'journey']
+            }
+        };
+        mockFetchWithReplies(['SKIP']);
+
+        await sendRuntimeRequest(request);
+        const prompt = requestBodies[0]?.messages?.[0]?.content || '';
+        expect(prompt).toContain('DEPARTURE-ONLY');
+        expect(prompt).toContain('Do NOT congratulate');
+    });
+
+    it('rejects congratulatory AI output on departure-only post', async () => {
+        const request = {
+            ...baseRequest(),
+            category: 'achievement',
+            postText: 'Today is my last day at Acme and I am leaving ' +
+                'after a long journey.',
+            existingComments: [{
+                text: 'Wishing you the best in this transition.'
+            }, {
+                text: 'All the best in your next chapter.'
+            }, {
+                text: 'Great transition message.'
+            }],
+            reactionSummary: {
+                total: 45,
+                dominant: 'PRAISE',
+                intensity: 'high'
+            },
+            commentThreadSummary: {
+                count: 3,
+                dominantSentiment: 'celebration',
+                dominantLanguage: 'en',
+                keywords: ['transition', 'chapter', 'journey']
+            }
+        };
+        mockFetchWithReplies([
+            'Congrats on this transition chapter.'
+        ]);
+
+        const result = await sendRuntimeRequest(request);
+        expect(result).toEqual(expect.objectContaining({
+            comment: null,
+            reason: 'skip-safety-guard'
+        }));
+    });
+
+    it('accepts neutral AI output on departure-only post', async () => {
+        const request = {
+            ...baseRequest(),
+            category: 'achievement',
+            postText: 'Today is my last day at Acme and I am leaving ' +
+                'after a long journey.',
+            existingComments: [{
+                text: 'Wishing you the best in this transition.'
+            }, {
+                text: 'All the best in your next chapter.'
+            }, {
+                text: 'Great transition message.'
+            }],
+            reactionSummary: {
+                total: 45,
+                dominant: 'PRAISE',
+                intensity: 'high'
+            },
+            commentThreadSummary: {
+                count: 3,
+                dominantSentiment: 'celebration',
+                dominantLanguage: 'en',
+                keywords: ['transition', 'chapter', 'journey']
+            }
+        };
+        mockFetchWithReplies([
+            'Wishing you a smooth transition in this next chapter.'
+        ]);
+
+        const result = await sendRuntimeRequest(request);
+        expect(result).toEqual(expect.objectContaining({
+            comment:
+                'Wishing you a smooth transition in this next chapter.',
+            reason: null
+        }));
     });
 });

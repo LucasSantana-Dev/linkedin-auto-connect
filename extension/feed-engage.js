@@ -1212,6 +1212,60 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         );
         stopRequested = false;
         engageLog.length = 0;
+        const getSkippedCount = function() {
+            return engageLog.filter(
+                entry => /^skipped|^skip-/.test(
+                    String(entry?.status || '')
+                )
+            ).length;
+        };
+        const buildFeedResult = function(payload) {
+            const source = payload && typeof payload === 'object'
+                ? payload
+                : {};
+            const hasError = String(source.error || '').trim() !== '';
+            const stoppedByUser = source.stoppedByUser === true;
+            let runStatus = source.runStatus;
+            if (!runStatus) {
+                if (stoppedByUser) {
+                    runStatus = 'canceled';
+                } else if (hasError || totalProcessedPosts <= 0) {
+                    runStatus = 'failed';
+                } else {
+                    runStatus = 'success';
+                }
+            }
+            let reason = source.reason;
+            if (!reason) {
+                if (runStatus === 'canceled') {
+                    reason = 'stopped-by-user';
+                } else if (runStatus === 'failed') {
+                    reason = /captcha|challenge|checkpoint|authwall/i
+                        .test(String(source.error || ''))
+                        ? 'challenge'
+                        : totalProcessedPosts <= 0
+                            ? 'no-items-processed'
+                            : 'runtime-error';
+                } else {
+                    reason = 'unknown';
+                }
+            }
+            return {
+                ...source,
+                mode: 'feed',
+                runStatus,
+                reason,
+                success: runStatus === 'success',
+                warmupActive,
+                processedCount: totalProcessedPosts,
+                actionCount: totalEngaged,
+                skippedCount: getSkippedCount(),
+                processedPosts: totalProcessedPosts,
+                warmupPostsLearned,
+                warmupThreadsLearned,
+                log: engageLog
+            };
+        };
         if (warmupActive) {
             console.log(
                 '[LinkedIn Bot] Warmup run active: ' +
@@ -1232,13 +1286,12 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 window.postMessage({
                     type: 'LINKEDIN_BOT_LOGIN_REQUIRED'
                 }, '*');
-                return {
-                    success: false,
-                    mode: 'feed',
+                return buildFeedResult({
                     error: 'Login required. Please log ' +
                         'into LinkedIn and try again.',
-                    log: engageLog
-                };
+                    runStatus: 'failed',
+                    reason: 'runtime-error'
+                });
             }
 
             if (findPosts().length === 0) {
@@ -1306,13 +1359,12 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             saveCommentedUrns(
                                 newCommentedUrns);
                         }
-                        return {
-                            success: false,
-                            mode: 'feed',
+                        return buildFeedResult({
                             error: 'CAPTCHA or security ' +
                                 'challenge detected',
-                            log: engageLog
-                        };
+                            runStatus: 'failed',
+                            reason: 'challenge'
+                        });
                     }
 
                     try {
@@ -2009,17 +2061,19 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 }, '*');
             }
 
-            return {
-                success: true,
-                mode: 'feed',
+            if (stopRequested) {
+                return buildFeedResult({
+                    stoppedByUser: true,
+                    message: 'Run canceled by user.',
+                    runStatus: 'canceled',
+                    reason: 'stopped-by-user'
+                });
+            }
+
+            return buildFeedResult({
                 message: `Feed engagement done! ` +
-                    `Interacted with ${totalEngaged} posts.`,
-                warmupActive,
-                processedPosts: totalProcessedPosts,
-                warmupPostsLearned,
-                warmupThreadsLearned,
-                log: engageLog
-            };
+                    `Interacted with ${totalEngaged} posts.`
+            });
         } catch (error) {
             if (newUrns.length > 0) {
                 saveEngagedUrns(newUrns);
@@ -2027,16 +2081,11 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             if (newCommentedUrns.length > 0) {
                 saveCommentedUrns(newCommentedUrns);
             }
-            return {
-                success: false,
-                mode: 'feed',
+            return buildFeedResult({
                 error: error.message,
-                warmupActive,
-                processedPosts: totalProcessedPosts,
-                warmupPostsLearned,
-                warmupThreadsLearned,
-                log: engageLog
-            };
+                runStatus: 'failed',
+                reason: 'runtime-error'
+            });
         }
     }
 
