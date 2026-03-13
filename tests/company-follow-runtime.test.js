@@ -95,4 +95,61 @@ describe('company-follow runtime classification', () => {
             })
         );
     });
+
+    it('does not confirm generic disabled buttons as following state', async () => {
+        const card = document.createElement('div');
+        card.className = 'entity-result';
+        const disabledBtn = document.createElement('button');
+        disabledBtn.disabled = true;
+        disabledBtn.textContent = 'Message';
+        card.appendChild(disabledBtn);
+        document.body.appendChild(card);
+
+        global.extractCompanyInfo = () => ({
+            name: 'Hotjar',
+            subtitle: 'Software',
+            companyUrl: 'https://www.linkedin.com/company/hotjar/'
+        });
+        global.matchesTargetCompanies = () => true;
+        global.isCompanyFollowText = () => false;
+        global.isFollowingText = () => false;
+        global.isCompanyFollowConfirmed = undefined;
+        global.getCompanySearchPageState = () => ({
+            cards: [card],
+            cardsFound: true,
+            isExplicitNoResults: false,
+            resultsCountHint: 1,
+            resultsCountText: '1 result',
+            selectorHits: {}
+        });
+
+        require('../extension/company-follow');
+        const donePromise = waitForCompanyDone();
+        window.dispatchEvent(new MessageEvent('message', {
+            data: {
+                type: 'LINKEDIN_COMPANY_FOLLOW_START',
+                config: {
+                    query: 'hotjar',
+                    limit: 1,
+                    targetCompanies: []
+                }
+            },
+            source: window
+        }));
+
+        const result = await donePromise;
+        expect(result.reason).not.toBe('already-following-only');
+        expect(result.diagnostics).toEqual(
+            expect.objectContaining({
+                alreadyFollowing: 0,
+                unconfirmedFollowCount: 1
+            })
+        );
+        expect(result.log[0]).toEqual(
+            expect.objectContaining({
+                status: 'skipped-follow-not-confirmed',
+                followAttempts: 0
+            })
+        );
+    });
 });

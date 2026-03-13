@@ -212,6 +212,96 @@ describe('jobs-assist easy apply progression', () => {
         expect(result.reason).toBe('required-fields-missing');
     });
 
+    it('does not autofill business name fields with fullName', async () => {
+        const job = addJobCard('4383833502');
+        const applyBtn = document.createElement('button');
+        applyBtn.textContent = 'Easy Apply';
+        document.body.appendChild(applyBtn);
+
+        const modal = document.createElement('div');
+        modal.className = 'jobs-easy-apply-modal';
+        document.body.appendChild(modal);
+        let companyField;
+
+        applyBtn.addEventListener('click', () => {
+            modal.innerHTML = '';
+            const title = document.createElement('div');
+            title.textContent = 'Application';
+            modal.appendChild(title);
+
+            companyField = document.createElement('input');
+            companyField.required = true;
+            companyField.setAttribute('aria-label', 'Company name');
+            modal.appendChild(companyField);
+
+            const next = document.createElement('button');
+            next.textContent = 'Next';
+            modal.appendChild(next);
+        });
+
+        const result = await jobsAssist.prepareJobForManualReview(
+            job,
+            { fullName: 'Lucas Santana' },
+            makeRuntimeOptions()
+        );
+
+        expect(result.status).toBe('needs-manual-input');
+        expect(result.reason).toBe('required-fields-missing');
+        expect(companyField.value).toBe('');
+    });
+
+    it('returns modal-closed when dialog disappears between step iterations', async () => {
+        const job = addJobCard('4383833503');
+        const applyBtn = document.createElement('button');
+        applyBtn.textContent = 'Easy Apply';
+        document.body.appendChild(applyBtn);
+
+        const modal = document.createElement('div');
+        modal.className = 'jobs-easy-apply-modal';
+        document.body.appendChild(modal);
+        let step = 0;
+
+        const renderStep = () => {
+            modal.innerHTML = '';
+            const title = document.createElement('div');
+            title.textContent = 'Application';
+            modal.appendChild(title);
+            if (step === 1) {
+                const review = document.createElement('button');
+                review.textContent = 'Review';
+                review.addEventListener('click', () => {
+                    step = 2;
+                    renderStep();
+                    setTimeout(() => {
+                        if (modal.isConnected) modal.remove();
+                    }, 5);
+                });
+                modal.appendChild(review);
+                return;
+            }
+            const submit = document.createElement('button');
+            submit.textContent = 'Submit application';
+            modal.appendChild(submit);
+        };
+
+        applyBtn.addEventListener('click', () => {
+            step = 1;
+            renderStep();
+        });
+
+        const result = await jobsAssist.prepareJobForManualReview(
+            job,
+            {},
+            {
+                ...makeRuntimeOptions(),
+                afterStepClickMs: 20
+            }
+        );
+
+        expect(result.status).toBe('needs-manual-input');
+        expect(result.reason).toBe('modal-closed');
+    });
+
     it('returns modal-closed when review transition closes modal', async () => {
         const job = addJobCard('4383833500');
         const applyBtn = document.createElement('button');

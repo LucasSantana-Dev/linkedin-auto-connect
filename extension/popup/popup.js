@@ -1826,7 +1826,22 @@ function resumeJobsManualFlow() {
         }
         const target = tabs[0];
         chrome.windows.update(target.windowId, { focused: true }, () => {
+            if (chrome.runtime.lastError) {
+                setStatusMessage(
+                    'Could not focus the Jobs window. Open LinkedIn Jobs and continue manually.',
+                    'warning'
+                );
+                return;
+            }
             chrome.tabs.update(target.id, { active: true }, () => {
+                if (chrome.runtime.lastError) {
+                    setStatusMessage(
+                        'Could not focus the Jobs tab. Open LinkedIn Jobs and continue manually.',
+                        'warning'
+                    );
+                    return;
+                }
+                jobsManualResumePending = false;
                 setStatusMessage(
                     'Switched to LinkedIn Jobs. Continue the Easy Apply flow manually.',
                     'info'

@@ -16,9 +16,12 @@ All notable changes to this project will be documented in this file.
 - **Companies already-following classification tightening**: Cards without a clickable follow button are only counted as `already-following` when a followed-state signal is confirmed; otherwise they remain unconfirmed skips.
 - **Popup company failure messaging**: Popup now maps company failure reasons (`follow-not-confirmed`, `no-target-matches`, `already-following-only`) to actionable user-facing error text.
 - **Jobs required-field detection**: Required Easy Apply fields now validate from runtime field values/validity (input/textarea/select) instead of brittle `[value]` attribute checks.
+- **Jobs full-name autofill precision**: Full-name autofill now targets explicit person-name fields only (and no longer treats generic `name` fields like `company name` as candidate name fields).
 - **Jobs popup completion feedback**: Manual-required jobs outcomes now show actionable warning text instead of generic error messaging.
 - **Jobs modal transition safety**: Easy Apply step progression no longer reuses stale modal references when the dialog closes after `Next`/`Review`; the run exits deterministically with `reason: modal-closed`.
 - **Jobs continue-manually CTA behavior**: `Continue Manually` now focuses an existing LinkedIn Jobs tab instead of starting a fresh Jobs automation run.
+- **Jobs continue-manually state reset**: Manual-resume mode now clears only after a successful Jobs-tab focus, so retries remain available when tab focus fails.
+- **Company disabled-button confirmation hardening**: Disabled buttons are no longer treated as followed by default; fallback confirmation now requires follow-specific text/ARIA/class semantics.
 
 ## [1.26.4] - 2026-03-13
 

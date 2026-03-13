@@ -182,7 +182,10 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                 filled++;
                 continue;
             }
-            if (/full name|nome completo|your name|name/.test(hint) &&
+            if (/full name|nome completo|your name|first and last name|nome e sobrenome/
+                .test(hint) &&
+                !/company|school|employer|organization|reference|empresa|escola/
+                    .test(hint) &&
                 setInputValue(field, source.fullName)) {
                 filled++;
                 continue;
@@ -435,7 +438,7 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
         let stepCount = 0;
 
         while (stepCount < options.maxModalSteps) {
-            modal = findModalDialog() || modal;
+            modal = findModalDialog();
             if (!modal) {
                 return {
                     status: 'needs-manual-input',

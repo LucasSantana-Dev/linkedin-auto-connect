@@ -109,10 +109,27 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             const text = (
                 btn.innerText || btn.textContent || ''
             ).trim();
-            if (isFollowingText(text) || btn.disabled) {
+            if (isFollowingText(text)) {
                 return {
                     confirmed: true,
                     signals: ['button-state-fallback']
+                };
+            }
+            const ariaPressed = String(
+                btn.getAttribute('aria-pressed') || ''
+            ).toLowerCase();
+            const followSemantics = String(
+                btn.getAttribute('aria-label') || ''
+            ).toLowerCase() + ' ' + String(
+                btn.className || ''
+            ).toLowerCase();
+            const hasFollowSemantic = /follow|following|seguir|seguindo|deixar de seguir|unfollow/
+                .test(followSemantics);
+            if (btn.disabled &&
+                (ariaPressed === 'true' || hasFollowSemantic)) {
+                return {
+                    confirmed: true,
+                    signals: ['disabled-follow-state-fallback']
                 };
             }
         }
