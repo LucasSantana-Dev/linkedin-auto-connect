@@ -154,6 +154,8 @@ describe('background AI comment copy guard', () => {
             preferredOpeners: ['solid point'],
             topNgrams: ['vibe coding', 'clear prompts']
         }));
+        const runOutcome = require('../extension/lib/run-outcome');
+        Object.assign(global, runOutcome);
         setupChrome();
         require('../extension/background');
     });
@@ -162,6 +164,10 @@ describe('background AI comment copy guard', () => {
         delete global.chrome;
         delete global.importScripts;
         delete global.buildPatternGuidance;
+        delete global.RUN_STATUS_SUCCESS;
+        delete global.RUN_STATUS_FAILED;
+        delete global.RUN_STATUS_CANCELED;
+        delete global.normalizeRunOutcome;
         delete global.fetch;
     });
 

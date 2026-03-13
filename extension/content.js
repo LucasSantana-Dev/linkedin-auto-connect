@@ -513,6 +513,73 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
         return follows;
     }
 
+    function buildConnectOutcomeMetrics(log) {
+        const entries = Array.isArray(log) ? log : [];
+        let actionCount = 0;
+        let skippedCount = 0;
+        for (const entry of entries) {
+            const status = String(entry?.status || '');
+            if (/^skipped|^skip-/.test(status)) {
+                skippedCount++;
+                continue;
+            }
+            if (!status || /^error-/.test(status) ||
+                status === 'stopped-quota') {
+                continue;
+            }
+            actionCount++;
+        }
+        return {
+            processedCount: entries.length,
+            actionCount,
+            skippedCount
+        };
+    }
+
+    function buildConnectResult(payload, log) {
+        const source = payload && typeof payload === 'object'
+            ? payload
+            : {};
+        const finalLog = Array.isArray(log) ? log : connectionLog;
+        const metrics = buildConnectOutcomeMetrics(finalLog);
+        const stoppedByUser = source.stoppedByUser === true;
+        const hasError = String(source.error || '').trim() !== '';
+        let runStatus = source.runStatus;
+        if (!runStatus) {
+            if (stoppedByUser) {
+                runStatus = 'canceled';
+            } else if (hasError || metrics.processedCount <= 0) {
+                runStatus = 'failed';
+            } else {
+                runStatus = 'success';
+            }
+        }
+        let reason = source.reason;
+        if (!reason) {
+            if (runStatus === 'canceled') {
+                reason = 'stopped-by-user';
+            } else if (runStatus === 'failed') {
+                reason = /captcha|challenge|checkpoint|authwall/i
+                    .test(String(source.error || ''))
+                    ? 'challenge'
+                    : metrics.processedCount <= 0
+                        ? 'no-items-processed'
+                        : 'runtime-error';
+            } else {
+                reason = 'unknown';
+            }
+        }
+        return {
+            ...source,
+            mode: 'connect',
+            runStatus,
+            reason,
+            success: runStatus === 'success',
+            ...metrics,
+            log: finalLog
+        };
+    }
+
     async function runEngagement(config) {
         console.log('[LinkedIn Bot] Engagement mode started');
         const limit = config?.limit || 50;
@@ -526,11 +593,11 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
             while (totalEngaged < limit) {
                 if (stopRequested) break;
                 if (detectChallenge()) {
-                    return {
-                        success: false,
+                    return buildConnectResult({
                         error: 'CAPTCHA detected',
-                        log: connectionLog
-                    };
+                        runStatus: 'failed',
+                        reason: 'challenge'
+                    }, connectionLog);
                 }
 
                 await delay(2000);
@@ -638,19 +705,26 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                 }
             }
 
-            return {
-                success: true,
+            if (stopRequested) {
+                return buildConnectResult({
+                    stoppedByUser: true,
+                    message: 'Run canceled by user.',
+                    runStatus: 'canceled',
+                    reason: 'stopped-by-user'
+                }, connectionLog);
+            }
+
+            return buildConnectResult({
                 message: `Engagement done! Visited/followed ` +
-                    `${totalEngaged} profiles.`,
-                log: connectionLog
-            };
+                    `${totalEngaged} profiles.`
+            }, connectionLog);
 
         } catch (error) {
-            return {
-                success: false,
+            return buildConnectResult({
                 error: error.message,
-                log: connectionLog
-            };
+                runStatus: 'failed',
+                reason: 'runtime-error'
+            }, connectionLog);
         }
     }
 
@@ -711,13 +785,13 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     break;
                 }
                 if (detectChallenge()) {
-                    return {
-                        success: false,
+                    return buildConnectResult({
                         error: 'CAPTCHA or security ' +
                             'challenge detected. ' +
                             `Sent ${totalSent} before stop.`,
-                        log: connectionLog
-                    };
+                        runStatus: 'failed',
+                        reason: 'challenge'
+                    }, connectionLog);
                 }
                 await delay(3000);
 
@@ -962,14 +1036,12 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                         connectionLog.push(
                             ...engResult.log
                         );
-                        return {
-                            success: true,
+                        return buildConnectResult({
                             message:
                                 `Sent ${totalSent}, then ` +
                                 `engaged ${engResult.log.length}` +
-                                ` profiles (quota fallback).`,
-                            log: connectionLog
-                        };
+                                ` profiles (quota fallback).`
+                        }, connectionLog);
                     }
 
                     try {
@@ -1426,13 +1498,13 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
                     nextBtn.click();
                     await delay(8000);
                     if (detectChallenge()) {
-                        return {
-                            success: false,
+                        return buildConnectResult({
                             error: 'CAPTCHA detected ' +
                                 'after page navigation. ' +
                                 `Sent ${totalSent}.`,
-                            log: connectionLog
-                        };
+                            runStatus: 'failed',
+                            reason: 'challenge'
+                        }, connectionLog);
                     }
                 } else {
                     break;
@@ -1442,19 +1514,25 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
             console.log(
                 `[LinkedIn Bot] Done. ${totalSent} sent.`
             );
-            return {
-                success: true,
+            if (stopRequested) {
+                return buildConnectResult({
+                    stoppedByUser: true,
+                    message: 'Run canceled by user.',
+                    runStatus: 'canceled',
+                    reason: 'stopped-by-user'
+                }, connectionLog);
+            }
+            return buildConnectResult({
                 message: `Finished! Sent ` +
-                    `${totalSent} connection requests.`,
-                log: connectionLog
-            };
+                    `${totalSent} connection requests.`
+            }, connectionLog);
 
         } catch (error) {
-            return {
-                success: false,
+            return buildConnectResult({
                 error: error.message,
-                log: connectionLog
-            };
+                runStatus: 'failed',
+                reason: 'runtime-error'
+            }, connectionLog);
         }
     }
 

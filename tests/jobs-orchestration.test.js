@@ -69,6 +69,10 @@ describe('jobs orchestration in background', () => {
             '../extension/lib/jobs-utils'
         );
         Object.assign(global, jobsUtils);
+        const runOutcome = require(
+            '../extension/lib/run-outcome'
+        );
+        Object.assign(global, runOutcome);
 
         let tabIdCounter = 600;
         const tabMap = new Map();
@@ -264,6 +268,10 @@ describe('jobs orchestration in background', () => {
         delete global.evaluateJobCandidate;
         delete global.rankJobsForApply;
         delete global.buildLinkedInJobsSearchUrl;
+        delete global.RUN_STATUS_SUCCESS;
+        delete global.RUN_STATUS_FAILED;
+        delete global.RUN_STATUS_CANCELED;
+        delete global.normalizeRunOutcome;
     });
 
     it('starts jobs assist with decrypted profile and forwards config to page runtime', async () => {

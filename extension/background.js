@@ -37,6 +37,7 @@ importScripts('lib/connect-config.js');
 importScripts('lib/search-templates.js');
 importScripts('lib/jobs-cache.js');
 importScripts('lib/jobs-utils.js');
+importScripts('lib/run-outcome.js');
 
 function parseExcludedCompanyList(raw) {
     if (typeof parseExcludedCompanies === 'function') {
@@ -357,9 +358,12 @@ function countFollowedEntries(log) {
 
 function applyRunResult(result) {
     activeTabId = null;
-    const r = result && typeof result === 'object'
-        ? { ...result }
+    const normalized = typeof normalizeRunOutcome === 'function'
+        ? normalizeRunOutcome(result)
         : result;
+    const r = normalized && typeof normalized === 'object'
+        ? { ...normalized }
+        : {};
     if (r?.templateMeta) {
         r.templateMeta = normalizeTemplateMeta(
             r.templateMeta,
@@ -372,24 +376,12 @@ function applyRunResult(result) {
             );
         }
     }
-    const entries = r?.log || [];
-    const logCount = r?.mode === 'company'
-        ? entries.filter(e => e.status === 'followed')
-            .length
-        : entries.filter(
-            e => {
-                if (e.status?.startsWith('skipped') ||
-                    e.status?.startsWith('skip-')) {
-                    return false;
-                }
-                if (r?.mode === 'feed' &&
-                    e.status === 'warmup-learning') {
-                    return false;
-                }
-                return true;
-            }
-        ).length;
-    if (logCount > 0 && r?.mode) {
+    const entries = Array.isArray(r?.log) ? r.log : [];
+    const actionCount = Math.max(
+        0,
+        Number(r?.actionCount) || 0
+    );
+    if (actionCount > 0 && r?.mode) {
         const rateMode = r.mode === 'company'
             ? 'companyFollow'
             : r.mode === 'feed'
@@ -397,7 +389,7 @@ function applyRunResult(result) {
         const normalizedRateMode = r.mode === 'jobs'
             ? 'jobsAssist'
             : rateMode;
-        for (let i = 0; i < logCount; i++) {
+        for (let i = 0; i < actionCount; i++) {
             incrementCount(
                 normalizedRateMode,
                 chrome.storage.local
@@ -405,14 +397,34 @@ function applyRunResult(result) {
         }
     }
     cleanupOldKeys(chrome.storage.local);
+    const runStatus = r?.runStatus || (
+        r?.success ? 'success' : 'failed'
+    );
+    const failureMessage = r?.error || r?.message || 'Unknown';
+    const notificationMessage = runStatus === 'success'
+        ? (r?.message || 'Automation complete.')
+        : runStatus === 'canceled'
+            ? (r?.message || 'Run canceled by user.')
+            : `Failed: ${failureMessage}`;
     chrome.notifications.create({
         type: 'basic',
         iconUrl: 'icons/icon128.png',
         title: 'LinkedIn Engage',
-        message: r?.success
-            ? r.message || 'Automation complete.'
-            : 'Stopped: ' + (r?.error || 'Unknown')
+        message: notificationMessage
     });
+    if (r?.mode) {
+        recordEngagement({
+            entryType: 'run',
+            mode: r.mode,
+            status: `run-${runStatus}`,
+            runStatus,
+            runReason: r.reason || 'unknown',
+            processedCount: Number(r.processedCount) || 0,
+            actionCount: Number(r.actionCount) || 0,
+            skippedCount: Number(r.skippedCount) || 0,
+            stoppedByUser: r.stoppedByUser === true
+        }, chrome.storage.local);
+    }
     if (r?.log?.length && r?.mode) {
         const key = r.mode === 'company'
             ? 'companyFollowHistory'
@@ -457,7 +469,9 @@ function applyRunResult(result) {
         ).length;
         recordEngagement({
             mode: r.mode || r.templateMeta.mode || 'connect',
-            status: r.success ? 'run-template' : 'run-template-error',
+            status: runStatus === 'success'
+                ? 'run-template'
+                : 'run-template-error',
             templateId: r.templateMeta.templateId,
             usageGoal: r.templateMeta.usageGoal,
             expectedResultsBucket:
@@ -492,11 +506,38 @@ function finalizeCompanyRun(result, broadcastToPopup) {
             'companies'
         );
     }
-    applyRunResult(enrichedResult);
+    const normalized = typeof normalizeRunOutcome === 'function'
+        ? normalizeRunOutcome(
+            {
+                ...enrichedResult,
+                mode: 'company',
+                processedCount: Math.max(
+                    0,
+                    Number(enrichedResult.processedCount) ||
+                        Number(state.processedCount) || 0
+                ),
+                actionCount: Math.max(
+                    0,
+                    Number(enrichedResult.actionCount) ||
+                        Number(state.actionCount) || 0
+                ),
+                skippedCount: Math.max(
+                    0,
+                    Number(enrichedResult.skippedCount) ||
+                        Number(state.skippedCount) || 0
+                ),
+                stoppedByUser:
+                    enrichedResult.stoppedByUser === true ||
+                    state.stopRequested === true
+            },
+            'company'
+        )
+        : enrichedResult;
+    applyRunResult(normalized);
     if (broadcastToPopup) {
         chrome.runtime.sendMessage({
             action: 'done',
-            result: enrichedResult
+            result: normalized
         });
     }
 }
@@ -504,9 +545,11 @@ function finalizeCompanyRun(result, broadcastToPopup) {
 function handleCompanyStepDone(result) {
     if (!companyRunState?.active) return;
     const state = companyRunState;
-    const stepResult = result || {};
+    const stepResult = typeof normalizeRunOutcome === 'function'
+        ? normalizeRunOutcome(result, 'company')
+        : (result || {});
     const stepCode = stepResult.stepCode || (
-        stepResult.success ? 'ok' : 'unknown'
+        stepResult.runStatus === 'success' ? 'ok' : 'unknown'
     );
     const stepLog = Array.isArray(stepResult.log)
         ? stepResult.log : [];
@@ -518,13 +561,28 @@ function handleCompanyStepDone(result) {
     const followedThisStep = Number.isFinite(explicit)
         ? Math.max(0, explicit)
         : countFollowedEntries(stepLog);
+    const explicitProcessed = Number(stepResult.processedCount);
+    const processedThisStep = Number.isFinite(explicitProcessed)
+        ? Math.max(0, Math.floor(explicitProcessed))
+        : stepLog.length;
+    const explicitAction = Number(stepResult.actionCount);
+    const actionThisStep = Number.isFinite(explicitAction)
+        ? Math.max(0, Math.floor(explicitAction))
+        : followedThisStep;
+    const explicitSkipped = Number(stepResult.skippedCount);
+    const skippedThisStep = Number.isFinite(explicitSkipped)
+        ? Math.max(0, Math.floor(explicitSkipped))
+        : Math.max(0, processedThisStep - actionThisStep);
     state.totalFollowed = Math.min(
         state.limit,
         state.totalFollowed + followedThisStep
     );
+    state.processedCount += processedThisStep;
+    state.actionCount += actionThisStep;
+    state.skippedCount += skippedThisStep;
 
     if (stepCode === 'cards-timeout' ||
-        !stepResult.success) {
+        stepResult.runStatus === 'failed') {
         finalizeCompanyRun({
             success: false,
             mode: 'company',
@@ -538,12 +596,32 @@ function handleCompanyStepDone(result) {
         return;
     }
 
+    if (stepResult.runStatus === 'canceled') {
+        finalizeCompanyRun({
+            success: false,
+            mode: 'company',
+            message: stepResult.message ||
+                'Run canceled by user.',
+            runStatus: 'canceled',
+            reason: 'stopped-by-user',
+            stoppedByUser: true,
+            log: state.log,
+            processedCount: state.processedCount,
+            actionCount: state.actionCount,
+            skippedCount: state.skippedCount
+        }, true);
+        return;
+    }
+
     if (state.stopRequested) {
         finalizeCompanyRun({
             success: false,
             mode: 'company',
             error: 'Stopped by user.',
-            log: state.log
+            log: state.log,
+            stoppedByUser: true,
+            runStatus: 'canceled',
+            reason: 'stopped-by-user'
         }, true);
         return;
     }
@@ -554,7 +632,10 @@ function handleCompanyStepDone(result) {
             success: true,
             mode: 'company',
             message: `Followed ${state.totalFollowed} companies.`,
-            log: state.log
+            log: state.log,
+            processedCount: state.processedCount,
+            actionCount: state.actionCount,
+            skippedCount: state.skippedCount
         }, true);
         return;
     }
@@ -574,7 +655,10 @@ function handleCompanyStepDone(result) {
                     error: 'Failed to open company search: ' +
                         (chrome.runtime.lastError?.message
                             || 'unknown error'),
-                    log: state.log
+                    log: state.log,
+                    processedCount: state.processedCount,
+                    actionCount: state.actionCount,
+                    skippedCount: state.skippedCount
                 }, true);
                 return;
             }
@@ -772,7 +856,10 @@ function launchCompanyFollow(config) {
         finalizeCompanyRun({
             success: false,
             mode: 'company',
-            error: 'Stopped by new company run.',
+            message: 'Previous run canceled by new company run.',
+            runStatus: 'canceled',
+            reason: 'stopped-by-user',
+            stoppedByUser: true,
             log: companyRunState.log || []
         }, true);
     }
@@ -812,6 +899,9 @@ function launchCompanyFollow(config) {
         queryIndex: 0,
         limit: Math.max(1, parseInt(config.limit, 10) || 50),
         totalFollowed: 0,
+        processedCount: 0,
+        actionCount: 0,
+        skippedCount: 0,
         log: [],
         config: nextConfig
     };
@@ -2794,8 +2884,17 @@ chrome.runtime.onMessage.addListener(
                 finalizeCompanyRun({
                     success: false,
                     mode: 'company',
-                    error: 'Stopped by user.',
-                    log: companyRunState.log || []
+                    message: 'Run canceled by user.',
+                    reason: 'stopped-by-user',
+                    runStatus: 'canceled',
+                    stoppedByUser: true,
+                    log: companyRunState.log || [],
+                    processedCount:
+                        Number(companyRunState.processedCount) || 0,
+                    actionCount:
+                        Number(companyRunState.actionCount) || 0,
+                    skippedCount:
+                        Number(companyRunState.skippedCount) || 0
                 }, true);
                 sendResponse({ status: 'stopping' });
                 return true;
