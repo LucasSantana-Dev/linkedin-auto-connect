@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.26.3] - 2026-03-12
+
 ### Changed
 - **Companies target-filter semantics**: Empty `Target Companies` now always means “follow all visible company results”; template default target lists are no longer auto-applied implicitly on manual or scheduled runs.
 - **Companies scheduled/manual parity**: Both launch paths now use only explicit user-provided target companies for filtered runs.
