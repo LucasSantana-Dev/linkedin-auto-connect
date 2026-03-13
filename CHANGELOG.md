@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.26.5] - 2026-03-13
+
 ### Changed
 - **Companies follow confirmation hardening**: Company follow attempts now use bounded in-card confirmation polling with retries (initial click + 2 retries), re-querying buttons between attempts to survive LinkedIn DOM re-renders.
 - **Companies diagnostics expanded**: Company runtime diagnostics now include `followAttempts`, `unconfirmedFollowCount`, and `confirmSignalsSeen` summaries to make false-negative follow outcomes actionable.
