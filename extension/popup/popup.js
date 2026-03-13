@@ -51,6 +51,7 @@ const DEFAULT_LOCAL_UI_STATE = {
 let useCustomQuery = false;
 let popupUiState = DEFAULT_LOCAL_UI_STATE;
 let jobsCacheLoadedThisSession = false;
+let jobsManualResumePending = false;
 
 const DEFAULT_LATAM_COMPANIES = [
     'Hotjar', 'Doist', 'Toggl', 'Pipefy', 'VTEX',
@@ -1791,6 +1792,9 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         return startCompanyFollow();
     }
     if (currentMode === 'jobs') {
+        if (jobsManualResumePending) {
+            return resumeJobsManualFlow();
+        }
         return startJobsAssist();
     }
     if (currentMode === 'feed') {
@@ -1798,6 +1802,39 @@ document.getElementById('startBtn').addEventListener('click', async () => {
     }
     return startConnect();
 });
+
+function resumeJobsManualFlow() {
+    chrome.tabs.query({
+        url: [
+            'https://www.linkedin.com/jobs/*',
+            'https://www.linkedin.com/jobs'
+        ]
+    }, (tabs) => {
+        if (chrome.runtime.lastError) {
+            setStatusMessage(
+                'Could not find the Jobs tab. Open LinkedIn Jobs and continue manually.',
+                'warning'
+            );
+            return;
+        }
+        if (!Array.isArray(tabs) || tabs.length === 0) {
+            setStatusMessage(
+                'No open LinkedIn Jobs tab found. Open Jobs and continue manually.',
+                'warning'
+            );
+            return;
+        }
+        const target = tabs[0];
+        chrome.windows.update(target.windowId, { focused: true }, () => {
+            chrome.tabs.update(target.id, { active: true }, () => {
+                setStatusMessage(
+                    'Switched to LinkedIn Jobs. Continue the Easy Apply flow manually.',
+                    'info'
+                );
+            });
+        });
+    });
+}
 
 async function startConnect() {
     const plan = buildConnectSearchPlan();
@@ -1979,6 +2016,7 @@ function startCompanyFollow() {
 }
 
 function startJobsAssist() {
+    jobsManualResumePending = false;
     const plan = buildJobsSearchPlan();
     const query = plan.query;
     if (!query) {
@@ -2382,6 +2420,7 @@ chrome.runtime.onMessage.addListener((request) => {
         const isJobsManualRequired = response?.mode === 'jobs' &&
             response?.reason === 'manual-input-required';
         if (isJobsManualRequired) {
+            jobsManualResumePending = true;
             setStatusMessage(
                 response?.message ||
                     'Manual input required. Complete the application manually.',
@@ -2390,12 +2429,18 @@ chrome.runtime.onMessage.addListener((request) => {
             startBtn.disabled = false;
             startBtn.textContent = 'Continue Manually';
         } else if (runStatus === 'success') {
+            if (response?.mode === 'jobs') {
+                jobsManualResumePending = false;
+            }
             setStatusMessage(
                 'Success! ' + (response.message || ''),
                 'success'
             );
             startBtn.textContent = 'Done!';
         } else if (runStatus === 'canceled') {
+            if (response?.mode === 'jobs') {
+                jobsManualResumePending = false;
+            }
             setStatusMessage(
                 response?.message || 'Run canceled by user.',
                 'warning'
@@ -2403,6 +2448,9 @@ chrome.runtime.onMessage.addListener((request) => {
             startBtn.disabled = false;
             startBtn.textContent = 'Start Again';
         } else {
+            if (response?.mode === 'jobs') {
+                jobsManualResumePending = false;
+            }
             setStatusMessage(
                 'Error: ' + getDoneFailureMessage(response),
                 'error'

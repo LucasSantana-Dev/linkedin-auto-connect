@@ -167,7 +167,10 @@ describe('jobs-assist easy apply progression', () => {
         const result = await jobsAssist.prepareJobForManualReview(
             job,
             {},
-            makeRuntimeOptions()
+            {
+                ...makeRuntimeOptions(),
+                stepPollTimeoutMs: 200
+            }
         );
 
         expect(result.status).toBe('ready-manual-review');
@@ -207,6 +210,46 @@ describe('jobs-assist easy apply progression', () => {
 
         expect(result.status).toBe('needs-manual-input');
         expect(result.reason).toBe('required-fields-missing');
+    });
+
+    it('returns modal-closed when review transition closes modal', async () => {
+        const job = addJobCard('4383833500');
+        const applyBtn = document.createElement('button');
+        applyBtn.textContent = 'Easy Apply';
+        document.body.appendChild(applyBtn);
+
+        const modal = document.createElement('div');
+        modal.className = 'jobs-easy-apply-modal';
+        document.body.appendChild(modal);
+
+        applyBtn.addEventListener('click', () => {
+            modal.innerHTML = '';
+            const title = document.createElement('div');
+            title.textContent = 'Review step';
+            modal.appendChild(title);
+
+            const review = document.createElement('button');
+            review.textContent = 'Review';
+            review.addEventListener('click', () => {
+                modal.remove();
+            });
+            modal.appendChild(review);
+        });
+
+        const result = await jobsAssist.prepareJobForManualReview(
+            job,
+            {},
+            makeRuntimeOptions()
+        );
+
+        expect(result.status).toBe('needs-manual-input');
+        expect(result.reason).toBe('modal-closed');
+        expect(result.diagnostics).toEqual(
+            expect.objectContaining({
+                stepCount: 1,
+                waitedMs: expect.any(Number)
+            })
+        );
     });
 
     it('returns deterministic timeout diagnostics when easy-apply modal never appears', async () => {

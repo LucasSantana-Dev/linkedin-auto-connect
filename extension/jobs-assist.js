@@ -468,6 +468,17 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                 );
                 stepCount++;
                 if (!moved.changed) {
+                    if (!modal || !modal.isConnected) {
+                        return {
+                            status: 'needs-manual-input',
+                            reason: 'modal-closed',
+                            filledFields,
+                            diagnostics: {
+                                stepCount,
+                                waitedMs: moved.waitedMs
+                            }
+                        };
+                    }
                     return {
                         status: 'needs-manual-input',
                         reason: 'modal-step-timeout',
@@ -478,8 +489,19 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                         }
                     };
                 }
+                if (!moved.modal) {
+                    return {
+                        status: 'needs-manual-input',
+                        reason: 'modal-closed',
+                        filledFields,
+                        diagnostics: {
+                            stepCount,
+                            waitedMs: moved.waitedMs
+                        }
+                    };
+                }
                 await delay(options.afterStepClickMs);
-                modal = moved.modal || modal;
+                modal = moved.modal;
                 continue;
             }
 
@@ -506,6 +528,17 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                 );
                 stepCount++;
                 if (!moved.changed) {
+                    if (!modal || !modal.isConnected) {
+                        return {
+                            status: 'needs-manual-input',
+                            reason: 'modal-closed',
+                            filledFields,
+                            diagnostics: {
+                                stepCount,
+                                waitedMs: moved.waitedMs
+                            }
+                        };
+                    }
                     const missing = countRequiredMissingFields(moved.modal || modal);
                     return {
                         status: 'needs-manual-input',
@@ -521,8 +554,19 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
                         }
                     };
                 }
+                if (!moved.modal) {
+                    return {
+                        status: 'needs-manual-input',
+                        reason: 'modal-closed',
+                        filledFields,
+                        diagnostics: {
+                            stepCount,
+                            waitedMs: moved.waitedMs
+                        }
+                    };
+                }
                 await delay(options.afterStepClickMs);
-                modal = moved.modal || modal;
+                modal = moved.modal;
                 continue;
             }
 

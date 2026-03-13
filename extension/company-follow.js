@@ -283,7 +283,6 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                 const followBtn =
                     findFollowBtnInCard(card);
                 if (!followBtn) {
-                    stats.alreadyFollowing++;
                     const currentConfirm = getFollowConfirmation(
                         card
                     );
@@ -291,11 +290,24 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                         stats,
                         currentConfirm.signals
                     );
-                    followLog.push({
-                        ...info,
-                        status: 'skipped-already-following',
-                        time: new Date().toISOString()
-                    });
+                    if (currentConfirm.confirmed) {
+                        stats.alreadyFollowing++;
+                        followLog.push({
+                            ...info,
+                            status: 'skipped-already-following',
+                            time: new Date().toISOString()
+                        });
+                    } else {
+                        stats.unconfirmedFollowCount++;
+                        followLog.push({
+                            ...info,
+                            status: 'skipped-follow-not-confirmed',
+                            followAttempts: 0,
+                            confirmSignals:
+                                currentConfirm.signals || [],
+                            time: new Date().toISOString()
+                        });
+                    }
                     continue;
                 }
 
