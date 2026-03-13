@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.26.2] - 2026-03-12
+
 ### Changed
 - **Deterministic run outcome contract**: Connect/Feed/Companies/Jobs now normalize every run into `runStatus` (`success`, `failed`, `canceled`) with canonical reason codes and deterministic counters (`processedCount`, `actionCount`, `skippedCount`).
 - **Manual stop semantics**: User-triggered stop now finalizes as `canceled` instead of success/failure across popup/background/runtime flows.
