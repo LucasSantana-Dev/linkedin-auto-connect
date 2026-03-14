@@ -9,6 +9,8 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Boolean-optimized search templates (v1)** — deterministic template engine
   for Connect/Companies/Jobs with per-mode goals, expected-result buckets
   (`precise`, `balanced`, `broad`), and controlled operator budgets
+- **Full EN/PT-BR UI localization** — popup, dashboard, notifications, and runtime status copy now follow a single UI language switch (`Auto`, `English`, `Português (Brasil)`) with no inline bilingual UI labels
+- **Locale-aware search language** — Connect, Companies, and Jobs each have an independent search-language strategy (`auto`, `en`, `pt_BR`, `bilingual`) so generated queries can use local-market or global-language terms without changing the UI locale
 - **Area presets for non-tech networking** — one-click presets for Tech, Finance, Real Estate, Headhunting, Legal/Judicial Media, Environmental, Sanitary, Healthcare, Education, Marketing, Sales, Graphic Design, Art Direction, Branding, UI/UX, Motion Design, Video Editing, and Videomaker
 - **Auto + manual template override** — each search mode supports
   `Usage Goal`, `Expected Results`, `Template`, and `Auto-select template`
@@ -57,7 +59,6 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Desktop notifications** — Chrome notification when automation completes or stops
 - **Acceptance tracker** — check which sent invitations were accepted (cross-references connections page)
 - **Connect-first progressive popup UX** — core run controls stay visible while `Refine Filters`, `Message`, `Automation`, and `Tools` panels are collapsed by default to reduce setup noise
-- **Targeted bilingual hints** — critical popup controls use EN labels with short PT-BR helper text for faster onboarding
 - **Dashboard page** — stats overview with weekly/total/accepted counts and connection history log
 - **Tabbed dashboard IA** — dashboard is split into `Overview`, `Activity`, `Feed`, `Nurture`, and `Logs` with persisted active tab state
 - **Multi-query rotation** — scheduled runs cycle through multiple saved queries automatically
@@ -199,6 +200,8 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 
 **Dual-world injection** — LinkedIn renders invite modals inside `about:blank` iframes. Content scripts in Chrome's default ISOLATED world cannot see these elements. The extension injects `content.js` in MAIN world (shares LinkedIn's JS context) and uses `bridge.js` in ISOLATED world for `chrome.runtime` messaging, connected via `window.postMessage`.
 
+**Chrome-native locale catalogs** — UI copy is stored in `extension/_locales/*/messages.json` and resolved through `extension/lib/i18n.js`. Locale catalog keys stay underscore-only for Chrome/Brave compatibility, while dotted logical keys remain the application-level lookup contract. UI locale is global, while search locale is resolved independently per mode (`Connect`, `Companies`, `Jobs`).
+
 **Cross-document querying** — `getAllDocuments()` collects the main `document` plus all same-origin iframe `contentDocument` objects. All element queries (`findInviteButtons`, `dismissModal`, etc.) search across all documents.
 
 **Direct `aria-label` selectors** — LinkedIn's dense DOM (thousands of elements) makes text-based iteration unreliable. Direct CSS selectors like `button[aria-label="Add a note"]` are exact, fast, and unambiguous.
@@ -220,6 +223,7 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 
 | Setting | Default | Description |
 |---------|---------|-------------|
+| UI Language | Auto (Browser) | Extension-owned UI locale for popup, dashboard, notifications, and status copy (`auto`, `en`, `pt_BR`) |
 | Limit | 50 | Max connection requests per run |
 | Region | Global (US/CA/UK/DE/NL) | Geographic filter for search results |
 | Connection Degree | 2nd + 3rd+ | Filter by connection degree (uses LinkedIn `network` param) |
@@ -233,16 +237,19 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 | Area Preset | Custom | One-click role/industry targeting for 18 supported professional areas |
 | Connect Usage Goal | recruiter_outreach | Template goal for Connect (`recruiter_outreach`, `peer_networking`, `decision_makers`, `brazil_focus`) |
 | Connect Expected Results | balanced | Connect query strictness bucket (`precise`, `balanced`, `broad`) |
+| Connect Search Language | auto | Query language strategy for Connect (`auto`, `en`, `pt_BR`, `bilingual`) |
 | Connect Auto-select Template | On | Uses exact/family/default template fallback for Connect unless manual template is forced |
 | Company Area Preset | Custom | Company-mode preset (`custom` + 7 creative presets) with default company search query and curated target-company defaults |
 | Company Usage Goal | talent_watchlist | Template goal for Companies (`talent_watchlist`, `brand_watchlist`, `competitor_watch`) |
 | Company Expected Results | balanced | Company query strictness bucket (`precise`, `balanced`, `broad`) |
+| Company Search Language | auto | Query language strategy for Companies (`auto`, `en`, `pt_BR`, `bilingual`) |
 | Company Auto-select Template | On | Uses exact/family/default template fallback for Companies unless manual template is forced |
 | Company Query | Empty | Search term for company follow mode |
 | Target Companies | Empty | Empty means follow all results; only explicit names (one per line) activate filtering. `Load defaults` is preset-aware and custom keeps LATAM defaults |
 | Jobs Area Preset | Custom | Optional jobs ranking context preset (reuses area taxonomy from Connect) |
 | Jobs Usage Goal | high_fit_easy_apply | Template goal for Jobs (`high_fit_easy_apply`, `market_scan`, `target_company_roles`) |
 | Jobs Expected Results | balanced | Jobs query strictness bucket (`precise`, `balanced`, `broad`) |
+| Jobs Search Language | auto | Query language strategy for Jobs (`auto`, `en`, `pt_BR`, `bilingual`) with `auto` preferring global English for offshore/international searches and Portuguese for Brazil-local searches |
 | Jobs Auto-select Template | On | Uses exact/family/default template fallback for Jobs unless manual template is forced |
 | Jobs Query | Empty | LinkedIn Jobs keywords query; if empty, inferred from role terms/preset |
 | Jobs Use Career Intelligence | Off | Enables encrypted local resume/profile analysis for Jobs search generation and ranking |

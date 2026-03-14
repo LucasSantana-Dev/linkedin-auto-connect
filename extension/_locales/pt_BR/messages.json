@@ -1,0 +1,1112 @@
+{
+  "common_any": {
+    "message": "Qualquer"
+  },
+  "common_auto": {
+    "message": "Automático"
+  },
+  "common_autoBrowser": {
+    "message": "Automático (navegador)"
+  },
+  "common_automation": {
+    "message": "Automação"
+  },
+  "common_bilingual": {
+    "message": "Bilíngue"
+  },
+  "common_checking": {
+    "message": "Verificando..."
+  },
+  "common_city": {
+    "message": "Cidade"
+  },
+  "common_clearCache": {
+    "message": "Limpar cache"
+  },
+  "common_companies": {
+    "message": "Empresas"
+  },
+  "common_connect": {
+    "message": "Conectar"
+  },
+  "common_continueManually": {
+    "message": "Continuar manualmente"
+  },
+  "common_done": {
+    "message": "Concluído"
+  },
+  "common_doneBang": {
+    "message": "Concluído!"
+  },
+  "common_email": {
+    "message": "E-mail"
+  },
+  "common_english": {
+    "message": "Inglês"
+  },
+  "common_errorPrefix": {
+    "message": "Erro: "
+  },
+  "common_expectedBalanced": {
+    "message": "Equilibrado (300-1200)"
+  },
+  "common_expectedBroad": {
+    "message": "Amplo (1200+)"
+  },
+  "common_expectedPrecise": {
+    "message": "Preciso (50-300)"
+  },
+  "common_expectedResults": {
+    "message": "Resultados esperados"
+  },
+  "common_feed": {
+    "message": "Feed"
+  },
+  "common_fullName": {
+    "message": "Nome completo"
+  },
+  "common_goal": {
+    "message": "Objetivo"
+  },
+  "common_jobs": {
+    "message": "Vagas"
+  },
+  "common_limit": {
+    "message": "Limite"
+  },
+  "common_loadDefaults": {
+    "message": "Carregar padrões"
+  },
+  "common_loading": {
+    "message": "Carregando..."
+  },
+  "common_mode": {
+    "message": "Modo"
+  },
+  "common_phone": {
+    "message": "Telefone"
+  },
+  "common_portugueseBrazil": {
+    "message": "Português (Brasil)"
+  },
+  "common_refine": {
+    "message": "Refinar"
+  },
+  "common_remove": {
+    "message": "Remover"
+  },
+  "common_runEveryHours": {
+    "message": "Executar a cada (horas)"
+  },
+  "common_searchLanguage": {
+    "message": "Idioma da busca"
+  },
+  "common_startAgain": {
+    "message": "Iniciar novamente"
+  },
+  "common_stop": {
+    "message": "Parar"
+  },
+  "common_stopping": {
+    "message": "Parando..."
+  },
+  "common_successPrefix": {
+    "message": "Sucesso! "
+  },
+  "common_template": {
+    "message": "Template"
+  },
+  "common_tryAgain": {
+    "message": "Tentar novamente"
+  },
+  "common_unknown": {
+    "message": "Desconhecido"
+  },
+  "common_unknownDate": {
+    "message": "data desconhecida"
+  },
+  "common_usageGoal": {
+    "message": "Objetivo de uso"
+  },
+  "extensionDescription": {
+    "message": "Expanda sua rede no LinkedIn com automação inteligente de conexões, engajamento no feed e comentários com IA."
+  },
+  "extensionName": {
+    "message": "LinkedIn Engage"
+  },
+  "notification_companyScheduledBatch": {
+    "message": "Seguir empresas agendado: lote de $1 ($2...)"
+  },
+  "notification_companyScheduledQuery": {
+    "message": "Seguir empresas agendado: busca \"$1\""
+  },
+  "notification_feedScheduledEngage": {
+    "message": "Engajamento agendado no feed: $1 posts$2"
+  },
+  "notification_feedScheduledEngageCommentSuffix": {
+    "message": " (reagir+comentar)"
+  },
+  "notification_feedScheduledEngageReactSuffix": {
+    "message": " (apenas reagir)"
+  },
+  "notification_feedScheduledWarmup": {
+    "message": "Warmup agendado do feed $1/$2: apenas reagir + aprender"
+  },
+  "notification_loginRequired": {
+    "message": "Login no LinkedIn necessário. Faça login e reinicie a automação."
+  },
+  "notification_nurtureStarted": {
+    "message": "Nutrindo $1: engajando com posts recentes"
+  },
+  "notification_quotaRetry": {
+    "message": "Nova tentativa após cota: testando com 10 convites para verificar se o limite foi resetado."
+  },
+  "notification_run_canceled": {
+    "message": "Execução cancelada pelo usuário."
+  },
+  "notification_run_failed": {
+    "message": "Falha: $1"
+  },
+  "notification_run_success": {
+    "message": "Automação concluída."
+  },
+  "notification_weeklyLimitReached": {
+    "message": "Limite semanal de convites atingido. Nova tentativa automática agendada em $1h."
+  },
+  "options_activity_chartTooltip": {
+    "message": "$1: $2 envios"
+  },
+  "options_analytics_acceptedRate": {
+    "message": "$1% aceitos"
+  },
+  "options_analytics_activeDays": {
+    "message": "$1 dias ativos"
+  },
+  "options_analytics_dayOfWeek": {
+    "message": "dia da semana"
+  },
+  "options_analytics_hourTooltip": {
+    "message": "$1:00 — $2 enviados, $3 aceitos ($4%)"
+  },
+  "options_analytics_sentDetail": {
+    "message": "$1/$2 enviados"
+  },
+  "options_analytics_topCategorySub": {
+    "message": "tipo de post com maior engajamento"
+  },
+  "options_analytics_utc": {
+    "message": "UTC"
+  },
+  "options_card_accepted": {
+    "message": "Aceitos"
+  },
+  "options_card_acceptRate": {
+    "message": "Taxa de aceite"
+  },
+  "options_card_acceptRateSub": {
+    "message": "aceitos / envios verificados"
+  },
+  "options_card_allTime": {
+    "message": "total"
+  },
+  "options_card_avgPerDay": {
+    "message": "Média / Dia"
+  },
+  "options_card_bestDay": {
+    "message": "Melhor Dia"
+  },
+  "options_card_bestHour": {
+    "message": "Melhor Hora"
+  },
+  "options_card_commentedSub": {
+    "message": "comentados / engajados"
+  },
+  "options_card_commentRate": {
+    "message": "Taxa de comentários"
+  },
+  "options_card_commentsSent": {
+    "message": "Comentários enviados"
+  },
+  "options_card_companies": {
+    "message": "Empresas"
+  },
+  "options_card_companiesSub": {
+    "message": "empresas seguidas"
+  },
+  "options_card_connectionsMade": {
+    "message": "conexões feitas"
+  },
+  "options_card_engaged": {
+    "message": "Engajados"
+  },
+  "options_card_engagedSub": {
+    "message": "visitas de perfil + perfis seguidos"
+  },
+  "options_card_feed": {
+    "message": "Feed"
+  },
+  "options_card_feedSub": {
+    "message": "posts com reação/comentário"
+  },
+  "options_card_followed": {
+    "message": "Seguidos"
+  },
+  "options_card_followedSub": {
+    "message": "ações de seguir"
+  },
+  "options_card_invites": {
+    "message": "de convites"
+  },
+  "options_card_quotaBlocked": {
+    "message": "Bloqueados por cota"
+  },
+  "options_card_quotaRejected": {
+    "message": "rejeitados pelo LinkedIn (429)"
+  },
+  "options_card_skipBreakdownFallback": {
+    "message": "duplicado, e-mail, não verificado"
+  },
+  "options_card_skipped": {
+    "message": "Pulados"
+  },
+  "options_card_thisWeek": {
+    "message": "Esta semana"
+  },
+  "options_card_topCategory": {
+    "message": "Top Categoria"
+  },
+  "options_card_topReaction": {
+    "message": "Reação principal"
+  },
+  "options_card_verifiedSent": {
+    "message": "Envios verificados"
+  },
+  "options_empty_activity": {
+    "message": "Ainda não há dados de atividade."
+  },
+  "options_empty_logs": {
+    "message": "Ainda não há histórico de conexões. Execute a automação para começar a registrar."
+  },
+  "options_empty_nurture": {
+    "message": "Ainda não há alvos de nutrição. Novas conexões são adicionadas automaticamente nas execuções de conexão."
+  },
+  "options_exportCsv": {
+    "message": "Exportar CSV"
+  },
+  "options_feed_commentRateCount": {
+    "message": "$1 de $2 posts"
+  },
+  "options_feed_commentRateSub": {
+    "message": "dos posts engajados"
+  },
+  "options_feed_skippedSub": {
+    "message": "filtro de palavra-chave/duplicado"
+  },
+  "options_feed_timesUsed": {
+    "message": "$1 vezes"
+  },
+  "options_feed_topReactionSub": {
+    "message": "mais usada"
+  },
+  "options_nurture_entryMeta": {
+    "message": "$1/3 engajamentos · adicionado há $2d"
+  },
+  "options_schedule_companiesEvery": {
+    "message": "Empresas: a cada $1h (lote $2)"
+  },
+  "options_schedule_connectEvery": {
+    "message": "Conexões: a cada $1h"
+  },
+  "options_schedule_feedEvery": {
+    "message": "Feed: a cada $1h"
+  },
+  "options_schedule_notScheduled": {
+    "message": "Sem agendamento"
+  },
+  "options_schedule_quotaRetry": {
+    "message": "Limite de cota atingido — nova tentativa automática em $1"
+  },
+  "options_section_activity": {
+    "message": "Atividade (últimos 14 dias)"
+  },
+  "options_section_analytics": {
+    "message": "Insights analíticos"
+  },
+  "options_section_hourAcceptance": {
+    "message": "Aceite por hora (UTC)"
+  },
+  "options_section_logs": {
+    "message": "Log recente de conexões"
+  },
+  "options_section_nurture": {
+    "message": "Lista de nutrição de conexões"
+  },
+  "options_section_reactionBreakdown": {
+    "message": "Distribuição de reações"
+  },
+  "options_section_schedule": {
+    "message": "Agendamento"
+  },
+  "options_section_templateAcceptance": {
+    "message": "Aceite por template de nota"
+  },
+  "options_tab_activity": {
+    "message": "Atividade"
+  },
+  "options_tab_feed": {
+    "message": "Feed"
+  },
+  "options_tab_logs": {
+    "message": "Logs"
+  },
+  "options_tab_nurture": {
+    "message": "Nutrição"
+  },
+  "options_tab_overview": {
+    "message": "Visão geral"
+  },
+  "options_table_headline": {
+    "message": "Headline"
+  },
+  "options_table_name": {
+    "message": "Nome"
+  },
+  "options_table_status": {
+    "message": "Status"
+  },
+  "options_table_time": {
+    "message": "Data/Hora"
+  },
+  "options_title": {
+    "message": "Dashboard do LinkedIn Engage"
+  },
+  "options_uiLanguage": {
+    "message": "Idioma da interface"
+  },
+  "popup_company_areaPreset": {
+    "message": "Preset de área da empresa"
+  },
+  "popup_company_batchSize": {
+    "message": "Empresas por lote"
+  },
+  "popup_company_defaultTargetsHelp": {
+    "message": "Os padrões incluem empresas globais e do Brasil. Preencha para seguir apenas empresas correspondentes."
+  },
+  "popup_company_errorMissingQuery": {
+    "message": "Informe uma busca, selecione um preset de empresa ou adicione empresas-alvo."
+  },
+  "popup_company_leaveEmptyFollowAll": {
+    "message": "Deixe vazio para seguir todos os resultados."
+  },
+  "popup_company_openingSearch": {
+    "message": "Buscando empresas por nome..."
+  },
+  "popup_company_query": {
+    "message": "Busca"
+  },
+  "popup_company_scheduleRecurring": {
+    "message": "Agendar execuções recorrentes de seguir empresas"
+  },
+  "popup_company_section": {
+    "message": "Busca de empresas"
+  },
+  "popup_company_targetCompanies": {
+    "message": "Empresas-alvo (opcional, uma por linha)"
+  },
+  "popup_company_usageGoalBrand": {
+    "message": "Watchlist de marcas"
+  },
+  "popup_company_usageGoalCompetitor": {
+    "message": "Monitorar concorrentes"
+  },
+  "popup_company_usageGoalTalent": {
+    "message": "Watchlist de talentos"
+  },
+  "popup_connect_activelyHiring": {
+    "message": "Apenas perfis \"Contratando\" ativos"
+  },
+  "popup_connect_areaPreset": {
+    "message": "Preset de área"
+  },
+  "popup_connect_audienceFilters": {
+    "message": "Filtros de audiência"
+  },
+  "popup_connect_charCounter": {
+    "message": "$1 / $2"
+  },
+  "popup_connect_editQueryManually": {
+    "message": "Editar busca manualmente"
+  },
+  "popup_connect_engagementOnly": {
+    "message": "Apenas engajamento (visitar + seguir, sem conectar)"
+  },
+  "popup_connect_errorNoQuery": {
+    "message": "Nenhuma busca foi montada. Selecione tags ou escreva uma busca manual."
+  },
+  "popup_connect_errorNoteTooLong": {
+    "message": "A nota tem $1 caracteres (máx. $2). Reduza o texto."
+  },
+  "popup_connect_errorWeeklyLimitReached": {
+    "message": "Limite semanal atingido ($1/$2). Aguarde a próxima semana ou use o modo de engajamento."
+  },
+  "popup_connect_excludedCompanies": {
+    "message": "Empresas excluídas (uma por linha)"
+  },
+  "popup_connect_goalActive": {
+    "message": "Buscando ativamente"
+  },
+  "popup_connect_goalPassive": {
+    "message": "Networking e visibilidade"
+  },
+  "popup_connect_groupIndustry": {
+    "message": "Setor"
+  },
+  "popup_connect_groupLevel": {
+    "message": "Nível que contratam"
+  },
+  "popup_connect_groupMarket": {
+    "message": "Foco de mercado"
+  },
+  "popup_connect_groupRole": {
+    "message": "Cargo"
+  },
+  "popup_connect_messageSection": {
+    "message": "Mensagem"
+  },
+  "popup_connect_openingSearch": {
+    "message": "Abrindo a busca... Não feche este popup nem a aba."
+  },
+  "popup_connect_openingSearchEngagement": {
+    "message": "Abrindo a busca (modo de engajamento)..."
+  },
+  "popup_connect_previewEmpty": {
+    "message": "Selecione pelo menos uma tag para montar a busca"
+  },
+  "popup_connect_queryRotation": {
+    "message": "Rotação de buscas (uma por linha)"
+  },
+  "popup_connect_recruiterLocation": {
+    "message": "Localização do recrutador"
+  },
+  "popup_connect_refineFilters": {
+    "message": "Refinar filtros"
+  },
+  "popup_connect_regionBrazil": {
+    "message": "Brasil"
+  },
+  "popup_connect_regionCanada": {
+    "message": "Canadá"
+  },
+  "popup_connect_regionGermany": {
+    "message": "Alemanha"
+  },
+  "popup_connect_regionGlobal": {
+    "message": "Global (EUA/CA/UK/DE/NL)"
+  },
+  "popup_connect_regionIreland": {
+    "message": "Irlanda"
+  },
+  "popup_connect_regionNetherlands": {
+    "message": "Holanda"
+  },
+  "popup_connect_regionPortugal": {
+    "message": "Portugal"
+  },
+  "popup_connect_regionSpain": {
+    "message": "Espanha"
+  },
+  "popup_connect_regionUk": {
+    "message": "Reino Unido"
+  },
+  "popup_connect_regionUs": {
+    "message": "Estados Unidos"
+  },
+  "popup_connect_regionUsBrazil": {
+    "message": "EUA + Brasil"
+  },
+  "popup_connect_regionUsEuExtended": {
+    "message": "EUA + UE estendida"
+  },
+  "popup_connect_roleTermsLimit": {
+    "message": "Limite de termos de cargo"
+  },
+  "popup_connect_scheduleRecurring": {
+    "message": "Agendar execuções recorrentes"
+  },
+  "popup_connect_section": {
+    "message": "Construtor de busca"
+  },
+  "popup_connect_sendNote": {
+    "message": "Enviar nota personalizada"
+  },
+  "popup_connect_skipJobSeeking": {
+    "message": "Pular sinais explícitos de busca de emprego"
+  },
+  "popup_connect_skipOpenToWork": {
+    "message": "Pular recrutadores com Open to Work"
+  },
+  "popup_connect_usageGoalBrazil": {
+    "message": "Foco no Brasil"
+  },
+  "popup_connect_usageGoalDecision": {
+    "message": "Tomadores de decisão"
+  },
+  "popup_connect_usageGoalPeer": {
+    "message": "Networking entre pares"
+  },
+  "popup_connect_usageGoalRecruiter": {
+    "message": "Abordagem de recrutadores"
+  },
+  "popup_connect_useTagBuilder": {
+    "message": "Usar construtor por tags"
+  },
+  "popup_connect_warningWeeklyLimitAdjusted": {
+    "message": "Restam apenas $1 convites nesta semana ($2/$3). O limite foi ajustado para $1."
+  },
+  "popup_feed_aiApiKey": {
+    "message": "Chave da API de IA (Groq — grátis)"
+  },
+  "popup_feed_checkEveryHours": {
+    "message": "Verificar a cada (horas)"
+  },
+  "popup_feed_comment": {
+    "message": "Comentar em posts"
+  },
+  "popup_feed_commentSettings": {
+    "message": "Configurações de comentários"
+  },
+  "popup_feed_enableWarmup": {
+    "message": "Ativar aprendizado de warmup"
+  },
+  "popup_feed_errorEnableReactOrComment": {
+    "message": "Ative pelo menos uma opção: reagir ou comentar."
+  },
+  "popup_feed_fallbackTemplates": {
+    "message": "Templates de fallback (um por linha)"
+  },
+  "popup_feed_nurtureConnections": {
+    "message": "Nutrir novas conexões"
+  },
+  "popup_feed_openingFeed": {
+    "message": "Abrindo o feed..."
+  },
+  "popup_feed_postsPerVisit": {
+    "message": "Posts por visita"
+  },
+  "popup_feed_react": {
+    "message": "Reagir a posts"
+  },
+  "popup_feed_resetLearningProgress": {
+    "message": "Resetar progresso de aprendizado"
+  },
+  "popup_feed_resetWarmupFailed": {
+    "message": "Falha ao resetar o progresso do warmup."
+  },
+  "popup_feed_resetWarmupSuccess": {
+    "message": "Progresso do warmup resetado."
+  },
+  "popup_feed_scheduleRecurring": {
+    "message": "Agendar engajamento recorrente no feed"
+  },
+  "popup_feed_section": {
+    "message": "Engajamento no feed"
+  },
+  "popup_feed_skipKeywords": {
+    "message": "Pular posts com palavras-chave (uma por linha)"
+  },
+  "popup_feed_warmupDisabled": {
+    "message": "Warmup de aprendizado desativado. Comentários liberados."
+  },
+  "popup_feed_warmupProgress": {
+    "message": "Progresso do aprendizado: $1 / $2 execuções · Comentários liberam na execução #$3"
+  },
+  "popup_feed_warmupRunning": {
+    "message": "Modo warmup: reagindo + aprendendo..."
+  },
+  "popup_feed_warmupRunsRequired": {
+    "message": "Execuções de warmup necessárias"
+  },
+  "popup_feed_warmupStarted": {
+    "message": "Execução de warmup $1/$2: reações + aprendizado, sem comentários."
+  },
+  "popup_footer_safeRun": {
+    "message": "Executa com segurança no seu navegador"
+  },
+  "popup_header_subtitle": {
+    "message": "Automação direcionada de networking no LinkedIn"
+  },
+  "popup_jobs_analyzeGenerate": {
+    "message": "Analisar e gerar"
+  },
+  "popup_jobs_analyzePassphraseRequired": {
+    "message": "Informe a senha da sessão para analisar o Career Intelligence."
+  },
+  "popup_jobs_areaPreset": {
+    "message": "Preset de área para vagas"
+  },
+  "popup_jobs_brazilOffshore": {
+    "message": "Favorável a offshore do Brasil"
+  },
+  "popup_jobs_cacheCleared": {
+    "message": "Cache criptografado de vagas limpo."
+  },
+  "popup_jobs_cacheClearFailed": {
+    "message": "Falha ao limpar o cache criptografado de vagas."
+  },
+  "popup_jobs_cacheLoaded": {
+    "message": "Cache criptografado: carregado nesta sessão (v$1) · atualizado em $2"
+  },
+  "popup_jobs_cacheLocked": {
+    "message": "Cache criptografado: bloqueado (v$1) · atualizado em $2"
+  },
+  "popup_jobs_cacheMissing": {
+    "message": "Nenhum cache criptografado de vagas foi encontrado."
+  },
+  "popup_jobs_cacheNotConfigured": {
+    "message": "Cache criptografado: não configurado."
+  },
+  "popup_jobs_cacheSaved": {
+    "message": "Cache criptografado de vagas salvo."
+  },
+  "popup_jobs_cacheSaveFailed": {
+    "message": "Falha ao salvar o cache criptografado de vagas."
+  },
+  "popup_jobs_cacheStatusUnavailable": {
+    "message": "Status do cache criptografado indisponível."
+  },
+  "popup_jobs_cacheUnlocked": {
+    "message": "Cache criptografado de vagas desbloqueado."
+  },
+  "popup_jobs_careerCleared": {
+    "message": "Career Intelligence limpo."
+  },
+  "popup_jobs_careerClearFailed": {
+    "message": "Falha ao limpar o Career Intelligence."
+  },
+  "popup_jobs_careerIntel": {
+    "message": "Career Intelligence"
+  },
+  "popup_jobs_careerIntelHelp": {
+    "message": "Análise local a partir dos currículos enviados e do seu perfil do LinkedIn."
+  },
+  "popup_jobs_careerLoaded": {
+    "message": "Career Intelligence: carregado nesta sessão (v$1) · atualizado em $2"
+  },
+  "popup_jobs_careerLocked": {
+    "message": "Career Intelligence: bloqueado (v$1) · atualizado em $2"
+  },
+  "popup_jobs_careerNotConfigured": {
+    "message": "Career Intelligence: não configurado."
+  },
+  "popup_jobs_careerStatusUnavailable": {
+    "message": "Status do Career Intelligence indisponível."
+  },
+  "popup_jobs_careerUnavailableOrLocked": {
+    "message": "O Career Intelligence está indisponível ou bloqueado."
+  },
+  "popup_jobs_careerUpdated": {
+    "message": "Career Intelligence atualizado com $1 currículo(s)."
+  },
+  "popup_jobs_clearCareerIntel": {
+    "message": "Limpar Career Intelligence"
+  },
+  "popup_jobs_currentTitle": {
+    "message": "Cargo atual"
+  },
+  "popup_jobs_easyApplyOnly": {
+    "message": "Apenas Candidatura Simplificada (LinkedIn)"
+  },
+  "popup_jobs_encryptedProfileCache": {
+    "message": "Cache de perfil criptografado"
+  },
+  "popup_jobs_errorCareerLocked": {
+    "message": "O Career Intelligence está bloqueado. Verifique a senha da sessão."
+  },
+  "popup_jobs_errorCareerUpdate": {
+    "message": "Falha ao atualizar o Career Intelligence."
+  },
+  "popup_jobs_errorFileTooLarge": {
+    "message": "Cada currículo deve ter no máximo 5 MB."
+  },
+  "popup_jobs_errorMissingQuery": {
+    "message": "Informe uma busca de vagas ou selecione um preset com cargos."
+  },
+  "popup_jobs_errorUnsupportedFileType": {
+    "message": "Apenas currículos PDF e DOCX são suportados."
+  },
+  "popup_jobs_excludedCompanies": {
+    "message": "Empresas excluídas (uma por linha)"
+  },
+  "popup_jobs_experienceAssociate": {
+    "message": "Associado"
+  },
+  "popup_jobs_experienceDirector": {
+    "message": "Diretoria"
+  },
+  "popup_jobs_experienceEntry": {
+    "message": "Júnior"
+  },
+  "popup_jobs_experienceExecutive": {
+    "message": "Executivo"
+  },
+  "popup_jobs_experienceInternship": {
+    "message": "Estágio"
+  },
+  "popup_jobs_experienceLevel": {
+    "message": "Nível de experiência"
+  },
+  "popup_jobs_experienceMidSenior": {
+    "message": "Pleno/Sênior"
+  },
+  "popup_jobs_importLinkedInProfile": {
+    "message": "Importar perfil do LinkedIn"
+  },
+  "popup_jobs_importProfileOpenLinkedIn": {
+    "message": "Abra a sua página de perfil do LinkedIn antes de importar."
+  },
+  "popup_jobs_importProfilePassphraseRequired": {
+    "message": "Informe a senha da sessão antes de importar seu perfil."
+  },
+  "popup_jobs_keywordTerms": {
+    "message": "Palavras-chave (uma por linha)"
+  },
+  "popup_jobs_linkedinLocation": {
+    "message": "Filtro de localização do LinkedIn"
+  },
+  "popup_jobs_locationTerms": {
+    "message": "Termos de localização (um por linha)"
+  },
+  "popup_jobs_manualInputRequired": {
+    "message": "Entrada manual necessária. Complete a candidatura manualmente."
+  },
+  "popup_jobs_manualResumeFocused": {
+    "message": "Alternado para o LinkedIn Jobs. Continue o fluxo Easy Apply manualmente."
+  },
+  "popup_jobs_manualResumeTabFocusFailed": {
+    "message": "Não foi possível focar a aba de Jobs. Abra o LinkedIn Jobs e continue manualmente."
+  },
+  "popup_jobs_manualResumeTabMissing": {
+    "message": "Não foi possível localizar a aba de Jobs. Abra o LinkedIn Jobs e continue manualmente."
+  },
+  "popup_jobs_manualResumeTabNotFound": {
+    "message": "Nenhuma aba do LinkedIn Jobs aberta foi encontrada. Abra Jobs e continue manualmente."
+  },
+  "popup_jobs_manualResumeWindowFocusFailed": {
+    "message": "Não foi possível focar a janela de Jobs. Abra o LinkedIn Jobs e continue manualmente."
+  },
+  "popup_jobs_onDemandOnly": {
+    "message": "O modo de vagas é apenas sob demanda na v1 (sem agendamento recorrente)."
+  },
+  "popup_jobs_openingJobs": {
+    "message": "Abrindo o LinkedIn Jobs..."
+  },
+  "popup_jobs_passphrase": {
+    "message": "Senha da sessão (desbloqueio)"
+  },
+  "popup_jobs_planGenerated": {
+    "message": "Termos de busca de vagas gerados a partir do Career Intelligence."
+  },
+  "popup_jobs_portfolio": {
+    "message": "Portfólio / Site"
+  },
+  "popup_jobs_preferredCompanies": {
+    "message": "Empresas preferidas (uma por linha)"
+  },
+  "popup_jobs_profileImported": {
+    "message": "Perfil do LinkedIn importado para o Career Intelligence."
+  },
+  "popup_jobs_query": {
+    "message": "Busca de vagas"
+  },
+  "popup_jobs_resumeRemovePassphraseRequired": {
+    "message": "Informe a senha da sessão para remover um currículo."
+  },
+  "popup_jobs_resumeSummary": {
+    "message": "Resumo do currículo"
+  },
+  "popup_jobs_resumeUploadPassphraseRequired": {
+    "message": "Informe a senha da sessão antes de enviar currículos."
+  },
+  "popup_jobs_resumeVaultLimit": {
+    "message": "O limite do cofre de currículos é de $1 arquivos."
+  },
+  "popup_jobs_roleTerms": {
+    "message": "Termos de cargo (um por linha)"
+  },
+  "popup_jobs_saveEncryptedCache": {
+    "message": "Salvar cache criptografado"
+  },
+  "popup_jobs_section": {
+    "message": "Assistente de vagas"
+  },
+  "popup_jobs_semiAutoHelp": {
+    "message": "Modo semi-automático: prepara a candidatura e para antes do envio final."
+  },
+  "popup_jobs_sessionPassphraseRequired": {
+    "message": "Informe uma senha de sessão com pelo menos 4 caracteres."
+  },
+  "popup_jobs_unlockCache": {
+    "message": "Desbloquear cache"
+  },
+  "popup_jobs_unlockCacheBadPassphrase": {
+    "message": "Não foi possível desbloquear o cache. Verifique a senha."
+  },
+  "popup_jobs_unlockCacheFailed": {
+    "message": "Falha ao desbloquear o cache criptografado de vagas."
+  },
+  "popup_jobs_unlockCachePassphraseRequired": {
+    "message": "Informe a senha do cache para desbloquear os dados do perfil."
+  },
+  "popup_jobs_uploadResumes": {
+    "message": "Enviar currículos"
+  },
+  "popup_jobs_usageGoalHighFit": {
+    "message": "Alta aderência com candidatura simplificada"
+  },
+  "popup_jobs_usageGoalMarketScan": {
+    "message": "Mapeamento de mercado"
+  },
+  "popup_jobs_usageGoalTargetCompanies": {
+    "message": "Vagas em empresas-alvo"
+  },
+  "popup_jobs_useCareerIntelligence": {
+    "message": "Usar Career Intelligence"
+  },
+  "popup_jobs_workType": {
+    "message": "Modelo de trabalho"
+  },
+  "popup_jobs_workTypeHybrid": {
+    "message": "Híbrido"
+  },
+  "popup_jobs_workTypeOnsite": {
+    "message": "Presencial"
+  },
+  "popup_jobs_workTypeRemote": {
+    "message": "Remoto"
+  },
+  "popup_nurture_empty": {
+    "message": "Ainda não há alvos de nutrição. Conecte-se com pessoas para começar a nutrir."
+  },
+  "popup_nurture_summary": {
+    "message": "$1 no total, $2 alvos ativos prontos."
+  },
+  "popup_progress_engaged": {
+    "message": "Engajado"
+  },
+  "popup_progress_followed": {
+    "message": "Seguido"
+  },
+  "popup_progress_page": {
+    "message": "Página $1"
+  },
+  "popup_progress_prepared": {
+    "message": "Preparado"
+  },
+  "popup_progress_sent": {
+    "message": "Enviado"
+  },
+  "popup_progress_skipped": {
+    "message": "$1 ignorados"
+  },
+  "popup_rateLimits_summary": {
+    "message": "Limites: $1/$2 nesta hora · $3/$4 hoje"
+  },
+  "popup_runCanceled": {
+    "message": "Execução cancelada pelo usuário."
+  },
+  "popup_start_blockedCareerIntelLocked": {
+    "message": "O Career Intelligence está bloqueado. Informe a senha da sessão para desbloquear."
+  },
+  "popup_start_blockedDaily": {
+    "message": "Limite diário atingido. Tente novamente amanhã."
+  },
+  "popup_start_blockedDefault": {
+    "message": "Limite atingido. Tente novamente mais tarde."
+  },
+  "popup_start_blockedHourly": {
+    "message": "Limite horário atingido. Tente novamente em cerca de 1 hora."
+  },
+  "popup_start_blockedProfileCacheLocked": {
+    "message": "O cache de perfil criptografado está bloqueado. Informe a senha desta sessão."
+  },
+  "popup_start_blockedWeekly": {
+    "message": "Limite semanal atingido (150). Tente novamente na próxima semana."
+  },
+  "popup_start_companies": {
+    "message": "Seguir empresas"
+  },
+  "popup_start_connect": {
+    "message": "Iniciar automação"
+  },
+  "popup_start_errorFailed": {
+    "message": "Falha ao iniciar: $1"
+  },
+  "popup_start_feed": {
+    "message": "Engajar no feed"
+  },
+  "popup_start_jobs": {
+    "message": "Assistir candidatura"
+  },
+  "popup_statusStopping": {
+    "message": "Parando a automação..."
+  },
+  "popup_tools_acceptedFound": {
+    "message": "$1 conexões aceitas encontradas!"
+  },
+  "popup_tools_acceptedNone": {
+    "message": "Nenhuma nova conexão aceita encontrada."
+  },
+  "popup_tools_checkAccepted": {
+    "message": "Ver conexões aceitas"
+  },
+  "popup_tools_exportConnections": {
+    "message": "Exportar log de conexões (CSV)"
+  },
+  "popup_tools_recentConnections": {
+    "message": "Conexões recentes"
+  },
+  "popup_tools_section": {
+    "message": "Ferramentas"
+  },
+  "status_accepted": {
+    "message": "Aceito"
+  },
+  "status_companyAction": {
+    "message": "Ação em empresa"
+  },
+  "status_companyFollowed": {
+    "message": "Empresa seguida"
+  },
+  "status_duplicate": {
+    "message": "duplicado"
+  },
+  "status_email": {
+    "message": "e-mail"
+  },
+  "status_feedEngaged": {
+    "message": "Feed engajado"
+  },
+  "status_followed": {
+    "message": "Seguido"
+  },
+  "status_sent": {
+    "message": "Enviado"
+  },
+  "status_unverified": {
+    "message": "não verificado"
+  },
+  "status_visited": {
+    "message": "Visitado"
+  },
+  "status_visitedFollowed": {
+    "message": "Visitado + Seguido"
+  },
+  "common_autoSelectTemplate": {
+    "message": "Selecionar template automaticamente"
+  },
+  "popup_connect_filterTags": {
+    "message": "Filtrar tags"
+  },
+  "popup_connect_filterTagsPlaceholder": {
+    "message": "ex.: design, recrutador, marketing"
+  },
+  "popup_connect_templateSenior": {
+    "message": "Profissional sênior"
+  },
+  "popup_connect_templateSeniorPreview": {
+    "message": "Atuo em projetos estratégicos nesta área e valorizo trocas práticas..."
+  },
+  "popup_connect_templateMid": {
+    "message": "Profissional pleno"
+  },
+  "popup_connect_templateMidPreview": {
+    "message": "Colaboro com equipes nesta área e gosto de trocar insights práticos..."
+  },
+  "popup_connect_templateJunior": {
+    "message": "Júnior / Associado"
+  },
+  "popup_connect_templateJuniorPreview": {
+    "message": "Estou desenvolvendo minha carreira e gostaria de me conectar com profissionais..."
+  },
+  "popup_connect_templateLead": {
+    "message": "Liderança / Gestão"
+  },
+  "popup_connect_templateLeadPreview": {
+    "message": "Lidero iniciativas e valorizo conversas objetivas sobre execução e resultados..."
+  },
+  "popup_connect_templateNetworking": {
+    "message": "Networking geral"
+  },
+  "popup_connect_templateNetworkingPreview": {
+    "message": "Encontrei seu perfil e gostaria de me conectar para trocar insights..."
+  },
+  "popup_connect_templateCustom": {
+    "message": "Personalizado"
+  },
+  "popup_connect_templateCustomPreview": {
+    "message": "Escreva sua própria mensagem personalizada..."
+  },
+  "popup_areaPreset_custom": {
+    "message": "Personalizado"
+  },
+  "popup_areaPreset_tech": {
+    "message": "Tecnologia"
+  },
+  "popup_areaPreset_finance": {
+    "message": "Finanças"
+  },
+  "popup_areaPreset_realEstate": {
+    "message": "Mercado Imobiliário"
+  },
+  "popup_areaPreset_headhunting": {
+    "message": "Headhunting"
+  },
+  "popup_areaPreset_legalJudicialMedia": {
+    "message": "Jurídico / Mídia Judicial"
+  },
+  "popup_areaPreset_environmentalEngineering": {
+    "message": "Engenharia Ambiental"
+  },
+  "popup_areaPreset_sanitaryEngineering": {
+    "message": "Engenharia Sanitária"
+  },
+  "popup_areaPreset_healthcare": {
+    "message": "Saúde"
+  },
+  "popup_areaPreset_education": {
+    "message": "Educação"
+  },
+  "popup_areaPreset_marketing": {
+    "message": "Marketing"
+  },
+  "popup_areaPreset_sales": {
+    "message": "Vendas"
+  },
+  "popup_areaPreset_graphicDesign": {
+    "message": "Design Gráfico"
+  },
+  "popup_areaPreset_artDirection": {
+    "message": "Direção de Arte"
+  },
+  "popup_areaPreset_branding": {
+    "message": "Branding"
+  },
+  "popup_areaPreset_uiUx": {
+    "message": "UI/UX"
+  },
+  "popup_areaPreset_motionDesign": {
+    "message": "Motion Design"
+  },
+  "popup_areaPreset_videoEditing": {
+    "message": "Edição de Vídeo"
+  },
+  "popup_areaPreset_videomaker": {
+    "message": "Videomaker"
+  },
+  "options_card_skippedSub": {
+    "message": "duplicado, e-mail, não verificado"
+  },
+  "popup_connect_selectedCount": {
+    "message": "$1 selecionados"
+  }
+}

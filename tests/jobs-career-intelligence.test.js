@@ -104,6 +104,9 @@ describe('jobs career intelligence', () => {
             locationTerms: ['brazil', 'remote'],
             workType: '2',
             experienceLevel: '4'
+        }, {
+            searchLanguageMode: 'en',
+            jobsBrazilOffshoreFriendly: false
         });
 
         expect(plan.roleTerms).toEqual([
@@ -111,6 +114,7 @@ describe('jobs career intelligence', () => {
             'software engineer',
             'backend engineer'
         ]);
+        expect(plan.resolvedSearchLocale).toBe('en');
         expect(plan.keywordTerms).toEqual(
             expect.arrayContaining(['react', 'aws'])
         );
@@ -119,6 +123,25 @@ describe('jobs career intelligence', () => {
         expect(plan.operatorCount).toBeLessThanOrEqual(12);
         expect(plan.workType).toBe('2');
         expect(plan.experienceLevel).toBe('4');
+    });
+
+    it('prefers portuguese auto locale for brazil-local plans when offshore is off', () => {
+        const plan = buildJobsCareerSearchPlan({
+            areaPreset: 'tech',
+            seniority: 'senior',
+            inferredRoles: ['software engineer'],
+            keywordTerms: ['react', 'typescript'],
+            locationTerms: ['brazil', 'remote'],
+            workType: '2',
+            experienceLevel: '4'
+        }, {
+            searchLanguageMode: 'auto',
+            jobsBrazilOffshoreFriendly: false
+        });
+
+        expect(plan.resolvedSearchLocale).toBe('pt_BR');
+        expect(plan.query.toLowerCase()).toContain('engenheiro de software');
+        expect(plan.query.toLowerCase()).toContain('brasil');
     });
 
     it('provides brazil offshore search signals', () => {

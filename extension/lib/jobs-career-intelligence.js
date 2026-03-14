@@ -3,6 +3,10 @@
         root.LinkedInSearchTemplates ||
         (typeof require === 'function'
             ? require('./search-templates')
+            : null),
+        root.LinkedInSearchLanguage ||
+        (typeof require === 'function'
+            ? require('./search-language')
             : null)
     );
     if (typeof module !== 'undefined' && module.exports) {
@@ -16,7 +20,11 @@
     });
 })(
     typeof globalThis !== 'undefined' ? globalThis : this,
-    function(searchTemplates) {
+    function(searchTemplates, searchLanguage) {
+        const resolveSearchLocale =
+            searchLanguage?.resolveSearchLocale;
+        const localizeSearchTerms =
+            searchLanguage?.localizeSearchTerms;
         const MAX_RESUME_BYTES = 5 * 1024 * 1024;
         const MAX_RESUME_FILES = 5;
         const GENERIC_STOPWORDS = new Set([
@@ -274,9 +282,40 @@
             const expectedResultsBucket = String(
                 options?.expectedResultsBucket || 'balanced'
             );
-            const roleTerms = uniqueList(source.inferredRoles, 5);
-            const keywordTerms = uniqueList(source.keywordTerms, 12);
-            const locationTerms = uniqueList(source.locationTerms, 4);
+            const resolvedLocale =
+                typeof resolveSearchLocale === 'function'
+                    ? resolveSearchLocale({
+                        mode: 'jobs',
+                        requestedMode: options?.searchLanguageMode,
+                        selectedLocations: source.locationTerms,
+                        locationTerms: source.locationTerms,
+                        usageGoal: 'high_fit_easy_apply',
+                        expectedResultsBucket,
+                        jobsBrazilOffshoreFriendly:
+                            options?.jobsBrazilOffshoreFriendly === true
+                    })
+                    : 'en';
+            const baseRoleTerms = uniqueList(source.inferredRoles, 5);
+            const baseKeywordTerms = uniqueList(source.keywordTerms, 12);
+            const baseLocationTerms = uniqueList(source.locationTerms, 4);
+            const roleTerms = typeof localizeSearchTerms === 'function'
+                ? uniqueList(
+                    localizeSearchTerms(baseRoleTerms, resolvedLocale),
+                    5
+                )
+                : baseRoleTerms;
+            const keywordTerms = typeof localizeSearchTerms === 'function'
+                ? uniqueList(
+                    localizeSearchTerms(baseKeywordTerms, resolvedLocale),
+                    12
+                )
+                : baseKeywordTerms;
+            const locationTerms = typeof localizeSearchTerms === 'function'
+                ? uniqueList(
+                    localizeSearchTerms(baseLocationTerms, resolvedLocale),
+                    4
+                )
+                : baseLocationTerms;
             const templateId = chooseTemplateId(
                 source.areaPreset || 'custom',
                 expectedResultsBucket
@@ -304,7 +343,8 @@
                 query: compiled.query,
                 operatorCount: compiled.operatorCount || 0,
                 workType: source.workType || '',
-                experienceLevel: source.experienceLevel || ''
+                experienceLevel: source.experienceLevel || '',
+                resolvedSearchLocale: resolvedLocale
             };
         }
 

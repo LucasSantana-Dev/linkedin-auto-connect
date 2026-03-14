@@ -12,6 +12,13 @@
 })(
     typeof globalThis !== 'undefined' ? globalThis : this,
     function() {
+        const searchLanguageApi = typeof require === 'function'
+            ? require('./search-language')
+            : (typeof globalThis !== 'undefined'
+                ? globalThis.LinkedInSearchLanguage
+                : null);
+        const localizeSearchTerms =
+            searchLanguageApi?.localizeSearchTerms;
         const STATE_TAG_VERSION = 5;
 
         const AREA_PRESETS = {
@@ -756,14 +763,18 @@
             );
             if (roles.length <= safeLimit) return roles.slice();
             const normalized = roles.map(function(role) {
-                return String(role).toLowerCase();
+                return normalizeText(role).replace(/^"+|"+$/g, '');
             });
             const ordered = ROLE_PRIORITY
                 .filter(function(term) {
-                    return normalized.includes(term);
+                    return normalized.includes(
+                        normalizeText(term).replace(/^"+|"+$/g, '')
+                    );
                 })
                 .map(function(term) {
-                    return roles[normalized.indexOf(term)];
+                    const normalizedTerm = normalizeText(term)
+                        .replace(/^"+|"+$/g, '');
+                    return roles[normalized.indexOf(normalizedTerm)];
                 });
             for (const role of roles) {
                 if (!ordered.includes(role)) ordered.push(role);
@@ -771,15 +782,35 @@
             return ordered.slice(0, safeLimit);
         }
 
-        function buildConnectQueryFromTags(tags, roleTermsLimit) {
+        function formatQueryTerm(term) {
+            const clean = String(term || '').trim().replace(/^"+|"+$/g, '');
+            if (!clean) return '';
+            return /\s/.test(clean) ? `"${clean}"` : clean;
+        }
+
+        function localizeTerms(values, searchLanguageMode) {
+            if (typeof localizeSearchTerms !== 'function') {
+                return toArray(values);
+            }
+            return localizeSearchTerms(
+                toArray(values),
+                searchLanguageMode || 'en'
+            );
+        }
+
+        function buildConnectQueryFromTags(
+            tags,
+            roleTermsLimit,
+            searchLanguageMode
+        ) {
             const source = tags && typeof tags === 'object'
                 ? tags
                 : {};
             const parts = [];
             const safeRoles = limitRoleTerms(
-                toArray(source.role),
+                localizeTerms(source.role, searchLanguageMode),
                 roleTermsLimit
-            );
+            ).map(formatQueryTerm).filter(Boolean);
             if (safeRoles.length === 1) {
                 parts.push(safeRoles[0]);
             } else if (safeRoles.length > 1) {
@@ -787,8 +818,12 @@
             }
             ['industry', 'market', 'level']
                 .forEach(function(group) {
-                    toArray(source[group]).forEach(function(term) {
-                        parts.push(term);
+                    localizeTerms(
+                        source[group],
+                        searchLanguageMode
+                    ).forEach(function(term) {
+                        const formatted = formatQueryTerm(term);
+                        if (formatted) parts.push(formatted);
                     });
                 });
             return parts.join(' ').trim();

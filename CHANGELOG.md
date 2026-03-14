@@ -8,14 +8,23 @@ All notable changes to this project will be documented in this file.
 - **Jobs Career Intelligence**: Added a local-only Jobs intelligence layer with encrypted derived state in `chrome.storage.local`, encrypted resume vault storage in IndexedDB, and deterministic analysis of uploaded `PDF`/`DOCX` resumes plus explicit LinkedIn profile imports.
 - **Jobs search generation from personal context**: Added `Analyze & Generate` flow to derive best-fit Jobs query, role terms, keyword terms, location terms, work type, and experience level from the user’s career signals while keeping all generated fields editable.
 - **Brazil Offshore Friendly jobs filter**: Added a Jobs-only filter/payload flag that injects Brazil/LATAM offshore hiring terms into generated search plans and uses detail-text compatibility scoring for remote contractor-friendly roles.
+- **Full EN/PT-BR UI localization**: Added a real UI language layer backed by Chrome `_locales` catalogs plus a shared runtime i18n helper for popup, dashboard, notifications, and runtime status copy.
+- **Per-mode search language controls**: Added locale-aware search-language settings for Connect, Companies, and Jobs (`auto`, `en`, `pt_BR`, `bilingual`) with deterministic locale resolution before query compilation.
 
 ### Changed
 - **Jobs ranking inputs expanded**: Jobs ranking now considers keyword overlap and offshore compatibility alongside title, seniority, location, company preference, and recency.
 - **Jobs runtime detail enrichment**: Jobs runtime now opens visible job cards to read detail-pane text before ranking when keyword or Brazil-offshore context is needed.
+- **UI locale and search locale are now separate layers**: Extension-owned UI follows the global UI language switch, while Connect/Companies/Jobs queries can independently resolve to English, Portuguese, or bilingual term sets per mode.
+- **Locale-aware search template generation**: Search templates now resolve localized role, industry, market, and keyword variants instead of relying on English-only literals.
 
 ### Fixed
 - **Jobs cache scope separation**: Structured applicant autofill cache remains isolated from resume/profile intelligence, preventing encrypted form-fill state from being overloaded with search-intelligence data.
 - **Jobs start behavior with locked intelligence**: When Career Intelligence is enabled and encrypted intelligence exists, Jobs start now blocks deterministically until the session passphrase is provided.
+- **Inline bilingual UI copy**: Removed the remaining mixed EN/PT popup/dashboard labels (`Filter tags / Filtrar tags`, template toggles, language labels, dashboard subtitles) in favor of full catalog-driven localization with English fallback for missing keys.
+- **Chrome extension load blocker from locale catalogs**: Replaced invalid dotted `_locales` message keys with Chrome-safe catalog keys and normalized dotted logical keys at the i18n helper boundary so the unpacked extension loads again in Chrome/Brave.
+- **Locale catalog regression coverage**: Added validation that `_locales` keys stay within Chrome’s `[A-Za-z0-9_]` requirement while helper-based lookups still resolve dotted logical keys from code.
+- **Options dashboard async DOM errors**: Hardened dashboard rendering so async storage callbacks no longer write into missing/unmounted nodes, eliminating extension-owned null dereference noise in DevTools.
+- **Jobs Brazil-local auto locale precedence**: Jobs auto search language no longer flips to English just because a template contributes `remote`; Brazil-local searches now stay PT-BR unless offshore/global intent is explicitly stronger.
 
 ## [1.26.5] - 2026-03-13
 

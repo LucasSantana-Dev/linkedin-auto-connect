@@ -34,6 +34,8 @@ importScripts('lib/analytics.js');
 importScripts('lib/smart-schedule.js');
 importScripts('lib/feed-warmup.js');
 importScripts('lib/pattern-memory.js');
+importScripts('lib/i18n.js');
+importScripts('lib/search-language.js');
 importScripts('lib/connect-config.js');
 importScripts('lib/search-templates.js');
 importScripts('lib/jobs-cache.js');
@@ -193,6 +195,9 @@ function buildConnectSearchRuntimeFromState(state, forcedQuery) {
     const expectedResultsBucket = String(
         safeState.connectExpectedResults || ''
     ).trim();
+    const searchLanguageMode = String(
+        safeState.connectSearchLanguageMode || ''
+    ).trim();
     const auto = safeState.connectTemplateAuto !== false;
     const templateId = String(
         safeState.connectTemplateId || ''
@@ -221,6 +226,7 @@ function buildConnectSearchRuntimeFromState(state, forcedQuery) {
             expectedResultsBucket,
             auto,
             templateId,
+            searchLanguageMode,
             selectedTags,
             roleTermsLimit
         });
@@ -238,6 +244,8 @@ function buildConnectSearchRuntimeFromState(state, forcedQuery) {
         templateId,
         usageGoal,
         expectedResultsBucket,
+        resolvedSearchLocale:
+            plan?.meta?.resolvedSearchLocale || '',
         operatorCount: countBooleanOperatorsSafe(query),
         compiledQueryLength: query.length,
         mode: 'connect'
@@ -269,6 +277,9 @@ function buildCompanySearchRuntimeFromState(state) {
     const expectedResultsBucket = String(
         safeState.companyExpectedResults || ''
     ).trim();
+    const searchLanguageMode = String(
+        safeState.companySearchLanguageMode || ''
+    ).trim();
     const auto = safeState.companyTemplateAuto !== false;
     const templateId = String(
         safeState.companyTemplateId || ''
@@ -286,6 +297,7 @@ function buildCompanySearchRuntimeFromState(state) {
             expectedResultsBucket,
             auto,
             templateId,
+            searchLanguageMode,
             manualQuery
         });
     }
@@ -307,6 +319,8 @@ function buildCompanySearchRuntimeFromState(state) {
         templateId,
         usageGoal,
         expectedResultsBucket,
+        resolvedSearchLocale:
+            plan?.meta?.resolvedSearchLocale || '',
         operatorCount: countBooleanOperatorsSafe(query),
         compiledQueryLength: query.length,
         mode: 'companies'
@@ -344,11 +358,76 @@ async function checkRateLimit(mode) {
 
 function notifyError(msg) {
     activeTabId = null;
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: 'LinkedIn Engage',
-        message: msg
+    createLocalizedNotification(null, msg);
+}
+
+function getBackgroundUiLanguageMode() {
+    return new Promise(resolve => {
+        chrome.storage.local.get('uiLanguageMode', (data) => {
+            resolve(data.uiLanguageMode || 'auto');
+        });
+    });
+}
+
+async function getBackgroundCatalogs() {
+    const browserLocale = typeof chrome !== 'undefined' &&
+        chrome.i18n &&
+        typeof chrome.i18n.getUILanguage === 'function'
+        ? chrome.i18n.getUILanguage()
+        : 'en';
+    const mode = await getBackgroundUiLanguageMode();
+    const locale = typeof resolveUiLocale === 'function'
+        ? resolveUiLocale(mode, browserLocale)
+        : 'en';
+    const fallbackCatalog = typeof loadLocaleMessages === 'function'
+        ? await loadLocaleMessages('en')
+        : {};
+    const activeCatalog = locale === 'en'
+        ? fallbackCatalog
+        : await loadLocaleMessages(locale);
+    return { activeCatalog, fallbackCatalog };
+}
+
+async function getLocalizedBackgroundMessage(key, substitutions, fallback) {
+    if (!key || typeof getMessage !== 'function') {
+        return fallback || '';
+    }
+    const { activeCatalog, fallbackCatalog } =
+        await getBackgroundCatalogs();
+    return getMessage(
+        activeCatalog,
+        fallbackCatalog,
+        key,
+        substitutions
+    ) || fallback || '';
+}
+
+function createLocalizedNotification(key, fallbackMessage, substitutions) {
+    Promise.all([
+        getLocalizedBackgroundMessage(
+            'extensionName',
+            null,
+            'LinkedIn Engage'
+        ),
+        getLocalizedBackgroundMessage(
+            key,
+            substitutions,
+            fallbackMessage
+        )
+    ]).then(([title, message]) => {
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon128.png',
+            title,
+            message
+        });
+    }).catch(() => {
+        chrome.notifications.create({
+            type: 'basic',
+            iconUrl: 'icons/icon128.png',
+            title: 'LinkedIn Engage',
+            message: fallbackMessage
+        });
     });
 }
 
@@ -444,12 +523,17 @@ function applyRunResult(result) {
         : runStatus === 'canceled'
             ? (r?.message || 'Run canceled by user.')
             : `Failed: ${failureMessage}`;
-    chrome.notifications.create({
-        type: 'basic',
-        iconUrl: 'icons/icon128.png',
-        title: 'LinkedIn Engage',
-        message: notificationMessage
-    });
+    createLocalizedNotification(
+        runStatus === 'success'
+            ? 'notification.run.success'
+            : runStatus === 'canceled'
+                ? 'notification.run.canceled'
+                : 'notification.run.failed',
+        notificationMessage,
+        runStatus === 'failed'
+            ? [failureMessage]
+            : null
+    );
     if (r?.mode) {
         recordEngagement({
             entryType: 'run',
@@ -2839,7 +2923,11 @@ chrome.runtime.onMessage.addListener(
                             state.analysisSnapshot || {},
                             {
                                 expectedResultsBucket:
-                                    request.expectedResultsBucket
+                                    request.expectedResultsBucket,
+                                searchLanguageMode:
+                                    request.searchLanguageMode,
+                                jobsBrazilOffshoreFriendly:
+                                    request.jobsBrazilOffshoreFriendly === true
                             }
                         );
                         sendResponse({
@@ -3305,26 +3393,20 @@ chrome.runtime.onMessage.addListener(
                     ).toISOString()
                 }
             });
-            chrome.notifications.create({
-                type: 'basic',
-                iconUrl: 'icons/icon128.png',
-                title: 'LinkedIn Engage',
-                message:
-                    'Weekly invitation limit reached. ' +
-                    `Auto-retry scheduled in ${retryHours}h.`
-            });
+            createLocalizedNotification(
+                'notification.weeklyLimitReached',
+                'Weekly invitation limit reached. ' +
+                    `Auto-retry scheduled in ${retryHours}h.`,
+                [retryHours]
+            );
         }
 
         if (request.action === 'loginRequired') {
             activeTabId = null;
-            chrome.notifications.create({
-                type: 'basic',
-                iconUrl: 'icons/icon128.png',
-                title: 'LinkedIn Engage',
-                message:
-                    'LinkedIn login required. Please ' +
-                    'log in and restart the automation.'
-            });
+            createLocalizedNotification(
+                'notification.loginRequired',
+                'LinkedIn login required. Please log in and restart the automation.'
+            );
             sendResponse({ status: 'login_required' });
             return true;
         }
@@ -3689,14 +3771,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                         data.sentProfileUrls || []
                 });
 
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'icons/icon128.png',
-                    title: 'LinkedIn Engage',
-                    message:
-                        'Quota retry: testing with 10 ' +
-                        'invites to check if limit reset.'
-                });
+                createLocalizedNotification(
+                    'notification.quotaRetry',
+                    'Quota retry: testing with 10 invites to check if limit reset.'
+                );
             }
         );
         return;
@@ -3745,20 +3823,38 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                             state.feedWarmupRunsRequired,
                             10
                         )
-                }).then((feedConfig) => {
+                }).then(async (feedConfig) => {
                     launchFeedEngage(feedConfig);
-                    chrome.notifications.create({
-                        type: 'basic',
-                        iconUrl: 'icons/icon128.png',
-                        title: 'LinkedIn Engage',
-                        message: feedConfig.warmupActive
+                    const feedSuffix = feedConfig.warmupActive
+                        ? ''
+                        : comment
+                            ? await getLocalizedBackgroundMessage(
+                                'notification.feedScheduledEngageCommentSuffix',
+                                null,
+                                ' (react+comment)'
+                            )
+                            : await getLocalizedBackgroundMessage(
+                                'notification.feedScheduledEngageReactSuffix',
+                                null,
+                                ' (react only)'
+                            );
+                    createLocalizedNotification(
+                        feedConfig.warmupActive
+                            ? 'notification.feedScheduledWarmup'
+                            : 'notification.feedScheduledEngage',
+                        feedConfig.warmupActive
                             ? `Scheduled feed warmup run ${feedConfig.currentRunNumber}/${feedConfig.feedWarmupRunsRequired}: react + learn only`
-                            : `Scheduled feed engagement: ` +
-                                `${limit} posts` +
-                                (comment
-                                    ? ' (react+comment)'
-                                    : ' (react only)')
-                    });
+                            : `Scheduled feed engagement: ${limit} posts${feedSuffix}`,
+                        feedConfig.warmupActive
+                            ? [
+                                feedConfig.currentRunNumber,
+                                feedConfig.feedWarmupRunsRequired
+                            ]
+                            : [
+                                limit,
+                                feedSuffix
+                            ]
+                    );
                 });
             }
         );
@@ -3825,15 +3921,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                         templateMeta
                     });
 
-                    chrome.notifications.create({
-                        type: 'basic',
-                        iconUrl: 'icons/icon128.png',
-                        title: 'LinkedIn Engage',
-                        message:
-                            `Scheduled company follow: ` +
-                            `batch of ${batch.length} ` +
-                            `(${batch[0]}...)`
-                    });
+                    createLocalizedNotification(
+                        'notification.companyScheduledBatch',
+                        `Scheduled company follow: batch of ${batch.length} (${batch[0]}...)`,
+                        [batch.length, batch[0]]
+                    );
                     return;
                 }
 
@@ -3850,14 +3942,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                     templateMeta
                 });
 
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'icons/icon128.png',
-                    title: 'LinkedIn Engage',
-                    message:
-                        `Scheduled company follow: ` +
-                        `query "${fallbackQuery}"`
-                });
+                createLocalizedNotification(
+                    'notification.companyScheduledQuery',
+                    `Scheduled company follow: query "${fallbackQuery}"`,
+                    [fallbackQuery]
+                );
             }
         );
         return;
@@ -3889,14 +3978,11 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                     skipKeywords: []
                 });
 
-                chrome.notifications.create({
-                    type: 'basic',
-                    iconUrl: 'icons/icon128.png',
-                    title: 'LinkedIn Engage',
-                    message:
-                        `Nurturing ${target.name}: ` +
-                        `engaging with recent posts`
-                });
+                createLocalizedNotification(
+                    'notification.nurtureStarted',
+                    `Nurturing ${target.name}: engaging with recent posts`,
+                    [target.name]
+                );
             }
         );
         return;
@@ -4040,7 +4126,11 @@ function buildQueryFromTags(state) {
         Math.min(10, parseInt(state.roleTermsLimit, 10) || 6)
     );
     if (typeof buildConnectQueryFromTags === 'function') {
-        return buildConnectQueryFromTags(tags, maxRoleTerms);
+        return buildConnectQueryFromTags(
+            tags,
+            maxRoleTerms,
+            state.connectSearchLanguageMode || 'auto'
+        );
     }
     const roles = Array.isArray(tags.role) ? tags.role : [];
     const parts = [];

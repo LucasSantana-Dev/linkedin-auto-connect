@@ -3,6 +3,275 @@ const DEFAULT_DASHBOARD_STATE = {
     activeTab: 'overview'
 };
 let dashboardState = { ...DEFAULT_DASHBOARD_STATE };
+let dashboardUiLanguageMode = 'auto';
+let dashboardCatalog = {};
+let dashboardFallbackCatalog = {};
+let dashboardUiLocale = 'en';
+
+function dt(key, substitutions, fallback) {
+    if (typeof getMessage !== 'function') {
+        return fallback || key;
+    }
+    return getMessage(
+        dashboardCatalog,
+        dashboardFallbackCatalog,
+        key,
+        substitutions
+    ) || fallback || key;
+}
+
+function formatDashboardDateTime(value) {
+    if (!value) return '';
+    try {
+        return new Date(value).toLocaleString(
+            dashboardUiLocale === 'pt_BR' ? 'pt-BR' : 'en-US'
+        );
+    } catch (_) {
+        return String(value || '');
+    }
+}
+
+function translateDashboardStatus(status) {
+    const value = String(status || '').trim();
+    const map = {
+        sent: ['status.sent', 'Sent'],
+        accepted: ['status.accepted', 'Accepted'],
+        visited: ['status.visited', 'Visited'],
+        followed: ['status.followed', 'Followed'],
+        'visited-followed': ['status.visitedFollowed', 'Visited + Followed'],
+        'company-followed': ['status.companyFollowed', 'Company followed']
+    };
+    if (map[value]) {
+        const [key, fallback] = map[value];
+        return dt(key, null, fallback);
+    }
+    if (value.startsWith('feed-')) {
+        return dt(
+            'status.feedEngaged',
+            null,
+            value.replace(/^feed-/, 'feed ')
+        );
+    }
+    if (value.startsWith('company-')) {
+        return dt(
+            'status.companyAction',
+            null,
+            value.replace(/^company-/, 'company ')
+        );
+    }
+    if (value.startsWith('skipped-')) {
+        const key = `status.${value.replace(/^skipped-/, '')}`;
+        return dt(key, null, value.replace(/^skipped-/, ''));
+    }
+    return value.replace(/-/g, ' ');
+}
+
+function translateTabName(tab) {
+    const key = {
+        overview: 'options.tab.overview',
+        activity: 'options.tab.activity',
+        feed: 'options.tab.feed',
+        nurture: 'options.tab.nurture',
+        logs: 'options.tab.logs'
+    }[tab];
+    return key ? dt(key, null, tab) : tab;
+}
+
+function applyDashboardLocalization() {
+    document.title = dt(
+        'options.title',
+        null,
+        'LinkedIn Engage Dashboard'
+    );
+    const title = document.getElementById('dashboardTitle');
+    if (title) {
+        title.textContent = dt(
+            'options.title',
+            null,
+            'LinkedIn Engage Dashboard'
+        );
+    }
+    const languageLabel = document.getElementById(
+        'dashboardLanguageLabel'
+    );
+    if (languageLabel) {
+        languageLabel.textContent = dt(
+            'options.uiLanguage',
+            null,
+            'UI Language'
+        );
+    }
+    const select = document.getElementById('uiLanguageModeSelect');
+    if (select) {
+        const options = {
+            auto: dt('common.autoBrowser', null, 'Auto (Browser)'),
+            en: dt('common.english', null, 'English'),
+            pt_BR: dt('common.portugueseBrazil', null, 'Português (Brasil)')
+        };
+        Array.from(select.options).forEach(option => {
+            if (options[option.value]) {
+                option.textContent = options[option.value];
+            }
+        });
+    }
+
+    document.querySelectorAll('[data-dashboard-tab]')
+        .forEach(btn => {
+            btn.textContent = translateTabName(
+                btn.dataset.dashboardTab
+            );
+        });
+
+    const cardLabels = [
+        'options.card.thisWeek',
+        'options.card.verifiedSent',
+        'options.card.accepted',
+        'options.card.skipped',
+        'options.card.quotaBlocked',
+        'options.card.acceptRate',
+        'options.card.engaged',
+        'options.card.followed',
+        'options.card.companies',
+        'options.card.feed',
+        'options.card.commentsSent',
+        'options.card.commentRate',
+        'options.card.topReaction',
+        'options.card.skipped',
+        'options.card.avgPerDay',
+        'options.card.bestHour',
+        'options.card.bestDay',
+        'options.card.topCategory'
+    ];
+    document.querySelectorAll('.card-label').forEach((node, index) => {
+        const key = cardLabels[index];
+        if (!key) return;
+        node.textContent = dt(key, null, node.textContent);
+    });
+
+    const cardSubs = [
+        ['#acceptRate', 'options.card.connectionsMade', 'connections made'],
+        ['#commentRate', 'options.feed.commentRateSub', 'of posts engaged'],
+        ['#topReactionCount', 'options.feed.topReactionSub', 'most used'],
+        ['#activityTitle', 'options.section.activity', 'Activity (last 14 days)'],
+        ['#chartEmpty', 'options.empty.activity', 'No activity data yet.'],
+        ['#scheduleStatus', 'common.loading', 'Loading...'],
+        ['#emptyMsg', 'options.empty.logs', 'No connection history yet. Run the automation to start tracking.'],
+        ['#nurtureEmpty', 'options.empty.nurture', 'No nurture targets yet. New connections are added automatically during connect runs.'],
+        ['#exportBtn', 'options.exportCsv', 'Export CSV']
+    ];
+    cardSubs.forEach(([selector, key, fallback]) => {
+        const node = document.querySelector(selector);
+        if (node) node.textContent = dt(key, null, fallback);
+    });
+
+    const overviewSubs = [
+        ['options.card.invites', 'of invites'],
+        ['options.card.allTime', 'all time'],
+        ['options.card.skippedSub', 'duplicate, email, unverified'],
+        ['options.card.quotaRejected', 'rejected by LinkedIn (429)'],
+        ['options.card.acceptRateSub', 'accepted / verified sent'],
+        ['options.card.engagedSub', 'profile visits + follows'],
+        ['options.card.followedSub', 'follow actions'],
+        ['options.card.companiesSub', 'companies followed'],
+        ['options.card.feedSub', 'posts reacted/commented']
+    ];
+    document.querySelectorAll('.grid[data-tab-section="overview"] .card-sub')
+        .forEach((node, index) => {
+            if (node.id === 'acceptRate') {
+                return;
+            }
+            const entry = overviewSubs.shift();
+            if (entry) {
+                node.textContent = dt(entry[0], null, entry[1]);
+            }
+        });
+
+    const commentedRateNode = document.querySelector(
+        '.grid[data-tab-section="feed"] .card:nth-child(2) .card-sub'
+    );
+    if (commentedRateNode) {
+        commentedRateNode.textContent = dt(
+            'options.card.commentedSub',
+            null,
+            'commented / engaged'
+        );
+    }
+    const feedSkippedNode = document.querySelector(
+        '.grid[data-tab-section="feed"] .card:nth-child(4) .card-sub'
+    );
+    if (feedSkippedNode) {
+        feedSkippedNode.textContent = dt(
+            'options.feed.skippedSub',
+            null,
+            'keyword/duplicate filter'
+        );
+    }
+
+    const analyticsSubs = [
+        ['options.analytics.utc', 'UTC'],
+        ['options.analytics.dayOfWeek', 'day of week'],
+        ['options.analytics.topCategorySub', 'most engaged post type']
+    ];
+    document.querySelectorAll('#analyticsSection .card-sub')
+        .forEach((node, index) => {
+            if (node.id === 'analyticsActiveDays') {
+                return;
+            }
+            const entry = analyticsSubs.shift();
+            if (entry) {
+                node.textContent = dt(entry[0], null, entry[1]);
+            }
+        });
+
+    const sectionTitles = [
+        ['#reactionBreakdown h2', 'options.section.reactionBreakdown', 'Reaction Breakdown'],
+        ['#analyticsSection h2', 'options.section.analytics', 'Analytics Insights'],
+        ['#templateAcceptance h3', 'options.section.templateAcceptance', 'Acceptance by Note Template'],
+        ['#hourAcceptance h3', 'options.section.hourAcceptance', 'Acceptance by Hour (UTC)'],
+        ['div.section[data-tab-section="overview"] h2', 'options.section.schedule', 'Schedule'],
+        ['div.section[data-tab-section="logs"] h2', 'options.section.logs', 'Recent Connection Log'],
+        ['#nurtureSection h2', 'options.section.nurture', 'Connection Nurture List']
+    ];
+    sectionTitles.forEach(([selector, key, fallback]) => {
+        const node = document.querySelector(selector);
+        if (node) node.textContent = dt(key, null, fallback);
+    });
+
+    const tableHeaders = document.querySelectorAll('#logTable th');
+    const headerKeys = [
+        'options.table.name',
+        'options.table.headline',
+        'options.table.status',
+        'options.table.time'
+    ];
+    tableHeaders.forEach((node, index) => {
+        const key = headerKeys[index];
+        if (key) node.textContent = dt(key, null, node.textContent);
+    });
+}
+
+function initializeDashboardLocalization() {
+    return new Promise(resolve => {
+        if (typeof loadLocaleMessages !== 'function' ||
+            typeof resolveUiLocale !== 'function') {
+            resolve();
+            return;
+        }
+        chrome.storage.local.get('uiLanguageMode', async (data) => {
+            dashboardUiLanguageMode = data.uiLanguageMode || 'auto';
+            dashboardUiLocale = resolveUiLocale(
+                dashboardUiLanguageMode,
+                navigator.language
+            );
+            dashboardFallbackCatalog = await loadLocaleMessages('en');
+            dashboardCatalog = dashboardUiLocale === 'en'
+                ? dashboardFallbackCatalog
+                : await loadLocaleMessages(dashboardUiLocale);
+            applyDashboardLocalization();
+            resolve();
+        });
+    });
+}
 
 function normalizeDashboardUiState(state) {
     if (typeof normalizeDashboardState === 'function') {
@@ -130,15 +399,61 @@ function loadDashboard() {
             const weekCount = data[weekKey] || 0;
             const sentUrls = data.sentProfileUrls || [];
             const accepted = data.acceptedUrls || [];
+            const weekSentNode = document.getElementById('weekSent');
+            const weekLimitNode = document.getElementById('weekLimit');
+            const totalSentNode = document.getElementById('totalSent');
+            const totalAcceptedNode = document.getElementById(
+                'totalAccepted'
+            );
+            const totalSkippedNode = document.getElementById(
+                'totalSkipped'
+            );
+            const skipBreakdownNode = document.getElementById(
+                'skipBreakdown'
+            );
+            const totalQuotaNode = document.getElementById(
+                'totalQuota'
+            );
+            const totalEngagedNode = document.getElementById(
+                'totalEngaged'
+            );
+            const totalFollowedNode = document.getElementById(
+                'totalFollowed'
+            );
+            const totalCompaniesNode = document.getElementById(
+                'totalCompanies'
+            );
+            const totalFeedNode = document.getElementById(
+                'totalFeed'
+            );
+            const acceptPctNode = document.getElementById(
+                'acceptPct'
+            );
+            const scheduleStatusNode = document.getElementById(
+                'scheduleStatus'
+            );
+            if (
+                !weekSentNode ||
+                !weekLimitNode ||
+                !totalSentNode ||
+                !totalAcceptedNode ||
+                !totalSkippedNode ||
+                !skipBreakdownNode ||
+                !totalQuotaNode ||
+                !totalEngagedNode ||
+                !totalFollowedNode ||
+                !totalCompaniesNode ||
+                !totalFeedNode ||
+                !acceptPctNode ||
+                !scheduleStatusNode
+            ) {
+                return;
+            }
 
-            document.getElementById('weekSent')
-                .textContent = weekCount;
-            document.getElementById('weekLimit')
-                .textContent = WEEKLY_LIMIT;
-            document.getElementById('totalSent')
-                .textContent = sentUrls.length;
-            document.getElementById('totalAccepted')
-                .textContent = accepted.length;
+            weekSentNode.textContent = weekCount;
+            weekLimitNode.textContent = WEEKLY_LIMIT;
+            totalSentNode.textContent = sentUrls.length;
+            totalAcceptedNode.textContent = accepted.length;
 
             const acceptedSet = new Set(accepted);
             const history = data.connectionHistory || [];
@@ -188,82 +503,88 @@ function loadDashboard() {
                     !r.status?.startsWith('skipped'))
                 .length;
 
-            document.getElementById('totalSkipped')
-                .textContent = skippedCount;
+            totalSkippedNode.textContent = skippedCount;
             const topSkipReasons = Object.entries(
                 skipReasons
             ).sort((a, b) => b[1] - a[1]).slice(0, 3);
-            document.getElementById('skipBreakdown')
-                .textContent = topSkipReasons.length > 0
+            skipBreakdownNode.textContent = topSkipReasons.length > 0
                 ? topSkipReasons.map(([reason, count]) =>
                     `${reason}: ${count}`
                 ).join(' · ')
-                : 'duplicate, email, unverified';
-            document.getElementById('totalQuota')
-                .textContent = quotaCount;
-            document.getElementById('totalEngaged')
-                .textContent = engagedCount;
-            document.getElementById('totalFollowed')
-                .textContent = followedCount;
-            document.getElementById('totalCompanies')
-                .textContent = companyCount;
-            document.getElementById('totalFeed')
-                .textContent = feedCount;
+                : dt(
+                    'options.card.skipBreakdownFallback',
+                    null,
+                    'duplicate, email, unverified'
+                );
+            totalQuotaNode.textContent = quotaCount;
+            totalEngagedNode.textContent = engagedCount;
+            totalFollowedNode.textContent = followedCount;
+            totalCompaniesNode.textContent = companyCount;
+            totalFeedNode.textContent = feedCount;
 
             if (sentUrls.length > 0) {
                 const pct = Math.round(
                     (accepted.length / sentUrls.length) *
                     100
                 );
-                document.getElementById('acceptPct')
-                    .textContent = pct + '%';
+                acceptPctNode.textContent = pct + '%';
             }
 
             const schedule = data.schedule;
-            const sEl = document.getElementById(
-                'scheduleStatus'
-            );
+            const sEl = scheduleStatusNode;
             if (data.fuseLimitRetry?.retryAt) {
                 const retryDate = new Date(
                     data.fuseLimitRetry.retryAt
                 );
-                sEl.textContent =
+                sEl.textContent = dt(
+                    'options.schedule.quotaRetry',
+                    [formatDashboardDateTime(retryDate)],
                     'Quota limit hit — auto-retry at ' +
-                    retryDate.toLocaleString();
+                        formatDashboardDateTime(retryDate)
+                );
                 sEl.style.color = 'var(--warning)';
             } else {
                 const parts = [];
                 if (schedule?.enabled) {
-                    parts.push(
-                        `Connect: every ` +
-                        `${schedule.intervalHours}h`
-                    );
+                    parts.push(dt(
+                        'options.schedule.connectEvery',
+                        [schedule.intervalHours],
+                        `Connect: every ${schedule.intervalHours}h`
+                    ));
                 }
                 if (data.companySchedule?.enabled) {
-                    parts.push(
-                        `Companies: every ` +
-                        `${data.companySchedule.intervalHours}h` +
-                        ` (batch ${data.companySchedule.batchSize || 10})`
-                    );
+                    parts.push(dt(
+                        'options.schedule.companiesEvery',
+                        [
+                            data.companySchedule.intervalHours,
+                            data.companySchedule.batchSize || 10
+                        ],
+                        `Companies: every ${data.companySchedule.intervalHours}h (batch ${data.companySchedule.batchSize || 10})`
+                    ));
                 }
                 if (data.feedSchedule?.enabled) {
-                    parts.push(
-                        `Feed: every ` +
-                        `${data.feedSchedule.intervalHours}h`
-                    );
+                    parts.push(dt(
+                        'options.schedule.feedEvery',
+                        [data.feedSchedule.intervalHours],
+                        `Feed: every ${data.feedSchedule.intervalHours}h`
+                    ));
                 }
                 if (parts.length) {
                     sEl.textContent = parts.join(' · ');
                     sEl.style.color = '#057642';
                 } else {
-                    sEl.textContent = 'Not scheduled';
+                    sEl.textContent = dt(
+                        'options.schedule.notScheduled',
+                        null,
+                        'Not scheduled'
+                    );
                 }
             }
 
             renderFeedMetrics(feedHistory);
 
             const companyEntries = companyHistory.map(r => ({
-                name: r.name || 'Unknown',
+                name: r.name || dt('common.unknown', null, 'Unknown'),
                 headline: r.subtitle || '',
                 profileUrl: r.companyUrl || '',
                 status: r.status === 'followed'
@@ -271,7 +592,7 @@ function loadDashboard() {
                 time: r.time
             }));
             const feedEntries = feedHistory.map(r => ({
-                name: r.author || 'Unknown',
+                name: r.author || dt('common.unknown', null, 'Unknown'),
                 headline: (r.postText || '')
                     .substring(0, 80),
                 profileUrl: '',
@@ -285,12 +606,14 @@ function loadDashboard() {
             renderChart(allHistory);
             if (!allHistory.length) return;
 
-            document.getElementById('emptyMsg')
-                .style.display = 'none';
-            document.getElementById('logTable')
-                .style.display = 'table';
-
+            const emptyMsgNode = document.getElementById('emptyMsg');
+            const logTableNode = document.getElementById('logTable');
             const tbody = document.getElementById('logBody');
+            if (!emptyMsgNode || !logTableNode || !tbody) {
+                return;
+            }
+            emptyMsgNode.style.display = 'none';
+            logTableNode.style.display = 'table';
             const sorted = allHistory
                 .filter(r => r.time)
                 .sort((a, b) =>
@@ -344,13 +667,15 @@ function loadDashboard() {
                 let label = r.status || '';
                 label = label.replace('skipped-', '');
                 label = label.replace('stopped-', '');
-                badge.textContent = label;
+                badge.textContent = translateDashboardStatus(
+                    r.status || label
+                );
                 tdStatus.appendChild(badge);
 
                 const tdTime =
                     document.createElement('td');
                 tdTime.textContent = r.time
-                    ? new Date(r.time).toLocaleString()
+                    ? formatDashboardDateTime(r.time)
                     : '';
 
                 tr.appendChild(tdName);
@@ -359,6 +684,7 @@ function loadDashboard() {
                 tr.appendChild(tdTime);
                 tbody.appendChild(tr);
             }
+            applyDashboardLocalization();
         }
     );
 }
@@ -366,8 +692,48 @@ function loadDashboard() {
 function renderFeedMetrics(feedHistory) {
     if (!feedHistory || !feedHistory.length) return;
 
-    document.getElementById('feedMetricsGrid')
-        .style.display = 'grid';
+    const feedMetricsGridNode = document.getElementById(
+        'feedMetricsGrid'
+    );
+    const totalCommentsNode = document.getElementById(
+        'totalComments'
+    );
+    const feedSkippedNode = document.getElementById(
+        'feedSkipped'
+    );
+    const commentPctNode = document.getElementById(
+        'commentPct'
+    );
+    const commentRateNode = document.getElementById(
+        'commentRate'
+    );
+    const topReactionNode = document.getElementById(
+        'topReaction'
+    );
+    const topReactionCountNode = document.getElementById(
+        'topReactionCount'
+    );
+    const reactionBreakdownNode = document.getElementById(
+        'reactionBreakdown'
+    );
+    const reactionBarsNode = document.getElementById(
+        'reactionBars'
+    );
+    if (
+        !feedMetricsGridNode ||
+        !totalCommentsNode ||
+        !feedSkippedNode ||
+        !commentPctNode ||
+        !commentRateNode ||
+        !topReactionNode ||
+        !topReactionCountNode ||
+        !reactionBreakdownNode ||
+        !reactionBarsNode
+    ) {
+        return;
+    }
+
+    feedMetricsGridNode.style.display = 'grid';
 
     let commentCount = 0;
     let engagedCount = 0;
@@ -395,37 +761,35 @@ function renderFeedMetrics(feedHistory) {
         }
     }
 
-    document.getElementById('totalComments')
-        .textContent = commentCount;
-    document.getElementById('feedSkipped')
-        .textContent = skippedCount;
+    totalCommentsNode.textContent = commentCount;
+    feedSkippedNode.textContent = skippedCount;
 
     if (engagedCount > 0) {
         const pct = Math.round(
             (commentCount / engagedCount) * 100
         );
-        document.getElementById('commentPct')
-            .textContent = pct + '%';
-        document.getElementById('commentRate')
-            .textContent =
-            `${commentCount} of ${engagedCount} posts`;
+        commentPctNode.textContent = pct + '%';
+        commentRateNode.textContent = dt(
+                'options.feed.commentRateCount',
+                [commentCount, engagedCount],
+                `${commentCount} of ${engagedCount} posts`
+            );
     }
 
     const sorted = Object.entries(reactions)
         .sort((a, b) => b[1] - a[1]);
     if (sorted.length > 0) {
-        document.getElementById('topReaction')
-            .textContent = sorted[0][0];
-        document.getElementById('topReactionCount')
-            .textContent = sorted[0][1] + ' times';
+        topReactionNode.textContent = sorted[0][0];
+        topReactionCountNode.textContent = dt(
+                'options.feed.timesUsed',
+                [sorted[0][1]],
+                sorted[0][1] + ' times'
+            );
     }
 
     if (sorted.length > 1) {
-        document.getElementById('reactionBreakdown')
-            .style.display = 'block';
-        const container = document.getElementById(
-            'reactionBars'
-        );
+        reactionBreakdownNode.style.display = 'block';
+        const container = reactionBarsNode;
         container.textContent = '';
         const max = sorted[0][1];
 
@@ -452,6 +816,7 @@ function renderFeedMetrics(feedHistory) {
             container.appendChild(col);
         }
     }
+    applyDashboardLocalization();
 }
 
 function renderChart(history) {
@@ -500,7 +865,11 @@ function renderChart(history) {
         bar.style.height = day.count > 0
             ? `${Math.max(pct, 5)}%` : '2px';
         if (day.count === 0) bar.style.opacity = '0.2';
-        bar.title = `${day.label}: ${day.count} sent`;
+        bar.title = dt(
+            'options.activity.chartTooltip',
+            [day.label, day.count],
+            `${day.label}: ${day.count} sent`
+        );
 
         const count = document.createElement('span');
         count.className = 'chart-bar-count';
@@ -514,6 +883,7 @@ function renderChart(history) {
         bar.appendChild(label);
         chart.appendChild(bar);
     }
+    applyDashboardLocalization();
 }
 
 function exportCsv() {
@@ -590,23 +960,49 @@ function renderAnalytics() {
             const log = data.analyticsLog || [];
             if (!log.length) return;
 
-            document.getElementById('analyticsSection')
-                .style.display = 'block';
+            const analyticsSectionNode = document.getElementById(
+                'analyticsSection'
+            );
+            const analyticsAvgDayNode = document.getElementById(
+                'analyticsAvgDay'
+            );
+            const analyticsActiveDaysNode = document.getElementById(
+                'analyticsActiveDays'
+            );
+            const analyticsBestHourNode = document.getElementById(
+                'analyticsBestHour'
+            );
+            const analyticsBestDayNode = document.getElementById(
+                'analyticsBestDay'
+            );
+            const analyticsTopCategoryNode = document.getElementById(
+                'analyticsTopCategory'
+            );
+            if (
+                !analyticsSectionNode ||
+                !analyticsAvgDayNode ||
+                !analyticsActiveDaysNode ||
+                !analyticsBestHourNode ||
+                !analyticsBestDayNode ||
+                !analyticsTopCategoryNode
+            ) {
+                return;
+            }
+
+            analyticsSectionNode.style.display = 'block';
 
             const stats = computeAnalyticsStats(log);
 
-            document.getElementById('analyticsAvgDay')
-                .textContent = stats.avgPerDay;
-            document.getElementById('analyticsActiveDays')
-                .textContent =
-                stats.activeDays + ' active days';
-            document.getElementById('analyticsBestHour')
-                .textContent = stats.bestHour !== null
+            analyticsAvgDayNode.textContent = stats.avgPerDay;
+            analyticsActiveDaysNode.textContent = dt(
+                    'options.analytics.activeDays',
+                    [stats.activeDays],
+                    stats.activeDays + ' active days'
+                );
+            analyticsBestHourNode.textContent = stats.bestHour !== null
                 ? stats.bestHour + ':00' : '—';
-            document.getElementById('analyticsBestDay')
-                .textContent = stats.bestDay || '—';
-            document.getElementById('analyticsTopCategory')
-                .textContent = stats.topCategory || '—';
+            analyticsBestDayNode.textContent = stats.bestDay || '—';
+            analyticsTopCategoryNode.textContent = stats.topCategory || '—';
 
             const history = data.connectionHistory || [];
             const accepted = data.acceptedUrls || [];
@@ -616,6 +1012,7 @@ function renderAnalytics() {
                 );
                 renderHourAcceptance(history, accepted);
             }
+            applyDashboardLocalization();
         }
     );
 }
@@ -722,14 +1119,21 @@ function renderTemplateAcceptance(history, accepted) {
             'margin-bottom:4px;';
 
         const rateLine = document.createElement('div');
-        rateLine.textContent = rate + '% accepted';
+        rateLine.textContent = dt(
+            'options.analytics.acceptedRate',
+            [rate],
+            rate + '% accepted'
+        );
         rateLine.style.cssText =
             'font-size:18px; font-weight:700;' +
             'color:var(--primary);';
 
         const detail = document.createElement('div');
-        detail.textContent =
-            `${data.accepted}/${data.sent} sent`;
+        detail.textContent = dt(
+            'options.analytics.sentDetail',
+            [data.accepted, data.sent],
+            `${data.accepted}/${data.sent} sent`
+        );
         detail.style.cssText =
             'font-size:11px; color:var(--muted);' +
             'margin-top:2px;';
@@ -739,6 +1143,7 @@ function renderTemplateAcceptance(history, accepted) {
         card.appendChild(detail);
         container.appendChild(card);
     }
+    applyDashboardLocalization();
 }
 
 function renderHourAcceptance(history, accepted) {
@@ -794,8 +1199,11 @@ function renderHourAcceptance(history, accepted) {
                     ? 'var(--primary)'
                     : 'var(--border)'};` +
             `opacity:${data.sent > 0 ? 0.8 : 0.3};`;
-        bar.title = `${h}:00 — ${data.sent} sent, ` +
-            `${data.accepted} accepted (${rate}%)`;
+        bar.title = dt(
+            'options.analytics.hourTooltip',
+            [h, data.sent, data.accepted, rate],
+            `${h}:00 — ${data.sent} sent, ${data.accepted} accepted (${rate}%)`
+        );
 
         const label = document.createElement('span');
         label.textContent = h % 3 === 0 ? h : '';
@@ -806,6 +1214,7 @@ function renderHourAcceptance(history, accepted) {
         col.appendChild(label);
         container.appendChild(col);
     }
+    applyDashboardLocalization();
 }
 
 document.getElementById('exportBtn')
@@ -845,7 +1254,8 @@ function renderNurtureList() {
 
             const info = document.createElement('div');
             const nameEl = document.createElement('strong');
-            nameEl.textContent = entry.name || 'Unknown';
+            nameEl.textContent = entry.name ||
+                dt('common.unknown', null, 'Unknown');
             info.appendChild(nameEl);
 
             const meta = document.createElement('div');
@@ -855,13 +1265,20 @@ function renderNurtureList() {
             const daysAgo = Math.floor(
                 (now - added) / 86400000);
             meta.textContent =
-                `${entry.engagements || 0}/3 engagements` +
-                ` · added ${daysAgo}d ago`;
+                dt(
+                    'options.nurture.entryMeta',
+                    [entry.engagements || 0, daysAgo],
+                    `${entry.engagements || 0}/3 engagements · added ${daysAgo}d ago`
+                );
             info.appendChild(meta);
 
             const removeBtn = document.createElement(
                 'button');
-            removeBtn.textContent = 'Remove';
+            removeBtn.textContent = dt(
+                'common.remove',
+                null,
+                'Remove'
+            );
             removeBtn.style.cssText =
                 'background:none; border:1px solid ' +
                 'var(--border); border-radius:6px; ' +
@@ -875,6 +1292,7 @@ function renderNurtureList() {
             row.appendChild(removeBtn);
             container.appendChild(row);
         }
+        applyDashboardLocalization();
     });
 }
 
@@ -890,7 +1308,27 @@ function removeNurtureEntry(profileUrl) {
     });
 }
 
-initializeDashboardTabs();
-loadDashboard();
-renderAnalytics();
-renderNurtureList();
+initializeDashboardLocalization().then(() => {
+    const languageSelect = document.getElementById(
+        'uiLanguageModeSelect'
+    );
+    if (languageSelect) {
+        languageSelect.value = dashboardUiLanguageMode;
+        languageSelect.addEventListener('change', () => {
+            dashboardUiLanguageMode = languageSelect.value || 'auto';
+            chrome.storage.local.set({
+                uiLanguageMode: dashboardUiLanguageMode
+            }, () => {
+                initializeDashboardLocalization().then(() => {
+                    loadDashboard();
+                    renderAnalytics();
+                    renderNurtureList();
+                });
+            });
+        });
+    }
+    initializeDashboardTabs();
+    loadDashboard();
+    renderAnalytics();
+    renderNurtureList();
+});
