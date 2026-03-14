@@ -1,6 +1,7 @@
 let activeTabId = null;
 let companyRunState = null;
 const JOBS_PROFILE_CACHE_KEY = 'jobsProfileCache';
+const JOBS_CAREER_INTEL_KEY = 'jobsCareerIntelStateV1';
 
 const COMPANY_FOLLOW_SCRIPTS = [
     'lib/templates.js',
@@ -36,6 +37,8 @@ importScripts('lib/pattern-memory.js');
 importScripts('lib/connect-config.js');
 importScripts('lib/search-templates.js');
 importScripts('lib/jobs-cache.js');
+importScripts('lib/jobs-career-cache.js');
+importScripts('lib/jobs-career-intelligence.js');
 importScripts('lib/jobs-utils.js');
 importScripts('lib/run-outcome.js');
 
@@ -2707,6 +2710,218 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
+        if (request.action === 'saveJobsCareerIntel') {
+            if (typeof encryptJobsCareerIntelState !== 'function') {
+                sendResponse({
+                    status: 'error',
+                    error: 'Career intelligence encryption unavailable.'
+                });
+                return true;
+            }
+            encryptJobsCareerIntelState(
+                request.state || {},
+                request.profilePassphrase
+            ).then((envelope) => {
+                chrome.storage.local.set({
+                    [JOBS_CAREER_INTEL_KEY]: envelope
+                }, () => {
+                    sendResponse({
+                        status: 'saved',
+                        updatedAt: envelope.updatedAt,
+                        version: envelope.version
+                    });
+                });
+            }).catch((error) => {
+                sendResponse({
+                    status: 'error',
+                    error: error?.message ||
+                        'Failed to save career intelligence.'
+                });
+            });
+            return true;
+        }
+
+        if (request.action === 'loadJobsCareerIntel') {
+            chrome.storage.local.get(
+                JOBS_CAREER_INTEL_KEY,
+                async (data) => {
+                    const envelope = data[JOBS_CAREER_INTEL_KEY];
+                    if (!envelope) {
+                        sendResponse({ status: 'missing' });
+                        return;
+                    }
+                    if (!request.profilePassphrase ||
+                        typeof decryptJobsCareerIntelState !== 'function') {
+                        sendResponse({
+                            status: 'error',
+                            reason: 'career-intel-locked'
+                        });
+                        return;
+                    }
+                    try {
+                        const state = await decryptJobsCareerIntelState(
+                            envelope,
+                            request.profilePassphrase
+                        );
+                        sendResponse({
+                            status: 'loaded',
+                            state
+                        });
+                    } catch (error) {
+                        sendResponse({
+                            status: 'error',
+                            reason: 'career-intel-locked'
+                        });
+                    }
+                }
+            );
+            return true;
+        }
+
+        if (request.action === 'getJobsCareerIntelStatus') {
+            chrome.storage.local.get(
+                JOBS_CAREER_INTEL_KEY,
+                (data) => {
+                    if (typeof getJobsCareerIntelStatus !== 'function') {
+                        sendResponse({
+                            exists: !!data[JOBS_CAREER_INTEL_KEY],
+                            locked: !!data[JOBS_CAREER_INTEL_KEY],
+                            version: data[JOBS_CAREER_INTEL_KEY]?.version || null,
+                            updatedAt:
+                                data[JOBS_CAREER_INTEL_KEY]?.updatedAt || null
+                        });
+                        return;
+                    }
+                    sendResponse(
+                        getJobsCareerIntelStatus(
+                            data[JOBS_CAREER_INTEL_KEY]
+                        )
+                    );
+                }
+            );
+            return true;
+        }
+
+        if (request.action === 'clearJobsCareerIntel') {
+            chrome.storage.local.remove(
+                JOBS_CAREER_INTEL_KEY,
+                () => {
+                    sendResponse({ status: 'cleared' });
+                }
+            );
+            return true;
+        }
+
+        if (request.action === 'generateJobsCareerPlan') {
+            chrome.storage.local.get(
+                JOBS_CAREER_INTEL_KEY,
+                async (data) => {
+                    const envelope = data[JOBS_CAREER_INTEL_KEY];
+                    if (!envelope) {
+                        sendResponse({ status: 'missing' });
+                        return;
+                    }
+                    if (!request.profilePassphrase ||
+                        typeof decryptJobsCareerIntelState !== 'function' ||
+                        typeof buildJobsCareerSearchPlan !== 'function') {
+                        sendResponse({
+                            status: 'error',
+                            reason: 'career-intel-locked'
+                        });
+                        return;
+                    }
+                    try {
+                        const state = await decryptJobsCareerIntelState(
+                            envelope,
+                            request.profilePassphrase
+                        );
+                        const plan = buildJobsCareerSearchPlan(
+                            state.analysisSnapshot || {},
+                            {
+                                expectedResultsBucket:
+                                    request.expectedResultsBucket
+                            }
+                        );
+                        sendResponse({
+                            status: 'generated',
+                            state,
+                            plan
+                        });
+                    } catch (error) {
+                        sendResponse({
+                            status: 'error',
+                            reason: 'career-intel-locked'
+                        });
+                    }
+                }
+            );
+            return true;
+        }
+
+        if (request.action === 'importJobsLinkedInProfile') {
+            chrome.tabs.query(
+                { active: true, currentWindow: true },
+                (tabs) => {
+                    const tab = Array.isArray(tabs) ? tabs[0] : null;
+                    if (!tab?.id ||
+                        !/linkedin\.com\/(in|pub)\//i
+                            .test(String(tab.url || ''))) {
+                        sendResponse({
+                            status: 'error',
+                            error:
+                                'Open your LinkedIn profile page before importing.'
+                        });
+                        return;
+                    }
+                    chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['lib/jobs-profile-import.js']
+                    }, () => {
+                        if (chrome.runtime.lastError) {
+                            sendResponse({
+                                status: 'error',
+                                error:
+                                    'Failed to load LinkedIn profile importer.'
+                            });
+                            return;
+                        }
+                        chrome.scripting.executeScript({
+                            target: { tabId: tab.id },
+                            func: () => {
+                                const api = globalThis
+                                    .LinkedInJobsProfileImport;
+                                if (!api ||
+                                    typeof api
+                                        .extractLinkedInProfileForJobs !==
+                                            'function') {
+                                    return null;
+                                }
+                                return api.extractLinkedInProfileForJobs(
+                                    document
+                                );
+                            }
+                        }, (results) => {
+                            if (chrome.runtime.lastError ||
+                                !Array.isArray(results) ||
+                                !results[0]?.result) {
+                                sendResponse({
+                                    status: 'error',
+                                    error:
+                                        'Could not read your LinkedIn profile.'
+                                });
+                                return;
+                            }
+                            sendResponse({
+                                status: 'loaded',
+                                profile: results[0].result
+                            });
+                        });
+                    });
+                }
+            );
+            return true;
+        }
+
         if (request.action === 'clearJobsProfileCache') {
             chrome.storage.local.remove(
                 JOBS_PROFILE_CACHE_KEY,
@@ -2774,7 +2989,10 @@ chrome.runtime.onMessage.addListener(
                     return;
                 }
                 chrome.storage.local.get(
-                    JOBS_PROFILE_CACHE_KEY,
+                    [
+                        JOBS_PROFILE_CACHE_KEY,
+                        JOBS_CAREER_INTEL_KEY
+                    ],
                     async (data) => {
                         if (chrome.runtime.lastError) {
                             sendResponse({
@@ -2785,11 +3003,14 @@ chrome.runtime.onMessage.addListener(
                         }
                         try {
                             const envelope = data[JOBS_PROFILE_CACHE_KEY];
+                            const intelEnvelope =
+                                data[JOBS_CAREER_INTEL_KEY];
                             const draftProfile =
                                 normalizeJobsRuntimeProfile(
                                     request.profileDraft || {}
                                 );
                             let profile = {};
+                            let careerIntelState = null;
                             if (envelope) {
                                 if (!request.profilePassphrase) {
                                     sendResponse({
@@ -2825,6 +3046,37 @@ chrome.runtime.onMessage.addListener(
                                     draftProfile
                                 )
                                 : draftProfile;
+                            if (request.jobsUseCareerIntelligence === true &&
+                                intelEnvelope) {
+                                if (!request.profilePassphrase) {
+                                    sendResponse({
+                                        status: 'blocked',
+                                        reason: 'career-intel-locked'
+                                    });
+                                    return;
+                                }
+                                if (typeof decryptJobsCareerIntelState !==
+                                    'function') {
+                                    sendResponse({
+                                        status: 'blocked',
+                                        reason: 'career-intel-locked'
+                                    });
+                                    return;
+                                }
+                                try {
+                                    careerIntelState =
+                                        await decryptJobsCareerIntelState(
+                                            intelEnvelope,
+                                            request.profilePassphrase
+                                        );
+                                } catch (error) {
+                                    sendResponse({
+                                        status: 'blocked',
+                                        reason: 'career-intel-locked'
+                                    });
+                                    return;
+                                }
+                            }
                             const runtimeConfig = {
                                 source: 'linkedin',
                                 query: String(request.query || '').trim(),
@@ -2859,18 +3111,38 @@ chrome.runtime.onMessage.addListener(
                                 workType: String(
                                     request.workType || ''
                                 ).trim(),
+                                keywordTerms: parseTextList(
+                                    request.keywordTerms
+                                ),
                                 location: String(
                                     request.location || ''
                                 ).trim(),
                                 areaPreset: normalizeRuntimeAreaPreset(
                                     request.areaPreset
                                 ),
+                                jobsUseCareerIntelligence:
+                                    request.jobsUseCareerIntelligence === true,
+                                jobsBrazilOffshoreFriendly:
+                                    request.jobsBrazilOffshoreFriendly === true,
+                                careerIntelVersion:
+                                    careerIntelState?.analysisSnapshot
+                                        ? (intelEnvelope?.version || 1)
+                                        : null,
                                 templateMeta: normalizeTemplateMeta(
                                     request.templateMeta,
                                     'jobs'
                                 ),
-                                profile
+                                profile,
+                                careerIntel: careerIntelState?.analysisSnapshot ||
+                                    null
                             };
+                            if (runtimeConfig.jobsUseCareerIntelligence &&
+                                runtimeConfig.keywordTerms.length === 0 &&
+                                careerIntelState?.analysisSnapshot?.keywordTerms
+                                    ?.length) {
+                                runtimeConfig.keywordTerms =
+                                    careerIntelState.analysisSnapshot.keywordTerms;
+                            }
                             launchJobsAssist(runtimeConfig);
                             sendResponse({ status: 'started' });
                         } catch (error) {

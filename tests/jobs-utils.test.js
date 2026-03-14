@@ -49,6 +49,29 @@ describe('jobs-utils matching and ranking', () => {
         expect(decision.skipReason).toBeNull();
     });
 
+    it('skips offshore-incompatible jobs when brazil offshore filter is enabled', () => {
+        const decision = evaluateJobCandidate(
+            {
+                id: 'job-offshore-skip',
+                title: 'Senior React Engineer',
+                company: 'Acme',
+                location: 'Remote',
+                easyApply: true,
+                alreadyApplied: false,
+                detailText:
+                    'Remote role but US only. Must reside in the United States.'
+            },
+            {
+                easyApplyOnly: false,
+                jobsBrazilOffshoreFriendly: true,
+                excludedCompanies: [],
+                appliedJobIds: []
+            }
+        );
+
+        expect(decision.skipReason).toBe('skipped-offshore-incompatible');
+    });
+
     it('skips excluded company and returns matched company', () => {
         const decision = evaluateJobCandidate(
             {
@@ -99,6 +122,8 @@ describe('jobs-utils matching and ranking', () => {
                     postedHoursAgo: 3,
                     seniority: 'senior',
                     workType: 'remote',
+                    detailText:
+                        'Remote role for LATAM contractors. Brazil candidates welcome.',
                     alreadyApplied: false
                 },
                 {
@@ -110,17 +135,20 @@ describe('jobs-utils matching and ranking', () => {
                     postedHoursAgo: 2,
                     seniority: 'mid',
                     workType: 'hybrid',
+                    detailText: 'Hybrid role in Sao Paulo office.',
                     alreadyApplied: false
                 },
                 {
                     id: 'low',
-                    title: 'Marketing Intern',
+                    title: 'Software Engineer',
                     company: 'Gamma',
-                    location: 'On-site',
+                    location: 'Remote',
                     easyApply: true,
-                    postedHoursAgo: 72,
-                    seniority: 'intern',
-                    workType: 'onsite',
+                    postedHoursAgo: 6,
+                    seniority: 'senior',
+                    workType: 'remote',
+                    detailText:
+                        'US only role. Must reside in the United States.',
                     alreadyApplied: false
                 }
             ],
@@ -128,9 +156,11 @@ describe('jobs-utils matching and ranking', () => {
                 excludedCompanies: [],
                 appliedJobIds: [],
                 roleTerms: ['product designer', 'ux designer'],
+                keywordTerms: ['react', 'typescript'],
                 desiredLevels: ['senior'],
                 locationTerms: ['brazil', 'remote'],
-                preferredCompanies: ['acme']
+                preferredCompanies: ['acme'],
+                jobsBrazilOffshoreFriendly: true
             }
         );
 
@@ -138,6 +168,7 @@ describe('jobs-utils matching and ranking', () => {
         expect(ranked[0].id).toBe('top');
         expect(ranked[1].id).toBe('mid');
         expect(ranked[2].id).toBe('low');
+        expect(ranked[2].skipReason).toBe('skipped-offshore-incompatible');
         expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
     });
 

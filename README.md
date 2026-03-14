@@ -34,6 +34,8 @@ A Chrome Extension and standalone Playwright connector for automating LinkedIn n
 - **Companies follow confirmation retries** — each follow click is verified in-card with bounded retries and signal polling (`Following`/`Seguindo`, aria followed state, follow-success toast); `already-following` is only counted on confirmed followed state, while unconfirmed attempts are logged as `skipped-follow-not-confirmed` and zero-follow runs can fail with `follow-not-confirmed`
 - **Jobs assist mode (LinkedIn Easy Apply)** — ranks visible jobs by best-fit signals (title/seniority/location/recency/company), honors the `Jobs Easy Apply Only` toggle, skips already-applied/excluded-company listings, progresses multi-step Easy Apply (`Next/Continue` + `Review`) automatically, and stops before final submit
 - **Encrypted jobs profile cache** — structured applicant fields are stored locally with PBKDF2 + AES-GCM encryption; use `Unlock Cache` with a session passphrase to load cached fields (passphrase is never persisted)
+- **Jobs Career Intelligence** — local-only analysis of uploaded `PDF`/`DOCX` resumes plus an explicit LinkedIn profile import derives best-fit roles, hard-skill keywords, seniority, and search terms; generated Jobs query/filters remain editable
+- **Brazil Offshore Friendly jobs filter** — boosts/filters roles using remote contractor signals (`Brazil`, `LATAM`, `contractor`, `EOR`, `nearshore`, `timezone overlap`) and suppresses listings with explicit international restrictions (`US only`, residency/citizenship requirements, on-site only)
 - **Feed engagement mode** — auto-react and comment on LinkedIn feed posts based on content; smart reaction selection (Celebrate, Support, Insightful, Funny, Love) via keyword matching; scheduled recurring runs
 - **Warmup-first feed learning** — first feed runs (default: 2) run in react+learn mode only (no comments) so thread patterns are learned before comment unlock
 - **Feed warmup controls** — configurable warmup enable/disable, required run count (0-10), live progress indicator, and reset action in popup
@@ -175,6 +177,8 @@ extension/
     feed-utils.js    <- Shared feed engagement utility functions
     search-templates.js <- Shared search template schema/compiler/resolver
     jobs-cache.js    <- Shared encrypted jobs profile cache helpers
+    jobs-career-cache.js <- Shared encrypted jobs intelligence helpers
+    jobs-career-intelligence.js <- Shared deterministic resume/profile analysis + jobs-plan generation
     jobs-utils.js    <- Shared jobs ranking and skip-rule helpers
     pattern-memory.js <- Shared pattern-memory bucket merge/guidance helpers
     feed-warmup.js   <- Shared feed warmup runtime/state helpers
@@ -241,6 +245,9 @@ n8n-linkedin-workflow.json <- n8n workflow for scheduled runs
 | Jobs Expected Results | balanced | Jobs query strictness bucket (`precise`, `balanced`, `broad`) |
 | Jobs Auto-select Template | On | Uses exact/family/default template fallback for Jobs unless manual template is forced |
 | Jobs Query | Empty | LinkedIn Jobs keywords query; if empty, inferred from role terms/preset |
+| Jobs Use Career Intelligence | Off | Enables encrypted local resume/profile analysis for Jobs search generation and ranking |
+| Jobs Keyword Terms | Empty | Extra hard-skill/domain keywords used for ranking and generated queries |
+| Jobs Brazil Offshore Friendly | Off | Biases Jobs search/ranking toward remote employers that contract from Brazil/LATAM and filters strong international restrictions |
 | Jobs Easy Apply Only | On | Restricts assistant to LinkedIn Easy Apply opportunities |
 | Jobs Excluded Companies | Empty | Skips job cards whose company matches any excluded entry (one per line) |
 | Jobs Profile Cache | Off | Optional encrypted local cache of structured applicant fields; if configured, Jobs start requires passphrase unlock and supports per-run form-field overrides |

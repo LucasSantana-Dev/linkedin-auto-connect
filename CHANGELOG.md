@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- **Jobs Career Intelligence**: Added a local-only Jobs intelligence layer with encrypted derived state in `chrome.storage.local`, encrypted resume vault storage in IndexedDB, and deterministic analysis of uploaded `PDF`/`DOCX` resumes plus explicit LinkedIn profile imports.
+- **Jobs search generation from personal context**: Added `Analyze & Generate` flow to derive best-fit Jobs query, role terms, keyword terms, location terms, work type, and experience level from the user’s career signals while keeping all generated fields editable.
+- **Brazil Offshore Friendly jobs filter**: Added a Jobs-only filter/payload flag that injects Brazil/LATAM offshore hiring terms into generated search plans and uses detail-text compatibility scoring for remote contractor-friendly roles.
+
+### Changed
+- **Jobs ranking inputs expanded**: Jobs ranking now considers keyword overlap and offshore compatibility alongside title, seniority, location, company preference, and recency.
+- **Jobs runtime detail enrichment**: Jobs runtime now opens visible job cards to read detail-pane text before ranking when keyword or Brazil-offshore context is needed.
+
+### Fixed
+- **Jobs cache scope separation**: Structured applicant autofill cache remains isolated from resume/profile intelligence, preventing encrypted form-fill state from being overloaded with search-intelligence data.
+- **Jobs start behavior with locked intelligence**: When Career Intelligence is enabled and encrypted intelligence exists, Jobs start now blocks deterministically until the session passphrase is provided.
+
 ## [1.26.5] - 2026-03-13
 
 ### Changed

@@ -117,6 +117,26 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
         };
     }
 
+    function extractVisibleJobDetailText() {
+        const selectors = [
+            '.jobs-search__job-details--container',
+            '.jobs-details',
+            '.jobs-box__html-content',
+            '.jobs-description__content',
+            '.jobs-unified-top-card'
+        ];
+        for (const selector of selectors) {
+            const element = document.querySelector(selector);
+            const text = String(
+                element?.innerText ||
+                element?.textContent ||
+                ''
+            ).replace(/\s+/g, ' ').trim();
+            if (text.length >= 40) return text;
+        }
+        return '';
+    }
+
     function findJobCards() {
         return Array.from(document.querySelectorAll(
             '.jobs-search-results-list li, ' +
@@ -131,6 +151,12 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
             await delay(300);
         }
         return findJobCards();
+    }
+
+    function needsJobDetailContext(config) {
+        return config?.jobsBrazilOffshoreFriendly === true ||
+            (Array.isArray(config?.keywordTerms) &&
+                config.keywordTerms.length > 0);
     }
 
     function setInputValue(input, value) {
@@ -677,6 +703,26 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
         return result;
     }
 
+    async function collectJobsForRanking(cards, config, runtimeOptions, limit) {
+        const jobs = [];
+        const readDetails = needsJobDetailContext(config);
+        const maxCards = readDetails
+            ? Math.min(cards.length, Math.max(limit, 20))
+            : cards.length;
+
+        for (let idx = 0; idx < maxCards; idx++) {
+            const card = cards[idx];
+            const job = extractJobFromCard(card, idx);
+            if (readDetails && (job.id || job.jobUrl)) {
+                await openCard(job, runtimeOptions);
+                job.detailText = extractVisibleJobDetailText();
+            }
+            jobs.push(job);
+        }
+
+        return jobs;
+    }
+
     async function runJobsAssist(config, runtimeOptions) {
         jobsLog.length = 0;
         stopRequested = false;
@@ -717,7 +763,12 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
             };
         }
 
-        const jobs = cards.map(extractJobFromCard);
+        const jobs = await collectJobsForRanking(
+            cards,
+            config,
+            options,
+            rankedLimit
+        );
         const ranked = typeof rankJobsForApply === 'function'
             ? rankJobsForApply(jobs, config)
             : jobs;
@@ -910,10 +961,12 @@ if (typeof window.linkedInJobsAssistInjected === 'undefined') {
         findEasyApplyButton,
         findModalDialog,
         findModalButton,
+        extractVisibleJobDetailText,
         resolveRuntimeOptions,
         countRequiredMissingFields,
         runModalStepFlow,
         prepareJobForManualReview,
+        collectJobsForRanking,
         runJobsAssist
     };
 

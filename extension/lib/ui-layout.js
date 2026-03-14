@@ -25,6 +25,7 @@
                 },
                 jobs: {
                     refine: false,
+                    career: false,
                     profile: false
                 },
                 feed: {
@@ -72,6 +73,8 @@
                     jobs: {
                         refine: !!state?.accordions
                             ?.jobs?.refine,
+                        career: !!state?.accordions
+                            ?.jobs?.career,
                         profile: !!state?.accordions
                             ?.jobs?.profile
                     },

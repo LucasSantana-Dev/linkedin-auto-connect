@@ -156,6 +156,62 @@
             return 0.1;
         }
 
+        function getOffshoreCompatibility(job, config) {
+            if (config?.jobsBrazilOffshoreFriendly !== true) {
+                return {
+                    allowed: true,
+                    score: 0.5
+                };
+            }
+            const text = normalizeText(
+                `${job.detailText || ''} ${job.location || ''} ${job.workType || ''}`
+            );
+            if (!text) {
+                return {
+                    allowed: true,
+                    score: 0.2
+                };
+            }
+
+            if (/\bus only\b|\bmust reside in\b|\bcitizen\b|\bpermanent resident\b|\bon site only\b|\bnot open to international candidates\b/
+                .test(text)) {
+                return {
+                    allowed: false,
+                    score: 0
+                };
+            }
+
+            let hits = 0;
+            const positivePatterns = [
+                /\bremote\b/,
+                /\bbrazil\b|\bbrasil\b/,
+                /\blatam\b|\blatin america\b/,
+                /\bcontractor\b/,
+                /\bindependent contractor\b/,
+                /\boffshore\b/,
+                /\bnearshore\b/,
+                /\bemployer of record\b|\beor\b/,
+                /\bb2b\b/,
+                /\btimezone overlap\b/,
+                /\bdistributed team\b|\bglobal team\b/
+            ];
+            positivePatterns.forEach(pattern => {
+                if (pattern.test(text)) hits++;
+            });
+
+            if (hits === 0) {
+                return {
+                    allowed: true,
+                    score: 0.2
+                };
+            }
+
+            return {
+                allowed: true,
+                score: Math.min(1, 0.3 + hits * 0.1)
+            };
+        }
+
         function hasAppliedBefore(job, appliedJobIds) {
             if (job.alreadyApplied === true) return true;
             const seen = new Set(toList(appliedJobIds)
@@ -197,9 +253,21 @@
                 };
             }
 
+            const offshore = getOffshoreCompatibility(
+                current,
+                settings
+            );
+            if (!offshore.allowed) {
+                return {
+                    skipReason: 'skipped-offshore-incompatible',
+                    matchedExcludedCompany: null
+                };
+            }
+
             return {
                 skipReason: null,
-                matchedExcludedCompany: null
+                matchedExcludedCompany: null,
+                offshoreCompatibility: offshore.score
             };
         }
 
@@ -207,6 +275,10 @@
             const titleScore = scoreTextMatch(
                 job.title,
                 config.roleTerms
+            );
+            const keywordScore = scoreTextMatch(
+                `${job.title || ''} ${job.detailText || ''}`,
+                config.keywordTerms
             );
             const seniorityScore = scoreSeniority(
                 job,
@@ -221,13 +293,16 @@
                 job.company,
                 config.preferredCompanies
             );
+            const offshore = getOffshoreCompatibility(job, config);
 
             return (
-                titleScore * 0.40 +
-                seniorityScore * 0.20 +
-                locationScore * 0.15 +
-                recencyScore * 0.15 +
-                companyScore * 0.10
+                titleScore * 0.30 +
+                keywordScore * 0.25 +
+                seniorityScore * 0.15 +
+                locationScore * 0.10 +
+                companyScore * 0.05 +
+                recencyScore * 0.05 +
+                offshore.score * 0.10
             );
         }
 
@@ -249,6 +324,8 @@
                     index,
                     score,
                     skipReason: decision.skipReason,
+                    offshoreCompatibility:
+                        decision.offshoreCompatibility,
                     matchedExcludedCompany:
                         decision.matchedExcludedCompany
                 };

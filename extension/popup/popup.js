@@ -32,6 +32,7 @@ const DEFAULT_LOCAL_UI_STATE = {
         companies: { automation: false },
         jobs: {
             refine: false,
+            career: false,
             profile: false
         },
         feed: {
@@ -51,6 +52,8 @@ const DEFAULT_LOCAL_UI_STATE = {
 let useCustomQuery = false;
 let popupUiState = DEFAULT_LOCAL_UI_STATE;
 let jobsCacheLoadedThisSession = false;
+let jobsCareerIntelLoadedThisSession = false;
+let jobsCareerIntelStateThisSession = null;
 let jobsManualResumePending = false;
 
 const DEFAULT_LATAM_COMPANIES = [
@@ -874,6 +877,18 @@ function buildJobsProfilePayload() {
     };
 }
 
+function getJobsCareerPassphrase() {
+    return document.getElementById(
+        'jobsProfilePassphraseInput'
+    )?.value.trim() || '';
+}
+
+function buildJobsKeywordTerms() {
+    return parseMultilineList(
+        document.getElementById('jobsKeywordTermsInput')?.value
+    );
+}
+
 function fillJobsProfileFields(profile) {
     if (!profile || typeof profile !== 'object') return;
     const mapping = {
@@ -892,6 +907,177 @@ function fillJobsProfileFields(profile) {
         if (!input || !value) continue;
         input.value = String(value);
     }
+}
+
+function fillJobsCareerPlan(plan) {
+    if (!plan || typeof plan !== 'object') return;
+    const queryInput = document.getElementById('jobsQueryInput');
+    const roleTermsInput = document.getElementById(
+        'jobsRoleTermsInput'
+    );
+    const keywordTermsInput = document.getElementById(
+        'jobsKeywordTermsInput'
+    );
+    const locationTermsInput = document.getElementById(
+        'jobsLocationTermsInput'
+    );
+    const experienceLevelSelect = document.getElementById(
+        'jobsExperienceLevelSelect'
+    );
+    const workTypeSelect = document.getElementById(
+        'jobsWorkTypeSelect'
+    );
+
+    if (queryInput) queryInput.value = plan.query || '';
+    if (roleTermsInput) {
+        roleTermsInput.value = (plan.roleTerms || []).join('\n');
+    }
+    if (keywordTermsInput) {
+        keywordTermsInput.value = (plan.keywordTerms || []).join('\n');
+    }
+    if (locationTermsInput) {
+        locationTermsInput.value = (plan.locationTerms || []).join('\n');
+    }
+    if (experienceLevelSelect && plan.experienceLevel) {
+        experienceLevelSelect.value = plan.experienceLevel;
+    }
+    if (workTypeSelect && plan.workType) {
+        workTypeSelect.value = plan.workType;
+    }
+}
+
+function renderJobsCareerDocsList(state) {
+    const container = document.getElementById('jobsCareerDocsList');
+    if (!container) return;
+    const docs = Array.isArray(state?.documents)
+        ? state.documents
+        : [];
+    if (!docs.length) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+    container.innerHTML = docs.map(doc => `
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:8px;
+            padding:8px;
+            border:1px solid var(--border);
+            border-radius:var(--radius-sm);
+            background:var(--card-bg);
+        ">
+            <div style="min-width:0;">
+                <div style="font-size:11px; font-weight:600;">
+                    ${doc.fileName}
+                </div>
+                <div style="font-size:10px; color:var(--text-muted);">
+                    ${(doc.extension || '').toUpperCase()} ·
+                    ${Math.max(1, Math.round((doc.size || 0) / 1024))} KB
+                </div>
+            </div>
+            <button type="button"
+                data-remove-jobs-doc="${doc.id}"
+                style="
+                    padding:6px 8px;
+                    border:1px solid var(--warning);
+                    border-radius:var(--radius-sm);
+                    background:transparent;
+                    color:var(--warning);
+                    font-size:10px;
+                    font-weight:600;
+                    cursor:pointer;
+                ">
+                Remove
+            </button>
+        </div>
+    `).join('');
+}
+
+function setJobsCareerStateForSession(state, loaded) {
+    jobsCareerIntelStateThisSession = state || null;
+    jobsCareerIntelLoadedThisSession = loaded === true;
+    renderJobsCareerDocsList(jobsCareerIntelStateThisSession);
+}
+
+function loadJobsCareerIntelState(passphrase) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: 'loadJobsCareerIntel',
+            profilePassphrase: passphrase
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+            if (response?.status === 'missing') {
+                resolve(null);
+                return;
+            }
+            if (response?.status !== 'loaded') {
+                reject(new Error(
+                    response?.reason || 'career-intel-locked'
+                ));
+                return;
+            }
+            resolve(response.state || null);
+        });
+    });
+}
+
+function saveJobsCareerIntelState(state, passphrase) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: 'saveJobsCareerIntel',
+            state,
+            profilePassphrase: passphrase
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+            if (response?.status !== 'saved') {
+                reject(new Error(
+                    response?.error || 'Failed to save career intelligence.'
+                ));
+                return;
+            }
+            resolve(response);
+        });
+    });
+}
+
+async function rebuildAndPersistJobsCareerIntel(partialState, passphrase) {
+    const currentState = await loadJobsCareerIntelState(passphrase)
+        .catch(error => {
+            if (error.message === 'career-intel-locked') throw error;
+            return null;
+        });
+    const resumeDocuments =
+        await loadJobsCareerVaultDocuments(passphrase);
+    const nextState = {
+        ...(currentState || {}),
+        ...(partialState || {})
+    };
+    nextState.documents = resumeDocuments.map(doc => ({
+        id: doc.id,
+        fileName: doc.fileName,
+        extension: doc.extension,
+        size: doc.size,
+        sha256: doc.sha256,
+        updatedAt: doc.updatedAt
+    }));
+    nextState.analysisSnapshot = analyzeJobsCareerInputs({
+        profile: buildJobsProfilePayload(),
+        importedProfile: nextState.importedProfile,
+        resumeDocuments
+    });
+    await saveJobsCareerIntelState(nextState, passphrase);
+    setJobsCareerStateForSession(nextState, true);
+    refreshJobsCareerIntelStatus();
+    return nextState;
 }
 
 function refreshJobsCacheStatus() {
@@ -927,6 +1113,58 @@ function refreshJobsCacheStatus() {
                 `updated ${updated}`;
         }
     );
+}
+
+function refreshJobsCareerIntelStatus() {
+    const statusEl = document.getElementById(
+        'jobsCareerIntelStatus'
+    );
+    if (!statusEl) return;
+    chrome.runtime.sendMessage(
+        { action: 'getJobsCareerIntelStatus' },
+        (response) => {
+            if (chrome.runtime.lastError || !response) {
+                statusEl.textContent =
+                    'Career intelligence status unavailable.';
+                return;
+            }
+            if (!response.exists) {
+                jobsCareerIntelLoadedThisSession = false;
+                if (!jobsCareerIntelStateThisSession) {
+                    renderJobsCareerDocsList(null);
+                }
+                statusEl.textContent =
+                    'Career intelligence: not configured.';
+                return;
+            }
+            const updated = response.updatedAt
+                ? new Date(response.updatedAt).toLocaleString()
+                : 'unknown date';
+            if (jobsCareerIntelLoadedThisSession) {
+                statusEl.textContent =
+                    `Career intelligence: loaded in this session (v${response.version || 1}) · ` +
+                    `updated ${updated}`;
+                return;
+            }
+            statusEl.textContent =
+                `Career intelligence: locked (v${response.version || 1}) · ` +
+                `updated ${updated}`;
+        }
+    );
+}
+
+function getJobsCareerIntelErrorMessage(error) {
+    const message = String(error?.message || '').trim();
+    if (message === 'career-intel-locked') {
+        return 'Career intelligence is locked. Check the session passphrase.';
+    }
+    if (message === 'unsupported-file-type') {
+        return 'Only PDF and DOCX resumes are supported.';
+    }
+    if (message === 'file-too-large') {
+        return 'Each resume must be 5 MB or smaller.';
+    }
+    return 'Failed to update Career Intelligence.';
 }
 
 function updateQueryPreview() {
@@ -1045,6 +1283,8 @@ function saveState() {
             'jobsQueryInput').value,
         jobsRoleTerms: document.getElementById(
             'jobsRoleTermsInput').value,
+        jobsKeywordTerms: document.getElementById(
+            'jobsKeywordTermsInput').value,
         jobsLocationTerms: document.getElementById(
             'jobsLocationTermsInput').value,
         jobsPreferredCompanies: document.getElementById(
@@ -1059,6 +1299,12 @@ function saveState() {
             'jobsLocationInput').value,
         jobsEasyApplyOnly: document.getElementById(
             'jobsEasyApplyOnlyCheckbox').checked,
+        jobsUseCareerIntelligence: document.getElementById(
+            'jobsUseCareerIntelligenceCheckbox'
+        ).checked,
+        jobsBrazilOffshoreFriendly: document.getElementById(
+            'jobsBrazilOffshoreFriendlyCheckbox'
+        ).checked,
         feedReact: document.getElementById(
             'feedReactCheckbox').checked,
         feedComment: document.getElementById(
@@ -1171,6 +1417,7 @@ function loadState() {
             syncFeedCommentSettingsVisibility();
             refreshFeedWarmupProgress();
             refreshJobsCacheStatus();
+            refreshJobsCareerIntelStatus();
             return;
         }
 
@@ -1392,6 +1639,10 @@ function loadState() {
             document.getElementById('jobsRoleTermsInput').value =
                 popupState.jobsRoleTerms;
         }
+        if (popupState.jobsKeywordTerms) {
+            document.getElementById('jobsKeywordTermsInput').value =
+                popupState.jobsKeywordTerms;
+        }
         if (popupState.jobsLocationTerms) {
             document.getElementById('jobsLocationTermsInput').value =
                 popupState.jobsLocationTerms;
@@ -1425,6 +1676,17 @@ function loadState() {
             document.getElementById(
                 'jobsEasyApplyOnlyCheckbox'
             ).checked = popupState.jobsEasyApplyOnly !== false;
+        }
+        if (popupState.jobsUseCareerIntelligence !== undefined) {
+            document.getElementById(
+                'jobsUseCareerIntelligenceCheckbox'
+            ).checked = popupState.jobsUseCareerIntelligence === true;
+        }
+        if (popupState.jobsBrazilOffshoreFriendly !== undefined) {
+            document.getElementById(
+                'jobsBrazilOffshoreFriendlyCheckbox'
+            ).checked =
+                popupState.jobsBrazilOffshoreFriendly === true;
         }
         if (popupState.feedReact !== undefined) {
             document.getElementById('feedReactCheckbox').checked =
@@ -1532,6 +1794,7 @@ function loadState() {
         }
         refreshFeedWarmupProgress();
         refreshJobsCacheStatus();
+        refreshJobsCareerIntelStatus();
     });
 }
 
@@ -2056,6 +2319,7 @@ function startJobsAssist() {
     const locationTerms = parseMultilineList(
         document.getElementById('jobsLocationTermsInput').value
     );
+    const keywordTerms = buildJobsKeywordTerms();
     const preferredCompaniesInput = parseMultilineList(
         document.getElementById('jobsPreferredCompaniesInput').value
     );
@@ -2105,6 +2369,12 @@ function startJobsAssist() {
         typeof plan.filterSpec.easyApplyOnly === 'boolean'
         ? plan.filterSpec.easyApplyOnly
         : easyApplyOnlyInput;
+    const jobsUseCareerIntelligence = document.getElementById(
+        'jobsUseCareerIntelligenceCheckbox'
+    ).checked;
+    const jobsBrazilOffshoreFriendly = document.getElementById(
+        'jobsBrazilOffshoreFriendlyCheckbox'
+    ).checked;
 
     lastReportedSent = 0;
     showProgressUI('Prepared', limit, 'Opening LinkedIn Jobs...');
@@ -2114,6 +2384,7 @@ function startJobsAssist() {
         limit,
         areaPreset: jobsAreaPreset,
         roleTerms,
+        keywordTerms,
         locationTerms,
         preferredCompanies,
         excludedCompanies,
@@ -2122,6 +2393,8 @@ function startJobsAssist() {
         location,
         workType,
         easyApplyOnly,
+        jobsUseCareerIntelligence,
+        jobsBrazilOffshoreFriendly,
         profileDraft: buildJobsProfilePayload(),
         profilePassphrase,
         jobsUsageGoal: getJobsUsageGoal(),
@@ -2251,7 +2524,9 @@ function handleLaunchResponse(response) {
             daily: 'Daily rate limit reached. Try again tomorrow.',
             weekly: 'Weekly limit reached (150). Try next week.',
             'profile-cache-locked':
-                'Encrypted profile cache is locked. Enter the passphrase for this session.'
+                'Encrypted profile cache is locked. Enter the passphrase for this session.',
+            'career-intel-locked':
+                'Career intelligence is locked. Enter the session passphrase to unlock it.'
         };
         setStatusMessage(
             reasons[response.reason] ||
@@ -2787,6 +3062,8 @@ document.getElementById('jobsQueryInput')
     .addEventListener('input', saveState);
 document.getElementById('jobsRoleTermsInput')
     .addEventListener('input', saveState);
+document.getElementById('jobsKeywordTermsInput')
+    .addEventListener('input', saveState);
 document.getElementById('jobsLocationTermsInput')
     .addEventListener('input', saveState);
 document.getElementById('jobsPreferredCompaniesInput')
@@ -2800,6 +3077,10 @@ document.getElementById('jobsWorkTypeSelect')
 document.getElementById('jobsLocationInput')
     .addEventListener('input', saveState);
 document.getElementById('jobsEasyApplyOnlyCheckbox')
+    .addEventListener('change', saveState);
+document.getElementById('jobsUseCareerIntelligenceCheckbox')
+    .addEventListener('change', saveState);
+document.getElementById('jobsBrazilOffshoreFriendlyCheckbox')
     .addEventListener('change', saveState);
 document.getElementById('jobsProfileFullNameInput')
     .addEventListener('input', saveState);
@@ -2921,6 +3202,193 @@ document.getElementById('clearJobsProfileCacheBtn')
             jobsCacheLoadedThisSession = false;
             refreshJobsCacheStatus();
         });
+    });
+document.getElementById('uploadJobsResumesBtn')
+    .addEventListener('click', () => {
+        document.getElementById('jobsResumeUploadInput')?.click();
+    });
+document.getElementById('jobsResumeUploadInput')
+    .addEventListener('change', async (event) => {
+        const files = Array.from(event.target.files || []);
+        event.target.value = '';
+        if (!files.length) return;
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessage(
+                'Enter the session passphrase before uploading resumes.',
+                'warning'
+            );
+            return;
+        }
+        try {
+            const currentState = await loadJobsCareerIntelState(passphrase);
+            const currentDocs = currentState?.documents || [];
+            if (currentDocs.length + files.length >
+                MAX_RESUME_FILES) {
+                setStatusMessage(
+                    `Resume vault limit is ${MAX_RESUME_FILES} files.`,
+                    'warning'
+                );
+                return;
+            }
+
+            for (const file of files) {
+                const parsed = await parseResumeFile(file);
+                await upsertJobsCareerVaultDocument(
+                    parsed,
+                    passphrase
+                );
+            }
+            const nextState = await rebuildAndPersistJobsCareerIntel(
+                {},
+                passphrase
+            );
+            setStatusMessage(
+                `Career intelligence updated from ${nextState.documents.length} resume(s).`,
+                'success'
+            );
+            saveState();
+        } catch (error) {
+            setStatusMessage(
+                getJobsCareerIntelErrorMessage(error),
+                'error'
+            );
+        }
+    });
+document.getElementById('importJobsLinkedInProfileBtn')
+    .addEventListener('click', () => {
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessage(
+                'Enter the session passphrase before importing your profile.',
+                'warning'
+            );
+            return;
+        }
+        chrome.runtime.sendMessage({
+            action: 'importJobsLinkedInProfile'
+        }, async (response) => {
+            if (chrome.runtime.lastError ||
+                response?.status !== 'loaded') {
+                setStatusMessage(
+                    response?.error ||
+                        'Open your LinkedIn profile page before importing.',
+                    'warning'
+                );
+                return;
+            }
+            try {
+                await rebuildAndPersistJobsCareerIntel({
+                    importedProfile: response.profile
+                }, passphrase);
+                setStatusMessage(
+                    'LinkedIn profile imported into Career Intelligence.',
+                    'success'
+                );
+                saveState();
+            } catch (error) {
+                setStatusMessage(
+                    getJobsCareerIntelErrorMessage(error),
+                    'error'
+                );
+            }
+        });
+    });
+document.getElementById('analyzeJobsCareerBtn')
+    .addEventListener('click', () => {
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessage(
+                'Enter the session passphrase to analyze Career Intelligence.',
+                'warning'
+            );
+            return;
+        }
+        chrome.runtime.sendMessage({
+            action: 'generateJobsCareerPlan',
+            profilePassphrase: passphrase,
+            expectedResultsBucket: getJobsExpectedResults()
+        }, (response) => {
+            if (chrome.runtime.lastError ||
+                response?.status !== 'generated') {
+                setStatusMessage(
+                    'Career intelligence is unavailable or locked.',
+                    'warning'
+                );
+                return;
+            }
+            setJobsCareerStateForSession(response.state, true);
+            fillJobsCareerPlan(response.plan);
+            refreshJobsCareerIntelStatus();
+            updateQueryPreview();
+            saveState();
+            setStatusMessage(
+                'Jobs search terms generated from Career Intelligence.',
+                'success'
+            );
+        });
+    });
+document.getElementById('clearJobsCareerIntelBtn')
+    .addEventListener('click', async () => {
+        try {
+            await clearJobsCareerVault();
+            chrome.runtime.sendMessage({
+                action: 'clearJobsCareerIntel'
+            }, (response) => {
+                if (chrome.runtime.lastError ||
+                    response?.status !== 'cleared') {
+                    setStatusMessage(
+                        'Failed to clear Career Intelligence.',
+                        'error'
+                    );
+                    return;
+                }
+                setJobsCareerStateForSession(null, false);
+                refreshJobsCareerIntelStatus();
+                setStatusMessage(
+                    'Career Intelligence cleared.',
+                    'success'
+                );
+            });
+        } catch (error) {
+            setStatusMessage(
+                'Failed to clear Career Intelligence.',
+                'error'
+            );
+        }
+    });
+document.getElementById('jobsCareerDocsList')
+    .addEventListener('click', async (event) => {
+        const button = event.target.closest(
+            '[data-remove-jobs-doc]'
+        );
+        if (!button) return;
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessage(
+                'Enter the session passphrase to remove a resume.',
+                'warning'
+            );
+            return;
+        }
+        try {
+            await removeJobsCareerVaultDocument(
+                button.dataset.removeJobsDoc
+            );
+            const nextState = await rebuildAndPersistJobsCareerIntel(
+                {},
+                passphrase
+            );
+            setStatusMessage(
+                `Career intelligence updated from ${nextState.documents.length} resume(s).`,
+                'success'
+            );
+        } catch (error) {
+            setStatusMessage(
+                getJobsCareerIntelErrorMessage(error),
+                'error'
+            );
+        }
     });
 document.getElementById('companyQueryInput')
     .addEventListener('input', saveState);

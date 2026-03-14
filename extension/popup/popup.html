@@ -8,6 +8,7 @@
             --primary: #0a66c2;
             --primary-hover: #004182;
             --primary-light: rgba(10, 102, 194, 0.08);
+            --accent: #0a66c2;
             --bg-color: #ffffff;
             --text-main: #191919;
             --text-muted: #666666;
@@ -30,6 +31,7 @@
                 --primary: #70b5f9;
                 --primary-hover: #9cccfc;
                 --primary-light: rgba(112, 181, 249, 0.12);
+                --accent: #70b5f9;
                 --bg-color: #1b1f23;
                 --text-main: #e1e4e8;
                 --text-muted: #8b949e;
@@ -879,6 +881,13 @@
                         checked
                         disabled />
                 </div>
+                <div class="checkbox-group" style="margin-bottom:0;">
+                    <label for="jobsUseCareerIntelligenceCheckbox">
+                        Use Career Intelligence
+                    </label>
+                    <input type="checkbox"
+                        id="jobsUseCareerIntelligenceCheckbox" />
+                </div>
                 <div style="font-size:10px; color:var(--text-muted);">
                     Semi-auto mode: prepares the application and stops before final submit.
                 </div>
@@ -907,6 +916,13 @@
                             class="note-area"
                             rows="2"
                             placeholder="brazil&#10;remote"></textarea>
+                    </div>
+                    <div class="input-group">
+                        <label for="jobsKeywordTermsInput">Keyword terms (one per line)</label>
+                        <textarea id="jobsKeywordTermsInput"
+                            class="note-area"
+                            rows="2"
+                            placeholder="react&#10;typescript&#10;aws"></textarea>
                     </div>
                     <div class="input-group">
                         <label for="jobsPreferredCompaniesInput">Preferred companies (one per line)</label>
@@ -952,6 +968,91 @@
                             type="text"
                             placeholder="e.g. Brazil, United States" />
                     </div>
+                    <div class="checkbox-group" style="margin-top:10px; margin-bottom:0;">
+                        <label for="jobsBrazilOffshoreFriendlyCheckbox">
+                            Brazil Offshore Friendly
+                        </label>
+                        <input type="checkbox"
+                            id="jobsBrazilOffshoreFriendlyCheckbox" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="accordion"
+                id="jobsCareerAccordion"
+                data-mode="jobs"
+                data-panel="career">
+                <button class="accordion-toggle" type="button"
+                    data-accordion-toggle="jobs:career">
+                    <span>Career Intelligence</span>
+                    <span class="accordion-chevron">▼</span>
+                </button>
+                <div class="accordion-body">
+                    <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">
+                        Local-only analysis from uploaded resumes and your LinkedIn profile.
+                    </div>
+                    <input id="jobsResumeUploadInput"
+                        type="file"
+                        accept=".pdf,.docx"
+                        multiple
+                        style="display:none;" />
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button id="importJobsLinkedInProfileBtn"
+                            type="button"
+                            style="flex:1; padding:8px;
+                            border:1px solid var(--accent);
+                            border-radius:var(--radius-sm);
+                            background:transparent;
+                            color:var(--accent);
+                            font-size:11px; font-weight:600; cursor:pointer;">
+                            Import LinkedIn Profile
+                        </button>
+                        <button id="uploadJobsResumesBtn"
+                            type="button"
+                            style="flex:1; padding:8px;
+                            border:1px solid var(--primary);
+                            border-radius:var(--radius-sm);
+                            background:var(--primary-light);
+                            color:var(--primary);
+                            font-size:11px; font-weight:600; cursor:pointer;">
+                            Upload Resumes
+                        </button>
+                        <button id="analyzeJobsCareerBtn"
+                            type="button"
+                            style="flex:1; padding:8px;
+                            border:1px solid var(--success);
+                            border-radius:var(--radius-sm);
+                            background:transparent;
+                            color:var(--success);
+                            font-size:11px; font-weight:600; cursor:pointer;">
+                            Analyze &amp; Generate
+                        </button>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <button id="clearJobsCareerIntelBtn"
+                            type="button"
+                            style="flex:1; padding:8px;
+                            border:1px solid var(--warning);
+                            border-radius:var(--radius-sm);
+                            background:transparent;
+                            color:var(--warning);
+                            font-size:11px; font-weight:600; cursor:pointer;">
+                            Clear Career Intel
+                        </button>
+                    </div>
+                    <div id="jobsCareerIntelStatus" style="
+                        margin-top:8px;
+                        font-size:10px;
+                        color:var(--text-muted);
+                    ">
+                        Career intelligence: not configured.
+                    </div>
+                    <div id="jobsCareerDocsList" style="
+                        display:flex;
+                        flex-direction:column;
+                        gap:6px;
+                        margin-top:10px;
+                    "></div>
                 </div>
             </div>
 
@@ -1947,6 +2048,11 @@
     <script src="../lib/search-templates.js"></script>
     <script src="../lib/connect-config.js"></script>
     <script src="../lib/ui-layout.js"></script>
+    <script src="../lib/jobs-career-cache.js"></script>
+    <script src="../lib/jobs-career-intelligence.js"></script>
+    <script src="../lib/jobs-career-vault.js"></script>
+    <script src="../vendor/mammoth.browser.min.js"></script>
+    <script src="../lib/jobs-career-parser.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>
