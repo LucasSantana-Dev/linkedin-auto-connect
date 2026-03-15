@@ -9,8 +9,57 @@ const {
     compileBooleanQuery,
     buildSearchTemplatePlan
 } = require('../extension/lib/search-templates');
+const {
+    normalizeSearchLanguageMode,
+    resolveSearchLocale
+} = require('../extension/lib/search-language');
 
 describe('search-templates', () => {
+    describe('search locale resolution', () => {
+        it('uses portuguese for strong brazil local-market signals', () => {
+            const locale = resolveSearchLocale({
+                mode: 'jobs',
+                requestedMode: 'auto',
+                selectedLocations: ['Brazil'],
+                jobsBrazilOffshoreFriendly: false
+            });
+
+            expect(locale).toBe('pt_BR');
+        });
+
+        it('uses english for global offshore searches', () => {
+            const locale = resolveSearchLocale({
+                mode: 'jobs',
+                requestedMode: 'auto',
+                selectedLocations: ['Global'],
+                jobsBrazilOffshoreFriendly: true
+            });
+
+            expect(locale).toBe('en');
+        });
+
+        it('uses bilingual for broad exploratory searches', () => {
+            const locale = resolveSearchLocale({
+                mode: 'jobs',
+                requestedMode: 'auto',
+                selectedLocations: ['LATAM', 'Global'],
+                expectedResultsBucket: 'broad',
+                usageGoal: 'market_scan'
+            });
+
+            expect(locale).toBe('bilingual');
+        });
+
+        it('keeps explicit search-language overrides', () => {
+            expect(normalizeSearchLanguageMode('pt_BR')).toBe('pt_BR');
+            expect(resolveSearchLocale({
+                mode: 'connect',
+                requestedMode: 'en',
+                selectedLocations: ['Brazil']
+            })).toBe('en');
+        });
+    });
+
     it('exports supported expected-result buckets', () => {
         expect(EXPECTED_RESULTS_BUCKETS)
             .toEqual(['precise', 'balanced', 'broad']);
@@ -107,6 +156,7 @@ describe('search-templates', () => {
             usageGoal: 'recruiter_outreach',
             expectedResultsBucket: 'precise',
             auto: true,
+            searchLanguageMode: 'en',
             selectedTags: {
                 role: ['recruiter'],
                 industry: ['software'],
@@ -123,6 +173,26 @@ describe('search-templates', () => {
         expect(plan.meta.compiledQueryLength).toBe(plan.query.length);
     });
 
+    it('builds connect template plan with portuguese query terms', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'connect',
+            areaPreset: 'tech',
+            usageGoal: 'recruiter_outreach',
+            expectedResultsBucket: 'precise',
+            auto: true,
+            searchLanguageMode: 'pt_BR',
+            selectedTags: {
+                role: [],
+                industry: [],
+                market: ['Brazil'],
+                level: []
+            }
+        });
+
+        expect(plan.query.toLowerCase()).toContain('recrutador');
+        expect(plan.query.toLowerCase()).toContain('brasil');
+    });
+
     it('builds jobs template plan preferring explicit role title terms', () => {
         const plan = buildSearchTemplatePlan({
             mode: 'jobs',
@@ -130,12 +200,60 @@ describe('search-templates', () => {
             usageGoal: 'high_fit_easy_apply',
             expectedResultsBucket: 'precise',
             auto: true,
+            searchLanguageMode: 'en',
             manualQuery: ''
         });
         expect(plan.template.id).toBe(
             'jobs.tech.high_fit_easy_apply.precise'
         );
         expect(plan.query.toLowerCase()).toContain('software engineer');
+    });
+
+    it('builds jobs template plan with portuguese role and location terms', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'jobs',
+            areaPreset: 'tech',
+            usageGoal: 'high_fit_easy_apply',
+            expectedResultsBucket: 'precise',
+            auto: true,
+            searchLanguageMode: 'pt_BR',
+            manualQuery: ''
+        });
+
+        expect(plan.query.toLowerCase()).toContain('engenheiro de software');
+        expect(plan.query.toLowerCase()).toContain('remoto');
+        expect(plan.query.toLowerCase()).toContain('brasil');
+    });
+
+    it('keeps jobs auto locale in portuguese for brazil-local runs when offshore is off', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'jobs',
+            areaPreset: 'tech',
+            usageGoal: 'high_fit_easy_apply',
+            expectedResultsBucket: 'precise',
+            auto: true,
+            searchLanguageMode: 'auto',
+            locationTerms: ['Brazil'],
+            jobsBrazilOffshoreFriendly: false
+        });
+
+        expect(plan.meta.resolvedSearchLocale).toBe('pt_BR');
+        expect(plan.query.toLowerCase()).toContain('brasil');
+    });
+
+    it('builds companies template plan with bilingual market terms within budget', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'companies',
+            areaPreset: 'tech',
+            usageGoal: 'talent_watchlist',
+            expectedResultsBucket: 'balanced',
+            auto: true,
+            searchLanguageMode: 'bilingual'
+        });
+
+        expect(plan.query.toLowerCase()).toContain('developer tools');
+        expect(plan.query.toLowerCase()).toContain('ferramentas para desenvolvedores');
+        expect(plan.meta.operatorCount).toBeLessThanOrEqual(12);
     });
 
     it('contains starter catalog templates', () => {

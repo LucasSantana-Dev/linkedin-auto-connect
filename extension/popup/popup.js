@@ -21,6 +21,8 @@ const DEFAULT_CONNECT_USAGE_GOAL = 'recruiter_outreach';
 const DEFAULT_COMPANY_USAGE_GOAL = 'talent_watchlist';
 const DEFAULT_JOBS_USAGE_GOAL = 'high_fit_easy_apply';
 const DEFAULT_EXPECTED_RESULTS = 'balanced';
+const DEFAULT_UI_LANGUAGE_MODE = 'auto';
+const DEFAULT_SEARCH_LANGUAGE_MODE = 'auto';
 const DEFAULT_LOCAL_UI_STATE = {
     accordions: {
         connect: {
@@ -32,6 +34,7 @@ const DEFAULT_LOCAL_UI_STATE = {
         companies: { automation: false },
         jobs: {
             refine: false,
+            career: false,
             profile: false
         },
         feed: {
@@ -51,7 +54,12 @@ const DEFAULT_LOCAL_UI_STATE = {
 let useCustomQuery = false;
 let popupUiState = DEFAULT_LOCAL_UI_STATE;
 let jobsCacheLoadedThisSession = false;
+let jobsCareerIntelLoadedThisSession = false;
+let jobsCareerIntelStateThisSession = null;
 let jobsManualResumePending = false;
+let activeUiCatalog = {};
+let fallbackUiCatalog = {};
+let currentUiLocale = 'en';
 
 const DEFAULT_LATAM_COMPANIES = [
     'Hotjar', 'Doist', 'Toggl', 'Pipefy', 'VTEX',
@@ -76,6 +84,177 @@ const DEFAULT_LATAM_COMPANIES = [
     'Arctouch', 'FCamara', 'Raro Labs',
     'Codeminer42', 'Sambatech', 'SoftExpert'
 ].join('\n');
+
+const UI_LABEL_KEYS = Object.freeze({
+    uiLanguageModeSelect: 'options.uiLanguage',
+    companyAreaPresetSelect: 'popup.company.areaPreset',
+    companyQueryInput: 'popup.company.query',
+    companyUsageGoalSelect: 'common.usageGoal',
+    companyExpectedResultsSelect: 'common.expectedResults',
+    companySearchLanguageModeSelect: 'common.searchLanguage',
+    companyTemplateAutoCheckbox: 'common.autoSelectTemplate',
+    companyTemplateSelect: 'common.template',
+    targetCompanies: 'popup.company.targetCompanies',
+    companyScheduleCheckbox: 'popup.company.scheduleRecurring',
+    companyScheduleInterval: 'common.runEveryHours',
+    companyBatchSize: 'popup.company.batchSize',
+    jobsAreaPresetSelect: 'popup.jobs.areaPreset',
+    jobsQueryInput: 'popup.jobs.query',
+    jobsUsageGoalSelect: 'common.usageGoal',
+    jobsExpectedResultsSelect: 'common.expectedResults',
+    jobsSearchLanguageModeSelect: 'common.searchLanguage',
+    jobsTemplateAutoCheckbox: 'common.autoSelectTemplate',
+    jobsTemplateSelect: 'common.template',
+    jobsEasyApplyOnlyCheckbox: 'popup.jobs.easyApplyOnly',
+    jobsUseCareerIntelligenceCheckbox: 'popup.jobs.useCareerIntelligence',
+    jobsRoleTermsInput: 'popup.jobs.roleTerms',
+    jobsLocationTermsInput: 'popup.jobs.locationTerms',
+    jobsKeywordTermsInput: 'popup.jobs.keywordTerms',
+    jobsPreferredCompaniesInput: 'popup.jobs.preferredCompanies',
+    jobsExcludedCompaniesInput: 'popup.jobs.excludedCompanies',
+    jobsExperienceLevelSelect: 'popup.jobs.experienceLevel',
+    jobsWorkTypeSelect: 'popup.jobs.workType',
+    jobsLocationInput: 'popup.jobs.linkedinLocation',
+    jobsBrazilOffshoreFriendlyCheckbox: 'popup.jobs.brazilOffshore',
+    jobsProfilePassphraseInput: 'popup.jobs.passphrase',
+    jobsProfileFullNameInput: 'common.fullName',
+    jobsProfileEmailInput: 'common.email',
+    jobsProfilePhoneInput: 'common.phone',
+    jobsProfileCityInput: 'common.city',
+    jobsProfileHeadlineInput: 'popup.jobs.currentTitle',
+    jobsProfilePortfolioInput: 'popup.jobs.portfolio',
+    jobsProfileSummaryInput: 'popup.jobs.resumeSummary',
+    feedReactCheckbox: 'popup.feed.react',
+    feedCommentCheckbox: 'popup.feed.comment',
+    feedWarmupEnabledCheckbox: 'popup.feed.enableWarmup',
+    feedWarmupRunsRequiredInput: 'popup.feed.warmupRunsRequired',
+    aiApiKeyInput: 'popup.feed.aiApiKey',
+    commentTemplatesInput: 'popup.feed.fallbackTemplates',
+    skipKeywordsInput: 'popup.feed.skipKeywords',
+    feedScheduleCheckbox: 'popup.feed.scheduleRecurring',
+    feedScheduleInterval: 'common.runEveryHours',
+    nurtureScheduleCheckbox: 'popup.feed.nurtureConnections',
+    nurtureScheduleInterval: 'popup.feed.checkEveryHours',
+    nurturePostLimit: 'popup.feed.postsPerVisit',
+    goalMode: 'common.goal',
+    roleTermsLimitInput: 'popup.connect.roleTermsLimit',
+    areaPresetSelect: 'popup.connect.areaPreset',
+    connectUsageGoalSelect: 'common.usageGoal',
+    connectExpectedResultsSelect: 'common.expectedResults',
+    connectSearchLanguageModeSelect: 'common.searchLanguage',
+    connectTemplateAutoCheckbox: 'common.autoSelectTemplate',
+    connectTemplateSelect: 'common.template',
+    limitInput: 'common.limit',
+    regionSelect: 'popup.connect.recruiterLocation',
+    activelyHiringCheckbox: 'popup.connect.activelyHiring',
+    engagementOnlyCheckbox: 'popup.connect.engagementOnly',
+    excludedCompaniesInput: 'popup.connect.excludedCompanies',
+    skipOpenToWorkRecruitersCheckbox: 'popup.connect.skipOpenToWork',
+    skipJobSeekingSignalsCheckbox: 'popup.connect.skipJobSeeking',
+    sendNoteCheckbox: 'popup.connect.sendNote',
+    scheduleCheckbox: 'popup.connect.scheduleRecurring',
+    scheduleInterval: 'common.runEveryHours',
+    savedQueries: 'popup.connect.queryRotation',
+    tagSearchInput: 'popup.connect.filterTags'
+});
+
+const POPUP_SELECT_OPTION_KEYS = Object.freeze({
+    uiLanguageModeSelect: {
+        auto: 'common.autoBrowser',
+        en: 'common.english',
+        pt_BR: 'common.portugueseBrazil'
+    },
+    connectSearchLanguageModeSelect: {
+        auto: 'common.auto',
+        en: 'common.english',
+        pt_BR: 'common.portugueseBrazil',
+        bilingual: 'common.bilingual'
+    },
+    companySearchLanguageModeSelect: {
+        auto: 'common.auto',
+        en: 'common.english',
+        pt_BR: 'common.portugueseBrazil',
+        bilingual: 'common.bilingual'
+    },
+    jobsSearchLanguageModeSelect: {
+        auto: 'common.auto',
+        en: 'common.english',
+        pt_BR: 'common.portugueseBrazil',
+        bilingual: 'common.bilingual'
+    },
+    goalMode: {
+        passive: 'popup.connect.goalPassive',
+        active: 'popup.connect.goalActive'
+    },
+    connectUsageGoalSelect: {
+        recruiter_outreach: 'popup.connect.usageGoalRecruiter',
+        peer_networking: 'popup.connect.usageGoalPeer',
+        decision_makers: 'popup.connect.usageGoalDecision',
+        brazil_focus: 'popup.connect.usageGoalBrazil'
+    },
+    companyUsageGoalSelect: {
+        talent_watchlist: 'popup.company.usageGoalTalent',
+        brand_watchlist: 'popup.company.usageGoalBrand',
+        competitor_watch: 'popup.company.usageGoalCompetitor'
+    },
+    jobsUsageGoalSelect: {
+        high_fit_easy_apply: 'popup.jobs.usageGoalHighFit',
+        market_scan: 'popup.jobs.usageGoalMarketScan',
+        target_company_roles: 'popup.jobs.usageGoalTargetCompanies'
+    },
+    connectExpectedResultsSelect: {
+        precise: 'common.expectedPrecise',
+        balanced: 'common.expectedBalanced',
+        broad: 'common.expectedBroad'
+    },
+    companyExpectedResultsSelect: {
+        precise: 'common.expectedPrecise',
+        balanced: 'common.expectedBalanced',
+        broad: 'common.expectedBroad'
+    },
+    jobsExpectedResultsSelect: {
+        precise: 'common.expectedPrecise',
+        balanced: 'common.expectedBalanced',
+        broad: 'common.expectedBroad'
+    },
+    jobsExperienceLevelSelect: {
+        '': 'common.any',
+        '1': 'popup.jobs.experienceInternship',
+        '2': 'popup.jobs.experienceEntry',
+        '3': 'popup.jobs.experienceAssociate',
+        '4': 'popup.jobs.experienceMidSenior',
+        '5': 'popup.jobs.experienceDirector',
+        '6': 'popup.jobs.experienceExecutive'
+    },
+    jobsWorkTypeSelect: {
+        '': 'common.any',
+        '1': 'popup.jobs.workTypeOnsite',
+        '2': 'popup.jobs.workTypeRemote',
+        '3': 'popup.jobs.workTypeHybrid'
+    }
+});
+
+const AREA_PRESET_OPTION_KEYS = Object.freeze({
+    custom: 'popup.areaPreset.custom',
+    tech: 'popup.areaPreset.tech',
+    finance: 'popup.areaPreset.finance',
+    'real-estate': 'popup.areaPreset.realEstate',
+    headhunting: 'popup.areaPreset.headhunting',
+    'legal-judicial-media': 'popup.areaPreset.legalJudicialMedia',
+    'environmental-engineering': 'popup.areaPreset.environmentalEngineering',
+    'sanitary-engineering': 'popup.areaPreset.sanitaryEngineering',
+    healthcare: 'popup.areaPreset.healthcare',
+    education: 'popup.areaPreset.education',
+    marketing: 'popup.areaPreset.marketing',
+    sales: 'popup.areaPreset.sales',
+    'graphic-design': 'popup.areaPreset.graphicDesign',
+    'art-direction': 'popup.areaPreset.artDirection',
+    branding: 'popup.areaPreset.branding',
+    'ui-ux': 'popup.areaPreset.uiUx',
+    'motion-design': 'popup.areaPreset.motionDesign',
+    'video-editing': 'popup.areaPreset.videoEditing',
+    videomaker: 'popup.areaPreset.videomaker'
+});
 
 function getSelectedAreaPreset() {
     const select = document.getElementById('areaPresetSelect');
@@ -186,6 +365,539 @@ function getValueOrDefault(id, fallback) {
     return String(el.value || '').trim() || fallback;
 }
 
+function tr(key, substitutions, fallback) {
+    if (typeof getMessage !== 'function') {
+        return fallback || key;
+    }
+    const text = getMessage(
+        activeUiCatalog,
+        fallbackUiCatalog,
+        key,
+        substitutions
+    );
+    return text || fallback || key;
+}
+
+function formatUiDateTime(value) {
+    if (!value) return '';
+    try {
+        return new Date(value).toLocaleString(
+            currentUiLocale === 'pt_BR' ? 'pt-BR' : 'en-US'
+        );
+    } catch (_) {
+        return String(value || '');
+    }
+}
+
+function setStatusMessageKey(key, type, fallback, substitutions) {
+    setStatusMessage(
+        tr(key, substitutions, fallback),
+        type
+    );
+}
+
+function getProgressVerb(mode, isEngagementOnly) {
+    if (mode === 'companies') {
+        return tr('popup.progress.followed', null, 'Followed');
+    }
+    if (mode === 'jobs') {
+        return tr('popup.progress.prepared', null, 'Prepared');
+    }
+    if (mode === 'feed') {
+        return tr('popup.progress.engaged', null, 'Engaged');
+    }
+    return isEngagementOnly
+        ? tr('popup.progress.engaged', null, 'Engaged')
+        : tr('popup.progress.sent', null, 'Sent');
+}
+
+function getRecentProfileStatusLabel(status) {
+    const value = String(status || '');
+    const labelMap = {
+        sent: ['status.sent', 'Sent'],
+        accepted: ['status.accepted', 'Accepted'],
+        visited: ['status.visited', 'Visited'],
+        followed: ['status.followed', 'Followed'],
+        'visited-followed': ['status.visitedFollowed', 'Visited + Followed']
+    };
+    if (labelMap[value]) {
+        const [key, fallback] = labelMap[value];
+        return tr(key, null, fallback);
+    }
+    if (value.startsWith('skipped-')) {
+        const key = `status.${value.replace(/^skipped-/, '')}`;
+        const fallback = value.replace(/^skipped-/, '');
+        return tr(key, null, fallback);
+    }
+    return value.replace(/-/g, ' ');
+}
+
+function uiLocaleToSearchLocale(locale) {
+    return locale === 'pt_BR' ? 'pt_BR' : 'en';
+}
+
+function formatDisplayTerm(term) {
+    const raw = String(term || '').replace(/^"+|"+$/g, '').trim();
+    if (!raw) return '';
+    return raw.split(/\s+/).map(word => {
+        if (/^[A-Z0-9&+-]{2,}$/.test(word)) return word;
+        if (/^[a-z]{1,3}$/.test(word)) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1);
+    }).join(' ');
+}
+
+function localizeDisplayTerm(term) {
+    if (typeof localizeSearchTerms !== 'function') {
+        return formatDisplayTerm(term);
+    }
+    const terms = localizeSearchTerms(
+        [term],
+        uiLocaleToSearchLocale(currentUiLocale)
+    );
+    return formatDisplayTerm(terms[0] || term);
+}
+
+function setElementText(selector, key, fallback) {
+    const node = document.querySelector(selector);
+    if (!node) return;
+    node.textContent = tr(key, null, fallback);
+}
+
+function setElementHtml(selector, value) {
+    const node = document.querySelector(selector);
+    if (!node) return;
+    node.innerHTML = value;
+}
+
+function setLabelText(forId, key, fallback) {
+    const label = document.querySelector(`label[for="${forId}"]`);
+    if (!label) return;
+    label.textContent = tr(key, null, fallback);
+}
+
+function setInputPlaceholder(id, key, fallback) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.setAttribute('placeholder', tr(key, null, fallback));
+}
+
+function translateSelectOptions(selectId, keyMap) {
+    const select = document.getElementById(selectId);
+    if (!select || !keyMap) return;
+    Array.from(select.options).forEach(option => {
+        const key = keyMap[option.value];
+        if (!key) return;
+        option.textContent = tr(key, null, option.textContent);
+    });
+}
+
+function translateAreaPresetOptions(selectId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    Array.from(select.options).forEach(option => {
+        const key = AREA_PRESET_OPTION_KEYS[option.value];
+        option.textContent = key
+            ? tr(key, null, localizeDisplayTerm(option.value))
+            : localizeDisplayTerm(option.value);
+    });
+}
+
+function translateRegionOptions() {
+    const select = document.getElementById('regionSelect');
+    if (!select) return;
+    const labels = {
+        '103644278,101121807,101165590,101282230,102890719':
+            tr('popup.connect.regionGlobal', null, 'Global (US/CA/UK/DE/NL)'),
+        '103644278': tr('popup.connect.regionUs', null, 'United States'),
+        '101121807': tr('popup.connect.regionCanada', null, 'Canada'),
+        '101165590': tr('popup.connect.regionUk', null, 'United Kingdom'),
+        '101282230': tr('popup.connect.regionGermany', null, 'Germany'),
+        '102890719': tr('popup.connect.regionNetherlands', null, 'Netherlands'),
+        '105646813': tr('popup.connect.regionIreland', null, 'Ireland'),
+        '100364837': tr('popup.connect.regionPortugal', null, 'Portugal'),
+        '105015875': tr('popup.connect.regionSpain', null, 'Spain'),
+        '106057199': tr('popup.connect.regionBrazil', null, 'Brazil'),
+        '103644278,106057199': tr('popup.connect.regionUsBrazil', null, 'US + Brazil'),
+        '103644278,101121807,101165590,101282230,102890719,105646813,100364837,105015875':
+            tr('popup.connect.regionUsEuExtended', null, 'US + EU Extended')
+    };
+    Array.from(select.options).forEach(option => {
+        option.textContent = labels[option.value] || option.textContent;
+    });
+}
+
+function renderConnectTagLabels() {
+    const groupLabels = document.querySelectorAll(
+        '#connectRefineAccordion .tag-group-label'
+    );
+    const labelKeys = [
+        'popup.connect.groupRole',
+        'popup.connect.groupIndustry',
+        'popup.connect.groupMarket',
+        'popup.connect.groupLevel'
+    ];
+    groupLabels.forEach((node, index) => {
+        const key = labelKeys[index];
+        if (!key) return;
+        node.textContent = tr(key, null, node.textContent);
+    });
+    document.querySelectorAll('#connectRefineAccordion .tag[data-group]')
+        .forEach(tag => {
+            tag.textContent = localizeDisplayTerm(tag.dataset.value);
+        });
+}
+
+function getAreaPresetDisplayLabel(areaPreset) {
+    return localizeDisplayTerm(areaPreset || 'custom');
+}
+
+function getUsageGoalLabel(mode, usageGoal) {
+    const maps = {
+        connect: POPUP_SELECT_OPTION_KEYS.connectUsageGoalSelect,
+        companies: POPUP_SELECT_OPTION_KEYS.companyUsageGoalSelect,
+        jobs: POPUP_SELECT_OPTION_KEYS.jobsUsageGoalSelect
+    };
+    const key = maps[mode]?.[usageGoal];
+    return key ? tr(key, null, usageGoal) : usageGoal;
+}
+
+function getExpectedResultsLabel(bucket) {
+    const key = POPUP_SELECT_OPTION_KEYS.connectExpectedResultsSelect[bucket];
+    return key ? tr(key, null, bucket) : bucket;
+}
+
+function getTemplateSelectLabel(template) {
+    return [
+        getAreaPresetDisplayLabel(template.areaPreset),
+        getUsageGoalLabel(template.mode, template.usageGoal),
+        getExpectedResultsLabel(template.expectedResultsBucket)
+    ].filter(Boolean).join(' · ');
+}
+
+async function applyPopupLocalization() {
+    if (typeof loadLocaleMessages !== 'function' ||
+        typeof resolveUiLocale !== 'function') {
+        return;
+    }
+    currentUiLocale = resolveUiLocale(
+        getUiLanguageMode(),
+        navigator.language
+    );
+    fallbackUiCatalog = await loadLocaleMessages('en');
+    activeUiCatalog = currentUiLocale === 'en'
+        ? fallbackUiCatalog
+        : await loadLocaleMessages(currentUiLocale);
+
+    setElementText('#popupHeaderTitle', 'extensionName', 'LinkedIn Engage');
+    setElementText('.header p', 'popup.header.subtitle',
+        'Targeted LinkedIn networking automation');
+    setElementText('.section[style*="margin-bottom:12px;"] .section-label',
+        'common.mode',
+        'Mode');
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        const key = {
+            connect: 'common.connect',
+            companies: 'common.companies',
+            jobs: 'common.jobs',
+            feed: 'common.feed'
+        }[btn.dataset.mode];
+        if (key) {
+            btn.textContent = tr(key, null, btn.textContent);
+        }
+    });
+    setElementText('#companySection > .section .section-label',
+        'popup.company.section',
+        'Company Search');
+    setElementText('#jobsSection > .section .section-label',
+        'popup.jobs.section',
+        'Jobs Assist');
+    setElementText('#feedSection > .section .section-label',
+        'popup.feed.section',
+        'Feed Engagement');
+    setElementText('#connectSection > .section .section-label',
+        'popup.connect.section',
+        'Search Builder');
+    setElementText('#connectMessageAccordion .section-label',
+        'common.template',
+        'Template');
+    setElementText('#recentProfiles .section-label',
+        'popup.tools.recentConnections',
+        'Recent Connections');
+
+    Object.entries(UI_LABEL_KEYS).forEach(([id, key]) => {
+        setLabelText(id, key);
+    });
+
+    setElementText('#companyAutomationAccordion .accordion-toggle span:first-child',
+        'common.automation',
+        'Automation');
+    setElementText('#jobsRefineAccordion .accordion-toggle span:first-child',
+        'common.refine',
+        'Refine');
+    setElementText('#jobsCareerAccordion .accordion-toggle span:first-child',
+        'popup.jobs.careerIntel',
+        'Career Intelligence');
+    setElementText('#jobsProfileAccordion .accordion-toggle span:first-child',
+        'popup.jobs.encryptedProfileCache',
+        'Encrypted Profile Cache');
+    setElementText('#commentSettingsAccordion .accordion-toggle span:first-child',
+        'popup.feed.commentSettings',
+        'Comment Settings');
+    setElementText('#feedAutomationAccordion .accordion-toggle span:first-child',
+        'common.automation',
+        'Automation');
+    setElementText('#connectRefineAccordion .accordion-toggle > span:first-child',
+        'popup.connect.refineFilters',
+        'Refine Filters');
+    setElementText('#connectAudienceAccordion .accordion-toggle span:first-child',
+        'popup.connect.audienceFilters',
+        'Audience Filters');
+    setElementText('#connectMessageAccordion .accordion-toggle span:first-child',
+        'popup.connect.messageSection',
+        'Message');
+    setElementText('#connectAutomationAccordion .accordion-toggle span:first-child',
+        'common.automation',
+        'Automation');
+    setElementText('#toolsAccordion .accordion-toggle span:first-child',
+        'popup.tools.section',
+        'Tools');
+
+    setElementText('#loadDefaultCompanies', 'common.loadDefaults', 'Load defaults');
+    setElementText('#importJobsLinkedInProfileBtn',
+        'popup.jobs.importLinkedInProfile',
+        'Import LinkedIn Profile');
+    setElementText('#uploadJobsResumesBtn',
+        'popup.jobs.uploadResumes',
+        'Upload Resumes');
+    setElementText('#analyzeJobsCareerBtn',
+        'popup.jobs.analyzeGenerate',
+        'Analyze & Generate');
+    setElementText('#clearJobsCareerIntelBtn',
+        'popup.jobs.clearCareerIntel',
+        'Clear Career Intel');
+    setElementText('#unlockJobsProfileCacheBtn',
+        'popup.jobs.unlockCache',
+        'Unlock Cache');
+    setElementText('#saveJobsProfileCacheBtn',
+        'popup.jobs.saveEncryptedCache',
+        'Save Encrypted Cache');
+    setElementText('#clearJobsProfileCacheBtn',
+        'common.clearCache',
+        'Clear Cache');
+    setElementText('#resetFeedWarmupProgressBtn',
+        'popup.feed.resetLearningProgress',
+        'Reset Learning Progress');
+    setElementText('#checkAcceptedBtn',
+        'popup.tools.checkAccepted',
+        'Check Accepted Connections');
+    setElementText('#exportBtn',
+        'popup.tools.exportConnections',
+        'Export Connection Log (CSV)');
+    setElementText('.footer',
+        'popup.footer.safeRun',
+        'Runs safely in your browser');
+
+    setElementText('#toggleCustomQuery',
+        useCustomQuery ? 'popup.connect.useTagBuilder'
+            : 'popup.connect.editQueryManually',
+        useCustomQuery ? 'Use tag builder' : 'Edit query manually');
+    setInputPlaceholder(
+        'tagSearchInput',
+        'popup.connect.filterTagsPlaceholder',
+        'e.g. design, recruiter, marketing'
+    );
+    setElementText(
+        '.template-card[data-template=\"senior\"] .template-name',
+        'popup.connect.templateSenior',
+        'Senior Professional'
+    );
+    setElementText(
+        '.template-card[data-template=\"senior\"] .template-preview',
+        'popup.connect.templateSeniorPreview',
+        'I work on strategic projects in this area and value practical exchanges...'
+    );
+    setElementText(
+        '.template-card[data-template=\"mid\"] .template-name',
+        'popup.connect.templateMid',
+        'Mid-Level Professional'
+    );
+    setElementText(
+        '.template-card[data-template=\"mid\"] .template-preview',
+        'popup.connect.templateMidPreview',
+        'I collaborate with teams in this area and enjoy sharing practical insights...'
+    );
+    setElementText(
+        '.template-card[data-template=\"junior\"] .template-name',
+        'popup.connect.templateJunior',
+        'Junior / Associate'
+    );
+    setElementText(
+        '.template-card[data-template=\"junior\"] .template-preview',
+        'popup.connect.templateJuniorPreview',
+        'I am growing my career and would like to connect with professionals...'
+    );
+    setElementText(
+        '.template-card[data-template=\"lead\"] .template-name',
+        'popup.connect.templateLead',
+        'Team Lead / Manager'
+    );
+    setElementText(
+        '.template-card[data-template=\"lead\"] .template-preview',
+        'popup.connect.templateLeadPreview',
+        'I lead initiatives and value focused conversations about outcomes...'
+    );
+    setElementText(
+        '.template-card[data-template=\"networking\"] .template-name',
+        'popup.connect.templateNetworking',
+        'General Networking'
+    );
+    setElementText(
+        '.template-card[data-template=\"networking\"] .template-preview',
+        'popup.connect.templateNetworkingPreview',
+        'I came across your profile and would like to connect to exchange insights...'
+    );
+    setElementText(
+        '.template-card[data-template=\"custom\"] .template-name',
+        'popup.connect.templateCustom',
+        'Custom'
+    );
+    setElementText(
+        '.template-card[data-template=\"custom\"] .template-preview',
+        'popup.connect.templateCustomPreview',
+        'Write your own personalized message...'
+    );
+
+    setElementText('#companySection > div[style*="font-size:10px; color:var(--text-muted);"]',
+        'popup.company.defaultTargetsHelp',
+        'Preset defaults include global + Brazil companies. Fill in to only follow matching companies.');
+    setElementText('#jobsSection > div[style*="font-size:10px; color:var(--text-muted); margin-top:8px;"]',
+        'popup.jobs.onDemandOnly',
+        'Jobs mode is on-demand only in v1 (no recurring scheduler).');
+
+    const companyHelpRow = document.querySelector(
+        '#companySection div[style*="justify-content:space-between"] span'
+    );
+    if (companyHelpRow) {
+        companyHelpRow.textContent = tr(
+            'popup.company.leaveEmptyFollowAll',
+            null,
+            'Leave empty to follow all results.'
+        );
+    }
+
+    const jobsCareerHelp = document.querySelector(
+        '#jobsCareerAccordion .accordion-body > div:first-child'
+    );
+    if (jobsCareerHelp) {
+        jobsCareerHelp.textContent = tr(
+            'popup.jobs.careerIntelHelp',
+            null,
+            'Local-only analysis from uploaded resumes and your LinkedIn profile.'
+        );
+    }
+
+    const jobsModeHelp = document.querySelector(
+        '#jobsSection .section div[style*="font-size:10px; color:var(--text-muted);"]'
+    );
+    if (jobsModeHelp) {
+        jobsModeHelp.textContent = tr(
+            'popup.jobs.semiAutoHelp',
+            null,
+            'Semi-auto mode: prepares the application and stops before final submit.'
+        );
+    }
+
+    translateSelectOptions(
+        'uiLanguageModeSelect',
+        POPUP_SELECT_OPTION_KEYS.uiLanguageModeSelect
+    );
+    translateSelectOptions(
+        'connectSearchLanguageModeSelect',
+        POPUP_SELECT_OPTION_KEYS.connectSearchLanguageModeSelect
+    );
+    translateSelectOptions(
+        'companySearchLanguageModeSelect',
+        POPUP_SELECT_OPTION_KEYS.companySearchLanguageModeSelect
+    );
+    translateSelectOptions(
+        'jobsSearchLanguageModeSelect',
+        POPUP_SELECT_OPTION_KEYS.jobsSearchLanguageModeSelect
+    );
+    translateSelectOptions(
+        'goalMode',
+        POPUP_SELECT_OPTION_KEYS.goalMode
+    );
+    translateSelectOptions(
+        'connectUsageGoalSelect',
+        POPUP_SELECT_OPTION_KEYS.connectUsageGoalSelect
+    );
+    translateSelectOptions(
+        'companyUsageGoalSelect',
+        POPUP_SELECT_OPTION_KEYS.companyUsageGoalSelect
+    );
+    translateSelectOptions(
+        'jobsUsageGoalSelect',
+        POPUP_SELECT_OPTION_KEYS.jobsUsageGoalSelect
+    );
+    translateSelectOptions(
+        'connectExpectedResultsSelect',
+        POPUP_SELECT_OPTION_KEYS.connectExpectedResultsSelect
+    );
+    translateSelectOptions(
+        'companyExpectedResultsSelect',
+        POPUP_SELECT_OPTION_KEYS.companyExpectedResultsSelect
+    );
+    translateSelectOptions(
+        'jobsExpectedResultsSelect',
+        POPUP_SELECT_OPTION_KEYS.jobsExpectedResultsSelect
+    );
+    translateSelectOptions(
+        'jobsExperienceLevelSelect',
+        POPUP_SELECT_OPTION_KEYS.jobsExperienceLevelSelect
+    );
+    translateSelectOptions(
+        'jobsWorkTypeSelect',
+        POPUP_SELECT_OPTION_KEYS.jobsWorkTypeSelect
+    );
+    translateAreaPresetOptions('areaPresetSelect');
+    translateAreaPresetOptions('companyAreaPresetSelect');
+    translateAreaPresetOptions('jobsAreaPresetSelect');
+    translateRegionOptions();
+    renderConnectTagLabels();
+    refreshTemplateControls();
+    setMode(currentMode);
+    updateQueryPreview();
+    updateCharCounter();
+}
+
+function getUiLanguageMode() {
+    return getValueOrDefault(
+        'uiLanguageModeSelect',
+        DEFAULT_UI_LANGUAGE_MODE
+    );
+}
+
+function getConnectSearchLanguageMode() {
+    return getValueOrDefault(
+        'connectSearchLanguageModeSelect',
+        DEFAULT_SEARCH_LANGUAGE_MODE
+    );
+}
+
+function getCompanySearchLanguageMode() {
+    return getValueOrDefault(
+        'companySearchLanguageModeSelect',
+        DEFAULT_SEARCH_LANGUAGE_MODE
+    );
+}
+
+function getJobsSearchLanguageMode() {
+    return getValueOrDefault(
+        'jobsSearchLanguageModeSelect',
+        DEFAULT_SEARCH_LANGUAGE_MODE
+    );
+}
+
 function setSelectValue(id, value, fallback) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -271,7 +983,8 @@ function getTemplateState(mode) {
             expectedResultsBucket: getConnectExpectedResults(),
             auto: isConnectTemplateAuto(),
             templateId: getConnectTemplateId(),
-            areaPreset: getSelectedAreaPreset()
+            areaPreset: getSelectedAreaPreset(),
+            searchLanguageMode: getConnectSearchLanguageMode()
         };
     }
     if (mode === 'companies') {
@@ -280,7 +993,8 @@ function getTemplateState(mode) {
             expectedResultsBucket: getCompanyExpectedResults(),
             auto: isCompanyTemplateAuto(),
             templateId: getCompanyTemplateId(),
-            areaPreset: getSelectedCompanyAreaPreset()
+            areaPreset: getSelectedCompanyAreaPreset(),
+            searchLanguageMode: getCompanySearchLanguageMode()
         };
     }
     return {
@@ -288,7 +1002,8 @@ function getTemplateState(mode) {
         expectedResultsBucket: getJobsExpectedResults(),
         auto: isJobsTemplateAuto(),
         templateId: getJobsTemplateId(),
-        areaPreset: getSelectedJobsAreaPreset()
+        areaPreset: getSelectedJobsAreaPreset(),
+        searchLanguageMode: getJobsSearchLanguageMode()
     };
 }
 
@@ -320,7 +1035,7 @@ function populateTemplateSelect(mode) {
     options.forEach(template => {
         const option = document.createElement('option');
         option.value = template.id;
-        option.textContent = template.id;
+        option.textContent = getTemplateSelectLabel(template);
         select.appendChild(option);
     });
     if (previous &&
@@ -443,7 +1158,11 @@ function updateRefineSelectedCount() {
     const count = document.querySelectorAll(
         '#connectSection .tag.active'
     ).length;
-    counter.textContent = `${count} selected`;
+    counter.textContent = tr(
+        'popup.connect.selectedCount',
+        [count],
+        `${count} selected`
+    );
 }
 
 function applyTagSearchFilter() {
@@ -659,13 +1378,19 @@ function renderFeedWarmupProgress(progress) {
     const unlock = Number(progress?.unlockRunNumber) ||
         (safeRequired + 1);
     if (!enabled) {
-        text.textContent =
-            'Learning warmup disabled. Comments are unlocked.';
+        text.textContent = tr(
+            'popup.feed.warmupDisabled',
+            null,
+            'Learning warmup disabled. Comments are unlocked.'
+        );
         return;
     }
-    text.textContent =
+    text.textContent = tr(
+        'popup.feed.warmupProgress',
+        [completed, safeRequired, unlock],
         `Learning progress: ${completed} / ${safeRequired} runs · ` +
-        `Comments unlock on run #${unlock}`;
+            `Comments unlock on run #${unlock}`
+    );
 }
 
 function refreshFeedWarmupProgress() {
@@ -685,7 +1410,8 @@ function getSafeRoleTerms(roles) {
     if (typeof buildConnectQueryFromTags === 'function') {
         const query = buildConnectQueryFromTags(
             { role: Array.isArray(roles) ? roles : [] },
-            getRoleTermsLimit()
+            getRoleTermsLimit(),
+            getConnectSearchLanguageMode()
         );
         if (!query) return [];
         if (!query.includes(' OR ')) return [query];
@@ -714,6 +1440,7 @@ function buildConnectSearchPlan(selectedTags) {
                 templateState.expectedResultsBucket,
             auto: templateState.auto,
             templateId: templateState.templateId,
+            searchLanguageMode: templateState.searchLanguageMode,
             selectedTags: tags,
             roleTermsLimit: getRoleTermsLimit()
         });
@@ -723,7 +1450,8 @@ function buildConnectSearchPlan(selectedTags) {
     if (typeof buildConnectQueryFromTags === 'function') {
         const query = buildConnectQueryFromTags(
             tags,
-            getRoleTermsLimit()
+            getRoleTermsLimit(),
+            getConnectSearchLanguageMode()
         );
         return {
             query,
@@ -774,6 +1502,7 @@ function buildCompanySearchPlan() {
                 templateState.expectedResultsBucket,
             auto: templateState.auto,
             templateId: templateState.templateId,
+            searchLanguageMode: templateState.searchLanguageMode,
             manualQuery
         });
         if (plan?.query || targetCompanies.length > 0) {
@@ -819,6 +1548,7 @@ function buildJobsSearchPlan() {
                 templateState.expectedResultsBucket,
             auto: templateState.auto,
             templateId: templateState.templateId,
+            searchLanguageMode: templateState.searchLanguageMode,
             manualQuery,
             roleTerms,
             locationTerms
@@ -874,6 +1604,18 @@ function buildJobsProfilePayload() {
     };
 }
 
+function getJobsCareerPassphrase() {
+    return document.getElementById(
+        'jobsProfilePassphraseInput'
+    )?.value.trim() || '';
+}
+
+function buildJobsKeywordTerms() {
+    return parseMultilineList(
+        document.getElementById('jobsKeywordTermsInput')?.value
+    );
+}
+
 function fillJobsProfileFields(profile) {
     if (!profile || typeof profile !== 'object') return;
     const mapping = {
@@ -894,6 +1636,177 @@ function fillJobsProfileFields(profile) {
     }
 }
 
+function fillJobsCareerPlan(plan) {
+    if (!plan || typeof plan !== 'object') return;
+    const queryInput = document.getElementById('jobsQueryInput');
+    const roleTermsInput = document.getElementById(
+        'jobsRoleTermsInput'
+    );
+    const keywordTermsInput = document.getElementById(
+        'jobsKeywordTermsInput'
+    );
+    const locationTermsInput = document.getElementById(
+        'jobsLocationTermsInput'
+    );
+    const experienceLevelSelect = document.getElementById(
+        'jobsExperienceLevelSelect'
+    );
+    const workTypeSelect = document.getElementById(
+        'jobsWorkTypeSelect'
+    );
+
+    if (queryInput) queryInput.value = plan.query || '';
+    if (roleTermsInput) {
+        roleTermsInput.value = (plan.roleTerms || []).join('\n');
+    }
+    if (keywordTermsInput) {
+        keywordTermsInput.value = (plan.keywordTerms || []).join('\n');
+    }
+    if (locationTermsInput) {
+        locationTermsInput.value = (plan.locationTerms || []).join('\n');
+    }
+    if (experienceLevelSelect && plan.experienceLevel) {
+        experienceLevelSelect.value = plan.experienceLevel;
+    }
+    if (workTypeSelect && plan.workType) {
+        workTypeSelect.value = plan.workType;
+    }
+}
+
+function renderJobsCareerDocsList(state) {
+    const container = document.getElementById('jobsCareerDocsList');
+    if (!container) return;
+    const docs = Array.isArray(state?.documents)
+        ? state.documents
+        : [];
+    if (!docs.length) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+        return;
+    }
+    container.style.display = 'flex';
+    container.innerHTML = docs.map(doc => `
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:8px;
+            padding:8px;
+            border:1px solid var(--border);
+            border-radius:var(--radius-sm);
+            background:var(--card-bg);
+        ">
+            <div style="min-width:0;">
+                <div style="font-size:11px; font-weight:600;">
+                    ${doc.fileName}
+                </div>
+                <div style="font-size:10px; color:var(--text-muted);">
+                    ${(doc.extension || '').toUpperCase()} ·
+                    ${Math.max(1, Math.round((doc.size || 0) / 1024))} KB
+                </div>
+            </div>
+            <button type="button"
+                data-remove-jobs-doc="${doc.id}"
+                style="
+                    padding:6px 8px;
+                    border:1px solid var(--warning);
+                    border-radius:var(--radius-sm);
+                    background:transparent;
+                    color:var(--warning);
+                    font-size:10px;
+                    font-weight:600;
+                    cursor:pointer;
+                ">
+                Remove
+            </button>
+        </div>
+    `).join('');
+}
+
+function setJobsCareerStateForSession(state, loaded) {
+    jobsCareerIntelStateThisSession = state || null;
+    jobsCareerIntelLoadedThisSession = loaded === true;
+    renderJobsCareerDocsList(jobsCareerIntelStateThisSession);
+}
+
+function loadJobsCareerIntelState(passphrase) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: 'loadJobsCareerIntel',
+            profilePassphrase: passphrase
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+            if (response?.status === 'missing') {
+                resolve(null);
+                return;
+            }
+            if (response?.status !== 'loaded') {
+                reject(new Error(
+                    response?.reason || 'career-intel-locked'
+                ));
+                return;
+            }
+            resolve(response.state || null);
+        });
+    });
+}
+
+function saveJobsCareerIntelState(state, passphrase) {
+    return new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+            action: 'saveJobsCareerIntel',
+            state,
+            profilePassphrase: passphrase
+        }, (response) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+            if (response?.status !== 'saved') {
+                reject(new Error(
+                    response?.error || 'Failed to save career intelligence.'
+                ));
+                return;
+            }
+            resolve(response);
+        });
+    });
+}
+
+async function rebuildAndPersistJobsCareerIntel(partialState, passphrase) {
+    const currentState = await loadJobsCareerIntelState(passphrase)
+        .catch(error => {
+            if (error.message === 'career-intel-locked') throw error;
+            return null;
+        });
+    const resumeDocuments =
+        await loadJobsCareerVaultDocuments(passphrase);
+    const nextState = {
+        ...(currentState || {}),
+        ...(partialState || {})
+    };
+    nextState.documents = resumeDocuments.map(doc => ({
+        id: doc.id,
+        fileName: doc.fileName,
+        extension: doc.extension,
+        size: doc.size,
+        sha256: doc.sha256,
+        updatedAt: doc.updatedAt
+    }));
+    nextState.analysisSnapshot = analyzeJobsCareerInputs({
+        profile: buildJobsProfilePayload(),
+        importedProfile: nextState.importedProfile,
+        resumeDocuments
+    });
+    await saveJobsCareerIntelState(nextState, passphrase);
+    setJobsCareerStateForSession(nextState, true);
+    refreshJobsCareerIntelStatus();
+    return nextState;
+}
+
 function refreshJobsCacheStatus() {
     const statusEl = document.getElementById(
         'jobsCacheStatus'
@@ -903,29 +1816,117 @@ function refreshJobsCacheStatus() {
         { action: 'getJobsProfileCacheStatus' },
         (response) => {
             if (chrome.runtime.lastError || !response) {
-                statusEl.textContent =
-                    'Encrypted cache status unavailable.';
+                statusEl.textContent = tr(
+                    'popup.jobs.cacheStatusUnavailable',
+                    null,
+                    'Encrypted cache status unavailable.'
+                );
                 return;
             }
             if (!response.exists) {
                 jobsCacheLoadedThisSession = false;
-                statusEl.textContent =
-                    'Encrypted cache: not configured.';
+                statusEl.textContent = tr(
+                    'popup.jobs.cacheNotConfigured',
+                    null,
+                    'Encrypted cache: not configured.'
+                );
                 return;
             }
             const updated = response.updatedAt
-                ? new Date(response.updatedAt).toLocaleString()
-                : 'unknown date';
+                ? formatUiDateTime(response.updatedAt)
+                : tr('common.unknownDate', null, 'unknown date');
             if (jobsCacheLoadedThisSession) {
-                statusEl.textContent =
-                    `Encrypted cache: loaded in this session (v${response.version || 1}) · ` +
-                    `updated ${updated}`;
+                statusEl.textContent = tr(
+                    'popup.jobs.cacheLoaded',
+                    [response.version || 1, updated],
+                    `Encrypted cache: loaded in this session (v${response.version || 1}) · updated ${updated}`
+                );
                 return;
             }
-            statusEl.textContent =
-                `Encrypted cache: locked (v${response.version || 1}) · ` +
-                `updated ${updated}`;
+            statusEl.textContent = tr(
+                'popup.jobs.cacheLocked',
+                [response.version || 1, updated],
+                `Encrypted cache: locked (v${response.version || 1}) · updated ${updated}`
+            );
         }
+    );
+}
+
+function refreshJobsCareerIntelStatus() {
+    const statusEl = document.getElementById(
+        'jobsCareerIntelStatus'
+    );
+    if (!statusEl) return;
+    chrome.runtime.sendMessage(
+        { action: 'getJobsCareerIntelStatus' },
+        (response) => {
+            if (chrome.runtime.lastError || !response) {
+                statusEl.textContent = tr(
+                    'popup.jobs.careerStatusUnavailable',
+                    null,
+                    'Career intelligence status unavailable.'
+                );
+                return;
+            }
+            if (!response.exists) {
+                jobsCareerIntelLoadedThisSession = false;
+                if (!jobsCareerIntelStateThisSession) {
+                    renderJobsCareerDocsList(null);
+                }
+                statusEl.textContent = tr(
+                    'popup.jobs.careerNotConfigured',
+                    null,
+                    'Career intelligence: not configured.'
+                );
+                return;
+            }
+            const updated = response.updatedAt
+                ? formatUiDateTime(response.updatedAt)
+                : tr('common.unknownDate', null, 'unknown date');
+            if (jobsCareerIntelLoadedThisSession) {
+                statusEl.textContent = tr(
+                    'popup.jobs.careerLoaded',
+                    [response.version || 1, updated],
+                    `Career intelligence: loaded in this session (v${response.version || 1}) · updated ${updated}`
+                );
+                return;
+            }
+            statusEl.textContent = tr(
+                'popup.jobs.careerLocked',
+                [response.version || 1, updated],
+                `Career intelligence: locked (v${response.version || 1}) · updated ${updated}`
+            );
+        }
+    );
+}
+
+function getJobsCareerIntelErrorMessage(error) {
+    const message = String(error?.message || '').trim();
+    if (message === 'career-intel-locked') {
+        return tr(
+            'popup.jobs.errorCareerLocked',
+            null,
+            'Career intelligence is locked. Check the session passphrase.'
+        );
+    }
+    if (message === 'unsupported-file-type') {
+        return tr(
+            'popup.jobs.errorUnsupportedFileType',
+            null,
+            'Only PDF and DOCX resumes are supported.'
+        );
+    }
+    if (message === 'file-too-large') {
+        return tr(
+            'popup.jobs.errorFileTooLarge',
+            null,
+            'Each resume must be 5 MB or smaller.'
+        );
+    }
+    return tr(
+        'popup.jobs.errorCareerUpdate',
+        null,
+        'Failed to update Career Intelligence.'
     );
 }
 
@@ -933,7 +1934,11 @@ function updateQueryPreview() {
     const preview = document.getElementById('queryPreview');
     const query = buildQuery();
     if (!query) {
-        preview.textContent = 'Select at least one tag to build a query';
+        preview.textContent = tr(
+            'popup.connect.previewEmpty',
+            null,
+            'Select at least one tag to build a query'
+        );
         return;
     }
     preview.textContent = query;
@@ -943,7 +1948,11 @@ function updateCharCounter() {
     const textarea = document.getElementById('noteTemplate');
     const counter = document.getElementById('charCounter');
     const len = textarea.value.length;
-    counter.textContent = `${len} / ${MAX_CHARS}`;
+    counter.textContent = tr(
+        'popup.connect.charCounter',
+        [len, MAX_CHARS],
+        `${len} / ${MAX_CHARS}`
+    );
     counter.classList.remove('warn', 'over');
     if (len > MAX_CHARS) {
         counter.classList.add('over');
@@ -996,6 +2005,8 @@ function saveState() {
         connectExpectedResults: getConnectExpectedResults(),
         connectTemplateAuto: isConnectTemplateAuto(),
         connectTemplateId: getConnectTemplateId(),
+        connectSearchLanguageMode:
+            getConnectSearchLanguageMode(),
         roleTermsLimit: getRoleTermsLimit(),
         excludedCompanies: document.getElementById(
             'excludedCompaniesInput'
@@ -1032,6 +2043,8 @@ function saveState() {
         companyExpectedResults: getCompanyExpectedResults(),
         companyTemplateAuto: isCompanyTemplateAuto(),
         companyTemplateId: getCompanyTemplateId(),
+        companySearchLanguageMode:
+            getCompanySearchLanguageMode(),
         companyQuery: document.getElementById(
             'companyQueryInput').value,
         targetCompanies: document.getElementById(
@@ -1041,10 +2054,13 @@ function saveState() {
         jobsExpectedResults: getJobsExpectedResults(),
         jobsTemplateAuto: isJobsTemplateAuto(),
         jobsTemplateId: getJobsTemplateId(),
+        jobsSearchLanguageMode: getJobsSearchLanguageMode(),
         jobsQuery: document.getElementById(
             'jobsQueryInput').value,
         jobsRoleTerms: document.getElementById(
             'jobsRoleTermsInput').value,
+        jobsKeywordTerms: document.getElementById(
+            'jobsKeywordTermsInput').value,
         jobsLocationTerms: document.getElementById(
             'jobsLocationTermsInput').value,
         jobsPreferredCompanies: document.getElementById(
@@ -1059,6 +2075,12 @@ function saveState() {
             'jobsLocationInput').value,
         jobsEasyApplyOnly: document.getElementById(
             'jobsEasyApplyOnlyCheckbox').checked,
+        jobsUseCareerIntelligence: document.getElementById(
+            'jobsUseCareerIntelligenceCheckbox'
+        ).checked,
+        jobsBrazilOffshoreFriendly: document.getElementById(
+            'jobsBrazilOffshoreFriendlyCheckbox'
+        ).checked,
         feedReact: document.getElementById(
             'feedReactCheckbox').checked,
         feedComment: document.getElementById(
@@ -1110,7 +2132,10 @@ function saveState() {
         }
     });
 
-    chrome.storage.local.set({ popupState: state });
+    chrome.storage.local.set({
+        popupState: state,
+        uiLanguageMode: getUiLanguageMode()
+    });
 }
 
 function loadState() {
@@ -1120,7 +2145,9 @@ function loadState() {
                 .value = data.groqApiKey;
         }
     });
-    chrome.storage.local.get('popupState', ({ popupState }) => {
+    chrome.storage.local.get(
+        ['popupState', 'uiLanguageMode'],
+        ({ popupState, uiLanguageMode }) => {
         if (!popupState) {
             popupUiState = normalizePopupUi();
             setAreaPresetSelectValue(DEFAULT_AREA_PRESET);
@@ -1131,9 +2158,19 @@ function loadState() {
                 DEFAULT_JOBS_AREA_PRESET
             );
             setSelectValue(
+                'uiLanguageModeSelect',
+                uiLanguageMode || DEFAULT_UI_LANGUAGE_MODE,
+                DEFAULT_UI_LANGUAGE_MODE
+            );
+            setSelectValue(
                 'connectUsageGoalSelect',
                 DEFAULT_CONNECT_USAGE_GOAL,
                 DEFAULT_CONNECT_USAGE_GOAL
+            );
+            setSelectValue(
+                'connectSearchLanguageModeSelect',
+                DEFAULT_SEARCH_LANGUAGE_MODE,
+                DEFAULT_SEARCH_LANGUAGE_MODE
             );
             setSelectValue(
                 'connectExpectedResultsSelect',
@@ -1146,6 +2183,11 @@ function loadState() {
                 DEFAULT_COMPANY_USAGE_GOAL
             );
             setSelectValue(
+                'companySearchLanguageModeSelect',
+                DEFAULT_SEARCH_LANGUAGE_MODE,
+                DEFAULT_SEARCH_LANGUAGE_MODE
+            );
+            setSelectValue(
                 'companyExpectedResultsSelect',
                 DEFAULT_EXPECTED_RESULTS,
                 DEFAULT_EXPECTED_RESULTS
@@ -1154,6 +2196,11 @@ function loadState() {
                 'jobsUsageGoalSelect',
                 DEFAULT_JOBS_USAGE_GOAL,
                 DEFAULT_JOBS_USAGE_GOAL
+            );
+            setSelectValue(
+                'jobsSearchLanguageModeSelect',
+                DEFAULT_SEARCH_LANGUAGE_MODE,
+                DEFAULT_SEARCH_LANGUAGE_MODE
             );
             setSelectValue(
                 'jobsExpectedResultsSelect',
@@ -1171,6 +2218,8 @@ function loadState() {
             syncFeedCommentSettingsVisibility();
             refreshFeedWarmupProgress();
             refreshJobsCacheStatus();
+            refreshJobsCareerIntelStatus();
+            applyPopupLocalization().catch(() => {});
             return;
         }
 
@@ -1184,6 +2233,11 @@ function loadState() {
         }
         popupState = migratedState;
         popupUiState = normalizePopupUi(popupState.ui);
+        setSelectValue(
+            'uiLanguageModeSelect',
+            uiLanguageMode || DEFAULT_UI_LANGUAGE_MODE,
+            DEFAULT_UI_LANGUAGE_MODE
+        );
 
         const TAG_VERSION = typeof STATE_TAG_VERSION === 'number'
             ? STATE_TAG_VERSION
@@ -1205,6 +2259,12 @@ function loadState() {
             popupState.connectUsageGoal ||
                 DEFAULT_CONNECT_USAGE_GOAL,
             DEFAULT_CONNECT_USAGE_GOAL
+        );
+        setSelectValue(
+            'connectSearchLanguageModeSelect',
+            popupState.connectSearchLanguageMode ||
+                DEFAULT_SEARCH_LANGUAGE_MODE,
+            DEFAULT_SEARCH_LANGUAGE_MODE
         );
         setSelectValue(
             'connectExpectedResultsSelect',
@@ -1312,7 +2372,11 @@ function loadState() {
             useCustomQuery = true;
             document.getElementById('customQueryInput').style.display = 'block';
             document.getElementById('toggleCustomQuery').textContent =
-                'Use tag builder';
+                tr(
+                    'popup.connect.useTagBuilder',
+                    null,
+                    'Use tag builder'
+                );
             document.querySelectorAll('.tag-group').forEach(
                 g => g.style.opacity = '0.4'
             );
@@ -1338,6 +2402,12 @@ function loadState() {
             popupState.companyUsageGoal ||
                 DEFAULT_COMPANY_USAGE_GOAL,
             DEFAULT_COMPANY_USAGE_GOAL
+        );
+        setSelectValue(
+            'companySearchLanguageModeSelect',
+            popupState.companySearchLanguageMode ||
+                DEFAULT_SEARCH_LANGUAGE_MODE,
+            DEFAULT_SEARCH_LANGUAGE_MODE
         );
         setSelectValue(
             'companyExpectedResultsSelect',
@@ -1369,6 +2439,12 @@ function loadState() {
             DEFAULT_JOBS_USAGE_GOAL
         );
         setSelectValue(
+            'jobsSearchLanguageModeSelect',
+            popupState.jobsSearchLanguageMode ||
+                DEFAULT_SEARCH_LANGUAGE_MODE,
+            DEFAULT_SEARCH_LANGUAGE_MODE
+        );
+        setSelectValue(
             'jobsExpectedResultsSelect',
             popupState.jobsExpectedResults ||
                 DEFAULT_EXPECTED_RESULTS,
@@ -1391,6 +2467,10 @@ function loadState() {
         if (popupState.jobsRoleTerms) {
             document.getElementById('jobsRoleTermsInput').value =
                 popupState.jobsRoleTerms;
+        }
+        if (popupState.jobsKeywordTerms) {
+            document.getElementById('jobsKeywordTermsInput').value =
+                popupState.jobsKeywordTerms;
         }
         if (popupState.jobsLocationTerms) {
             document.getElementById('jobsLocationTermsInput').value =
@@ -1425,6 +2505,17 @@ function loadState() {
             document.getElementById(
                 'jobsEasyApplyOnlyCheckbox'
             ).checked = popupState.jobsEasyApplyOnly !== false;
+        }
+        if (popupState.jobsUseCareerIntelligence !== undefined) {
+            document.getElementById(
+                'jobsUseCareerIntelligenceCheckbox'
+            ).checked = popupState.jobsUseCareerIntelligence === true;
+        }
+        if (popupState.jobsBrazilOffshoreFriendly !== undefined) {
+            document.getElementById(
+                'jobsBrazilOffshoreFriendlyCheckbox'
+            ).checked =
+                popupState.jobsBrazilOffshoreFriendly === true;
         }
         if (popupState.feedReact !== undefined) {
             document.getElementById('feedReactCheckbox').checked =
@@ -1532,6 +2623,8 @@ function loadState() {
         }
         refreshFeedWarmupProgress();
         refreshJobsCacheStatus();
+        refreshJobsCareerIntelStatus();
+        applyPopupLocalization().catch(() => {});
     });
 }
 
@@ -1576,7 +2669,11 @@ document.getElementById('toggleCustomQuery').addEventListener('click', () => {
     if (useCustomQuery) {
         input.style.display = 'block';
         input.value = input.value || buildQuery();
-        toggle.textContent = 'Use tag builder';
+        toggle.textContent = tr(
+            'popup.connect.useTagBuilder',
+            null,
+            'Use tag builder'
+        );
         document.querySelectorAll('.tag-group').forEach(
             g => g.style.opacity = '0.4'
         );
@@ -1584,7 +2681,11 @@ document.getElementById('toggleCustomQuery').addEventListener('click', () => {
         document.getElementById('areaPresetSelect').style.opacity = '0.4';
     } else {
         input.style.display = 'none';
-        toggle.textContent = 'Edit query manually';
+        toggle.textContent = tr(
+            'popup.connect.editQueryManually',
+            null,
+            'Edit query manually'
+        );
         document.querySelectorAll('.tag-group').forEach(
             g => g.style.opacity = '1'
         );
@@ -1644,6 +2745,14 @@ document.getElementById('regionSelect').addEventListener('change', saveState);
 document.getElementById('limitInput').addEventListener('change', saveState);
 document.getElementById('goalMode').addEventListener('change', saveState);
 document.getElementById('connectUsageGoalSelect').addEventListener(
+    'change',
+    () => {
+        refreshTemplateControls();
+        updateQueryPreview();
+        saveState();
+    }
+);
+document.getElementById('connectSearchLanguageModeSelect').addEventListener(
     'change',
     () => {
         refreshTemplateControls();
@@ -1811,40 +2920,45 @@ function resumeJobsManualFlow() {
         ]
     }, (tabs) => {
         if (chrome.runtime.lastError) {
-            setStatusMessage(
-                'Could not find the Jobs tab. Open LinkedIn Jobs and continue manually.',
-                'warning'
+            setStatusMessageKey(
+                'popup.jobs.manualResumeTabMissing',
+                'warning',
+                'Could not find the Jobs tab. Open LinkedIn Jobs and continue manually.'
             );
             return;
         }
         if (!Array.isArray(tabs) || tabs.length === 0) {
-            setStatusMessage(
-                'No open LinkedIn Jobs tab found. Open Jobs and continue manually.',
-                'warning'
+            setStatusMessageKey(
+                'popup.jobs.manualResumeTabNotFound',
+                'warning',
+                'No open LinkedIn Jobs tab found. Open Jobs and continue manually.'
             );
             return;
         }
         const target = tabs[0];
         chrome.windows.update(target.windowId, { focused: true }, () => {
             if (chrome.runtime.lastError) {
-                setStatusMessage(
-                    'Could not focus the Jobs window. Open LinkedIn Jobs and continue manually.',
-                    'warning'
+                setStatusMessageKey(
+                    'popup.jobs.manualResumeWindowFocusFailed',
+                    'warning',
+                    'Could not focus the Jobs window. Open LinkedIn Jobs and continue manually.'
                 );
                 return;
             }
             chrome.tabs.update(target.id, { active: true }, () => {
                 if (chrome.runtime.lastError) {
-                    setStatusMessage(
-                        'Could not focus the Jobs tab. Open LinkedIn Jobs and continue manually.',
-                        'warning'
+                    setStatusMessageKey(
+                        'popup.jobs.manualResumeTabFocusFailed',
+                        'warning',
+                        'Could not focus the Jobs tab. Open LinkedIn Jobs and continue manually.'
                     );
                     return;
                 }
                 jobsManualResumePending = false;
-                setStatusMessage(
-                    'Switched to LinkedIn Jobs. Continue the Easy Apply flow manually.',
-                    'info'
+                setStatusMessageKey(
+                    'popup.jobs.manualResumeFocused',
+                    'info',
+                    'Switched to LinkedIn Jobs. Continue the Easy Apply flow manually.'
                 );
             });
         });
@@ -1855,9 +2969,10 @@ async function startConnect() {
     const plan = buildConnectSearchPlan();
     const query = plan.query;
     if (!query) {
-        setStatusMessage(
-            'No query built. Select tags or write a custom query.',
-            'warning'
+        setStatusMessageKey(
+            'popup.connect.errorNoQuery',
+            'warning',
+            'No query built. Select tags or write a custom query.'
         );
         return;
     }
@@ -1870,9 +2985,11 @@ async function startConnect() {
     const sendNote = document.getElementById('sendNoteCheckbox').checked;
 
     if (sendNote && noteText.length > MAX_CHARS) {
-        setStatusMessage(
+        setStatusMessageKey(
+            'popup.connect.errorNoteTooLong',
+            'warning',
             `Note is ${noteText.length} chars (max ${MAX_CHARS}). Shorten it.`,
-            'warning'
+            [noteText.length, MAX_CHARS]
         );
         return;
     }
@@ -1886,17 +3003,21 @@ async function startConnect() {
 
     const weeklyCount = await getWeeklyCount();
     if (!engagementOnly && weeklyCount >= WEEKLY_LIMIT) {
-        setStatusMessage(
+        setStatusMessageKey(
+            'popup.connect.errorWeeklyLimitReached',
+            'error',
             `Weekly limit reached (${weeklyCount}/${WEEKLY_LIMIT}). Wait until next week or use Engagement mode.`,
-            'error'
+            [weeklyCount, WEEKLY_LIMIT]
         );
         return;
     }
     if (!engagementOnly && weeklyCount + limit > WEEKLY_LIMIT) {
         const remaining = WEEKLY_LIMIT - weeklyCount;
-        setStatusMessage(
+        setStatusMessageKey(
+            'popup.connect.warningWeeklyLimitAdjusted',
+            'warning',
             `Only ${remaining} invites left this week (${weeklyCount}/${WEEKLY_LIMIT}). Limit auto-adjusted to ${remaining}.`,
-            'warning'
+            [remaining, weeklyCount, WEEKLY_LIMIT]
         );
         document.getElementById('limitInput').value = remaining;
     }
@@ -1955,10 +3076,18 @@ async function startConnect() {
         });
     });
 
-    showProgressUI(engagementOnly ? 'Engaged' : 'Sent', limit,
+    showProgressUI(getProgressVerb('connect', engagementOnly), limit,
         engagementOnly
-            ? 'Navigating to search (engagement mode)...'
-            : 'Navigating to search... Do not close this popup or the tab.'
+            ? tr(
+                'popup.connect.openingSearchEngagement',
+                null,
+                'Navigating to search (engagement mode)...'
+            )
+            : tr(
+                'popup.connect.openingSearch',
+                null,
+                'Navigating to search... Do not close this popup or the tab.'
+            )
     );
 
     chrome.runtime.sendMessage({
@@ -1973,6 +3102,8 @@ async function startConnect() {
         excludedCompanies,
         skipOpenToWorkRecruiters,
         skipJobSeekingSignals,
+        connectSearchLanguageMode:
+            getConnectSearchLanguageMode(),
         activelyHiring,
         networkFilter,
         templateMeta,
@@ -1997,9 +3128,10 @@ function startCompanyFollow() {
     }
 
     if (!resolvedQuery && targetCompanies.length === 0) {
-        setStatusMessage(
-            'Enter a search query, select a company preset, or add target companies.',
-            'warning'
+        setStatusMessageKey(
+            'popup.company.errorMissingQuery',
+            'warning',
+            'Enter a search query, select a company preset, or add target companies.'
         );
         return;
     }
@@ -2009,8 +3141,14 @@ function startCompanyFollow() {
     ) || 50;
 
     lastReportedSent = 0;
-    showProgressUI('Followed', limit,
-        'Searching companies by name...'
+    showProgressUI(
+        getProgressVerb('companies'),
+        limit,
+        tr(
+            'popup.company.openingSearch',
+            null,
+            'Searching companies by name...'
+        )
     );
 
     chrome.runtime.sendMessage({
@@ -2023,6 +3161,8 @@ function startCompanyFollow() {
         companyExpectedResults: getCompanyExpectedResults(),
         companyTemplateAuto: isCompanyTemplateAuto(),
         companyTemplateId: getCompanyTemplateId(),
+        companySearchLanguageMode:
+            getCompanySearchLanguageMode(),
         templateMeta: normalizeTemplateMeta(
             plan.meta,
             'companies'
@@ -2035,9 +3175,10 @@ function startJobsAssist() {
     const plan = buildJobsSearchPlan();
     const query = plan.query;
     if (!query) {
-        setStatusMessage(
-            'Enter a jobs query or select a preset with role terms.',
-            'warning'
+        setStatusMessageKey(
+            'popup.jobs.errorMissingQuery',
+            'warning',
+            'Enter a jobs query or select a preset with role terms.'
         );
         return;
     }
@@ -2056,6 +3197,7 @@ function startJobsAssist() {
     const locationTerms = parseMultilineList(
         document.getElementById('jobsLocationTermsInput').value
     );
+    const keywordTerms = buildJobsKeywordTerms();
     const preferredCompaniesInput = parseMultilineList(
         document.getElementById('jobsPreferredCompaniesInput').value
     );
@@ -2105,15 +3247,26 @@ function startJobsAssist() {
         typeof plan.filterSpec.easyApplyOnly === 'boolean'
         ? plan.filterSpec.easyApplyOnly
         : easyApplyOnlyInput;
+    const jobsUseCareerIntelligence = document.getElementById(
+        'jobsUseCareerIntelligenceCheckbox'
+    ).checked;
+    const jobsBrazilOffshoreFriendly = document.getElementById(
+        'jobsBrazilOffshoreFriendlyCheckbox'
+    ).checked;
 
     lastReportedSent = 0;
-    showProgressUI('Prepared', limit, 'Opening LinkedIn Jobs...');
+    showProgressUI(
+        tr('popup.progress.prepared', null, 'Prepared'),
+        limit,
+        tr('popup.jobs.openingJobs', null, 'Opening LinkedIn Jobs...')
+    );
     chrome.runtime.sendMessage({
         action: 'startJobsAssist',
         query,
         limit,
         areaPreset: jobsAreaPreset,
         roleTerms,
+        keywordTerms,
         locationTerms,
         preferredCompanies,
         excludedCompanies,
@@ -2122,12 +3275,15 @@ function startJobsAssist() {
         location,
         workType,
         easyApplyOnly,
+        jobsUseCareerIntelligence,
+        jobsBrazilOffshoreFriendly,
         profileDraft: buildJobsProfilePayload(),
         profilePassphrase,
         jobsUsageGoal: getJobsUsageGoal(),
         jobsExpectedResults: getJobsExpectedResults(),
         jobsTemplateAuto: isJobsTemplateAuto(),
         jobsTemplateId: getJobsTemplateId(),
+        jobsSearchLanguageMode: getJobsSearchLanguageMode(),
         templateMeta: normalizeTemplateMeta(
             plan.meta,
             'jobs'
@@ -2164,9 +3320,10 @@ function startFeedEngage() {
         const warmupActive =
             warmupProgress?.warmupActive === true;
         if (!react && !comment && !warmupActive) {
-            setStatusMessage(
-                'Enable at least one: react or comment.',
-                'warning'
+            setStatusMessageKey(
+                'popup.feed.errorEnableReactOrComment',
+                'warning',
+                'Enable at least one: react or comment.'
             );
             return;
         }
@@ -2187,10 +3344,20 @@ function startFeedEngage() {
             : [];
 
         lastReportedSent = 0;
-        showProgressUI('Engaged', limit,
+        showProgressUI(
+            tr('popup.progress.engaged', null, 'Engaged'),
+            limit,
             warmupActive
-                ? 'Warmup mode: reacting + learning...'
-                : 'Navigating to feed...'
+                ? tr(
+                    'popup.feed.warmupRunning',
+                    null,
+                    'Warmup mode: reacting + learning...'
+                )
+                : tr(
+                    'popup.feed.openingFeed',
+                    null,
+                    'Navigating to feed...'
+                )
         );
 
         chrome.runtime.sendMessage({
@@ -2214,13 +3381,13 @@ function showProgressUI(verb, limit, statusMsg) {
     startBtn.style.display = 'none';
     stopBtn.style.display = 'flex';
     stopBtn.disabled = false;
-    stopBtn.textContent = 'Stop';
+    stopBtn.textContent = tr('common.stop', null, 'Stop');
     document.getElementById('progressBox')
         .style.display = 'block';
     document.getElementById('progressText').textContent =
         `${verb} 0 / ${limit}`;
     document.getElementById('progressMeta').textContent =
-        'Page 1';
+        tr('popup.progress.page', [1], 'Page 1');
     setStatusMessage(statusMsg, 'info');
 }
 
@@ -2237,35 +3404,63 @@ function resetProgressUI() {
 function handleLaunchResponse(response) {
     if (chrome.runtime.lastError) {
         resetProgressUI();
-        setStatusMessage(
-            'Failed to start: ' +
-            chrome.runtime.lastError.message,
-            'error'
+        setStatusMessageKey(
+            'popup.start.errorFailed',
+            'error',
+            'Failed to start: ' + chrome.runtime.lastError.message,
+            [chrome.runtime.lastError.message]
         );
         return;
     }
     if (response?.status === 'blocked') {
         resetProgressUI();
         const reasons = {
-            hourly: 'Hourly rate limit reached. Try again in ~1 hour.',
-            daily: 'Daily rate limit reached. Try again tomorrow.',
-            weekly: 'Weekly limit reached (150). Try next week.',
+            hourly: tr(
+                'popup.start.blockedHourly',
+                null,
+                'Hourly rate limit reached. Try again in ~1 hour.'
+            ),
+            daily: tr(
+                'popup.start.blockedDaily',
+                null,
+                'Daily rate limit reached. Try again tomorrow.'
+            ),
+            weekly: tr(
+                'popup.start.blockedWeekly',
+                null,
+                'Weekly limit reached (150). Try next week.'
+            ),
             'profile-cache-locked':
-                'Encrypted profile cache is locked. Enter the passphrase for this session.'
+                tr(
+                    'popup.start.blockedProfileCacheLocked',
+                    null,
+                    'Encrypted profile cache is locked. Enter the passphrase for this session.'
+                ),
+            'career-intel-locked':
+                tr(
+                    'popup.start.blockedCareerIntelLocked',
+                    null,
+                    'Career intelligence is locked. Enter the session passphrase to unlock it.'
+                )
         };
         setStatusMessage(
             reasons[response.reason] ||
-            'Rate limit reached. Try again later.',
+            tr(
+                'popup.start.blockedDefault',
+                null,
+                'Rate limit reached. Try again later.'
+            ),
             'error'
         );
         return;
     }
     if (response?.status === 'started' &&
         response.warmupActive) {
-        setStatusMessage(
-            `Warmup run ${response.currentRunNumber}/` +
-            `${response.requiredRuns}: reactions + learning, no comments.`,
-            'info'
+        setStatusMessageKey(
+            'popup.feed.warmupStarted',
+            'info',
+            `Warmup run ${response.currentRunNumber}/${response.requiredRuns}: reactions + learning, no comments.`,
+            [response.currentRunNumber, response.requiredRuns]
         );
     }
     if (response?.status === 'started' &&
@@ -2278,8 +3473,12 @@ document.getElementById('stopBtn').addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'stop' });
     const stopBtn = document.getElementById('stopBtn');
     stopBtn.disabled = true;
-    stopBtn.textContent = 'Stopping...';
-    setStatusMessage('Stopping automation...', 'warning');
+    stopBtn.textContent = tr('common.stopping', null, 'Stopping...');
+    setStatusMessageKey(
+        'popup.statusStopping',
+        'warning',
+        'Stopping automation...'
+    );
 });
 
 let lastReportedSent = 0;
@@ -2365,17 +3564,26 @@ chrome.runtime.onMessage.addListener((request) => {
             lastReportedSent = request.sent;
         }
         const verbMap = {
-            connect: engMode ? 'Engaged' : 'Sent',
-            companies: 'Followed',
-            jobs: 'Prepared',
-            feed: 'Engaged'
+            connect: getProgressVerb('connect', engMode),
+            companies: getProgressVerb('companies'),
+            jobs: getProgressVerb('jobs'),
+            feed: getProgressVerb('feed')
         };
-        const verb = verbMap[currentMode] || 'Done';
+        const verb = verbMap[currentMode] ||
+            tr('common.done', null, 'Done');
         document.getElementById('progressText').textContent =
             `${verb} ${request.sent} / ${request.limit}`;
-        const meta = [`Page ${request.page}`];
+        const meta = [
+            tr('popup.progress.page', [request.page], `Page ${request.page}`)
+        ];
         if (request.skipped > 0) {
-            meta.push(`${request.skipped} skipped`);
+            meta.push(
+                tr(
+                    'popup.progress.skipped',
+                    [request.skipped],
+                    `${request.skipped} skipped`
+                )
+            );
         }
         document.getElementById('progressMeta').textContent =
             meta.join(' · ');
@@ -2438,40 +3646,59 @@ chrome.runtime.onMessage.addListener((request) => {
             jobsManualResumePending = true;
             setStatusMessage(
                 response?.message ||
-                    'Manual input required. Complete the application manually.',
+                    tr(
+                        'popup.jobs.manualInputRequired',
+                        null,
+                        'Manual input required. Complete the application manually.'
+                    ),
                 'warning'
             );
             startBtn.disabled = false;
-            startBtn.textContent = 'Continue Manually';
+            startBtn.textContent = tr(
+                'common.continueManually',
+                null,
+                'Continue Manually'
+            );
         } else if (runStatus === 'success') {
             if (response?.mode === 'jobs') {
                 jobsManualResumePending = false;
             }
             setStatusMessage(
-                'Success! ' + (response.message || ''),
+                tr('common.successPrefix', null, 'Success! ') +
+                    (response.message || ''),
                 'success'
             );
-            startBtn.textContent = 'Done!';
+            startBtn.textContent = tr('common.doneBang', null, 'Done!');
         } else if (runStatus === 'canceled') {
             if (response?.mode === 'jobs') {
                 jobsManualResumePending = false;
             }
             setStatusMessage(
-                response?.message || 'Run canceled by user.',
+                response?.message ||
+                    tr(
+                        'popup.runCanceled',
+                        null,
+                        'Run canceled by user.'
+                    ),
                 'warning'
             );
             startBtn.disabled = false;
-            startBtn.textContent = 'Start Again';
+            startBtn.textContent = tr(
+                'common.startAgain',
+                null,
+                'Start Again'
+            );
         } else {
             if (response?.mode === 'jobs') {
                 jobsManualResumePending = false;
             }
             setStatusMessage(
-                'Error: ' + getDoneFailureMessage(response),
+                tr('common.errorPrefix', null, 'Error: ') +
+                    getDoneFailureMessage(response),
                 'error'
             );
             startBtn.disabled = false;
-            startBtn.textContent = 'Try Again';
+            startBtn.textContent = tr('common.tryAgain', null, 'Try Again');
         }
         if (response?.mode === 'feed') {
             refreshFeedWarmupProgress();
@@ -2486,20 +3713,31 @@ document.getElementById('checkAcceptedBtn').addEventListener(
     'click', () => {
         const btn = document.getElementById('checkAcceptedBtn');
         btn.disabled = true;
-        btn.textContent = 'Checking...';
+        btn.textContent = tr('common.checking', null, 'Checking...');
         chrome.runtime.sendMessage(
             { action: 'checkAccepted' },
             (response) => {
                 btn.disabled = false;
-                btn.textContent = 'Check Accepted Connections';
+                btn.textContent = tr(
+                    'popup.tools.checkAccepted',
+                    null,
+                    'Check Accepted Connections'
+                );
                 if (response?.accepted?.length) {
-                    setStatusMessage(
+                    setStatusMessageKey(
+                        'popup.tools.acceptedFound',
+                        'success',
                         `Found ${response.accepted.length} accepted connections!`,
-                        'success'
+                        [response.accepted.length]
                     );
                 } else {
                     setStatusMessage(
-                        response?.error || 'No new accepted connections found.',
+                        response?.error ||
+                            tr(
+                                'popup.tools.acceptedNone',
+                                null,
+                                'No new accepted connections found.'
+                            ),
                         'info'
                     );
                 }
@@ -2541,10 +3779,12 @@ function renderRecentProfiles(entries) {
             link.href = r.profileUrl;
             link.target = '_blank';
             link.rel = 'noopener noreferrer';
-            link.textContent = r.name || 'Unknown';
+            link.textContent = r.name ||
+                tr('common.unknown', null, 'Unknown');
             nameEl.appendChild(link);
         } else {
-            nameEl.textContent = r.name || 'Unknown';
+            nameEl.textContent = r.name ||
+                tr('common.unknown', null, 'Unknown');
         }
 
         const headlineEl = document.createElement('div');
@@ -2558,17 +3798,15 @@ function renderRecentProfiles(entries) {
         badge.className = 'profile-badge ';
         if (r.status === 'sent') {
             badge.className += 'sent';
-            badge.textContent = 'Sent';
+            badge.textContent = tr('status.sent', null, 'Sent');
         } else if (r.status === 'visited' ||
             r.status === 'followed' ||
             r.status === 'visited-followed') {
             badge.className += 'sent';
-            badge.textContent = r.status
-                .replace('-', '+');
+            badge.textContent = getRecentProfileStatusLabel(r.status);
         } else {
             badge.className += 'skipped';
-            badge.textContent =
-                (r.status || '').replace('skipped-', '');
+            badge.textContent = getRecentProfileStatusLabel(r.status);
         }
 
         card.appendChild(avatar);
@@ -2611,10 +3849,10 @@ function setMode(mode) {
     });
 
     const labels = {
-        connect: 'Launch Automation',
-        companies: 'Follow Companies',
-        jobs: 'Assist Job Apply',
-        feed: 'Engage Feed'
+        connect: tr('popup.start.connect', null, 'Launch Automation'),
+        companies: tr('popup.start.companies', null, 'Follow Companies'),
+        jobs: tr('popup.start.jobs', null, 'Assist Job Apply'),
+        feed: tr('popup.start.feed', null, 'Engage Feed')
     };
     const startBtn = document.getElementById('startBtn');
     startBtn.textContent = '';
@@ -2656,6 +3894,12 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
     });
 });
 
+document.getElementById('uiLanguageModeSelect')
+    .addEventListener('change', async () => {
+        await applyPopupLocalization();
+        saveState();
+    });
+
 document.getElementById('feedCommentCheckbox')
     .addEventListener('change', (e) => {
         syncFeedCommentSettingsVisibility();
@@ -2690,16 +3934,18 @@ document.getElementById('resetFeedWarmupProgressBtn')
         }, (response) => {
             if (chrome.runtime.lastError ||
                 response?.status !== 'ok') {
-                setStatusMessage(
-                    'Failed to reset warmup progress.',
-                    'error'
+                setStatusMessageKey(
+                    'popup.feed.resetWarmupFailed',
+                    'error',
+                    'Failed to reset warmup progress.'
                 );
                 return;
             }
             renderFeedWarmupProgress(response);
-            setStatusMessage(
-                'Warmup learning progress reset.',
-                'success'
+            setStatusMessageKey(
+                'popup.feed.resetWarmupSuccess',
+                'success',
+                'Warmup learning progress reset.'
             );
             saveState();
         });
@@ -2729,6 +3975,11 @@ document.getElementById('companyAreaPresetSelect')
         saveState();
     });
 document.getElementById('companyUsageGoalSelect')
+    .addEventListener('change', () => {
+        refreshTemplateControls();
+        saveState();
+    });
+document.getElementById('companySearchLanguageModeSelect')
     .addEventListener('change', () => {
         refreshTemplateControls();
         saveState();
@@ -2771,6 +4022,11 @@ document.getElementById('jobsUsageGoalSelect')
         refreshTemplateControls();
         saveState();
     });
+document.getElementById('jobsSearchLanguageModeSelect')
+    .addEventListener('change', () => {
+        refreshTemplateControls();
+        saveState();
+    });
 document.getElementById('jobsExpectedResultsSelect')
     .addEventListener('change', () => {
         refreshTemplateControls();
@@ -2787,6 +4043,8 @@ document.getElementById('jobsQueryInput')
     .addEventListener('input', saveState);
 document.getElementById('jobsRoleTermsInput')
     .addEventListener('input', saveState);
+document.getElementById('jobsKeywordTermsInput')
+    .addEventListener('input', saveState);
 document.getElementById('jobsLocationTermsInput')
     .addEventListener('input', saveState);
 document.getElementById('jobsPreferredCompaniesInput')
@@ -2800,6 +4058,10 @@ document.getElementById('jobsWorkTypeSelect')
 document.getElementById('jobsLocationInput')
     .addEventListener('input', saveState);
 document.getElementById('jobsEasyApplyOnlyCheckbox')
+    .addEventListener('change', saveState);
+document.getElementById('jobsUseCareerIntelligenceCheckbox')
+    .addEventListener('change', saveState);
+document.getElementById('jobsBrazilOffshoreFriendlyCheckbox')
     .addEventListener('change', saveState);
 document.getElementById('jobsProfileFullNameInput')
     .addEventListener('input', saveState);
@@ -2821,9 +4083,10 @@ document.getElementById('unlockJobsProfileCacheBtn')
             'jobsProfilePassphraseInput'
         ).value;
         if (!passphrase || passphrase.trim().length < 4) {
-            setStatusMessage(
-                'Enter the cache passphrase to unlock profile data.',
-                'warning'
+            setStatusMessageKey(
+                'popup.jobs.unlockCachePassphraseRequired',
+                'warning',
+                'Enter the cache passphrase to unlock profile data.'
             );
             return;
         }
@@ -2832,35 +4095,39 @@ document.getElementById('unlockJobsProfileCacheBtn')
             profilePassphrase: passphrase
         }, (response) => {
             if (chrome.runtime.lastError || !response) {
-                setStatusMessage(
-                    'Failed to unlock encrypted jobs cache.',
-                    'error'
+                setStatusMessageKey(
+                    'popup.jobs.unlockCacheFailed',
+                    'error',
+                    'Failed to unlock encrypted jobs cache.'
                 );
                 return;
             }
             if (response.status === 'missing') {
                 jobsCacheLoadedThisSession = false;
-                setStatusMessage(
-                    'No encrypted jobs profile cache found.',
-                    'warning'
+                setStatusMessageKey(
+                    'popup.jobs.cacheMissing',
+                    'warning',
+                    'No encrypted jobs profile cache found.'
                 );
                 refreshJobsCacheStatus();
                 return;
             }
             if (response.status !== 'loaded') {
                 jobsCacheLoadedThisSession = false;
-                setStatusMessage(
-                    'Could not unlock cache. Check your passphrase.',
-                    'error'
+                setStatusMessageKey(
+                    'popup.jobs.unlockCacheBadPassphrase',
+                    'error',
+                    'Could not unlock cache. Check your passphrase.'
                 );
                 refreshJobsCacheStatus();
                 return;
             }
             fillJobsProfileFields(response.profile || {});
             jobsCacheLoadedThisSession = true;
-            setStatusMessage(
-                'Encrypted jobs profile cache unlocked.',
-                'success'
+            setStatusMessageKey(
+                'popup.jobs.cacheUnlocked',
+                'success',
+                'Encrypted jobs profile cache unlocked.'
             );
             refreshJobsCacheStatus();
         });
@@ -2871,9 +4138,10 @@ document.getElementById('saveJobsProfileCacheBtn')
             'jobsProfilePassphraseInput'
         ).value;
         if (!passphrase || passphrase.trim().length < 4) {
-            setStatusMessage(
-                'Enter a session passphrase with at least 4 characters.',
-                'warning'
+            setStatusMessageKey(
+                'popup.jobs.sessionPassphraseRequired',
+                'warning',
+                'Enter a session passphrase with at least 4 characters.'
             );
             return;
         }
@@ -2887,14 +4155,19 @@ document.getElementById('saveJobsProfileCacheBtn')
                 response?.status !== 'saved') {
                 setStatusMessage(
                     response?.error ||
-                        'Failed to save encrypted jobs cache.',
+                        tr(
+                            'popup.jobs.cacheSaveFailed',
+                            null,
+                            'Failed to save encrypted jobs cache.'
+                        ),
                     'error'
                 );
                 return;
             }
-            setStatusMessage(
-                'Encrypted jobs profile cache saved.',
-                'success'
+            setStatusMessageKey(
+                'popup.jobs.cacheSaved',
+                'success',
+                'Encrypted jobs profile cache saved.'
             );
             jobsCacheLoadedThisSession = false;
             refreshJobsCacheStatus();
@@ -2908,19 +4181,232 @@ document.getElementById('clearJobsProfileCacheBtn')
         }, (response) => {
             if (chrome.runtime.lastError ||
                 response?.status !== 'cleared') {
-                setStatusMessage(
-                    'Failed to clear jobs profile cache.',
-                    'error'
+                setStatusMessageKey(
+                    'popup.jobs.cacheClearFailed',
+                    'error',
+                    'Failed to clear jobs profile cache.'
                 );
                 return;
             }
-            setStatusMessage(
-                'Encrypted jobs profile cache cleared.',
-                'success'
+            setStatusMessageKey(
+                'popup.jobs.cacheCleared',
+                'success',
+                'Encrypted jobs profile cache cleared.'
             );
             jobsCacheLoadedThisSession = false;
             refreshJobsCacheStatus();
         });
+    });
+document.getElementById('uploadJobsResumesBtn')
+    .addEventListener('click', () => {
+        document.getElementById('jobsResumeUploadInput')?.click();
+    });
+document.getElementById('jobsResumeUploadInput')
+    .addEventListener('change', async (event) => {
+        const files = Array.from(event.target.files || []);
+        event.target.value = '';
+        if (!files.length) return;
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessageKey(
+                'popup.jobs.resumeUploadPassphraseRequired',
+                'warning',
+                'Enter the session passphrase before uploading resumes.'
+            );
+            return;
+        }
+        try {
+            const currentState = await loadJobsCareerIntelState(passphrase);
+            const currentDocs = currentState?.documents || [];
+            if (currentDocs.length + files.length >
+                MAX_RESUME_FILES) {
+                setStatusMessageKey(
+                    'popup.jobs.resumeVaultLimit',
+                    'warning',
+                    `Resume vault limit is ${MAX_RESUME_FILES} files.`,
+                    [MAX_RESUME_FILES]
+                );
+                return;
+            }
+
+            for (const file of files) {
+                const parsed = await parseResumeFile(file);
+                await upsertJobsCareerVaultDocument(
+                    parsed,
+                    passphrase
+                );
+            }
+            const nextState = await rebuildAndPersistJobsCareerIntel(
+                {},
+                passphrase
+            );
+            setStatusMessageKey(
+                'popup.jobs.careerUpdated',
+                'success',
+                `Career intelligence updated from ${nextState.documents.length} resume(s).`,
+                [nextState.documents.length]
+            );
+            saveState();
+        } catch (error) {
+            setStatusMessage(
+                getJobsCareerIntelErrorMessage(error),
+                'error'
+            );
+        }
+    });
+document.getElementById('importJobsLinkedInProfileBtn')
+    .addEventListener('click', () => {
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessageKey(
+                'popup.jobs.importProfilePassphraseRequired',
+                'warning',
+                'Enter the session passphrase before importing your profile.'
+            );
+            return;
+        }
+        chrome.runtime.sendMessage({
+            action: 'importJobsLinkedInProfile'
+        }, async (response) => {
+            if (chrome.runtime.lastError ||
+                response?.status !== 'loaded') {
+                setStatusMessage(
+                    response?.error ||
+                        tr(
+                            'popup.jobs.importProfileOpenLinkedIn',
+                            null,
+                            'Open your LinkedIn profile page before importing.'
+                        ),
+                    'warning'
+                );
+                return;
+            }
+            try {
+                await rebuildAndPersistJobsCareerIntel({
+                    importedProfile: response.profile
+                }, passphrase);
+                setStatusMessageKey(
+                    'popup.jobs.profileImported',
+                    'success',
+                    'LinkedIn profile imported into Career Intelligence.'
+                );
+                saveState();
+            } catch (error) {
+                setStatusMessage(
+                    getJobsCareerIntelErrorMessage(error),
+                    'error'
+                );
+            }
+        });
+    });
+document.getElementById('analyzeJobsCareerBtn')
+    .addEventListener('click', () => {
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessageKey(
+                'popup.jobs.analyzePassphraseRequired',
+                'warning',
+                'Enter the session passphrase to analyze Career Intelligence.'
+            );
+            return;
+        }
+        chrome.runtime.sendMessage({
+            action: 'generateJobsCareerPlan',
+            profilePassphrase: passphrase,
+            expectedResultsBucket: getJobsExpectedResults(),
+            searchLanguageMode: getJobsSearchLanguageMode(),
+            jobsBrazilOffshoreFriendly: document.getElementById(
+                'jobsBrazilOffshoreFriendlyCheckbox'
+            ).checked
+        }, (response) => {
+            if (chrome.runtime.lastError ||
+                response?.status !== 'generated') {
+                setStatusMessageKey(
+                    'popup.jobs.careerUnavailableOrLocked',
+                    'warning',
+                    'Career intelligence is unavailable or locked.'
+                );
+                return;
+            }
+            setJobsCareerStateForSession(response.state, true);
+            fillJobsCareerPlan(response.plan);
+            refreshJobsCareerIntelStatus();
+            updateQueryPreview();
+            saveState();
+            setStatusMessageKey(
+                'popup.jobs.planGenerated',
+                'success',
+                'Jobs search terms generated from Career Intelligence.'
+            );
+        });
+    });
+document.getElementById('clearJobsCareerIntelBtn')
+    .addEventListener('click', async () => {
+        try {
+            await clearJobsCareerVault();
+            chrome.runtime.sendMessage({
+                action: 'clearJobsCareerIntel'
+            }, (response) => {
+                if (chrome.runtime.lastError ||
+                    response?.status !== 'cleared') {
+                    setStatusMessageKey(
+                        'popup.jobs.careerClearFailed',
+                        'error',
+                        'Failed to clear Career Intelligence.'
+                    );
+                    return;
+                }
+                setJobsCareerStateForSession(null, false);
+                refreshJobsCareerIntelStatus();
+                setStatusMessageKey(
+                    'popup.jobs.careerCleared',
+                    'success',
+                    'Career Intelligence cleared.'
+                );
+            });
+        } catch (error) {
+            setStatusMessageKey(
+                'popup.jobs.careerClearFailed',
+                'error',
+                'Failed to clear Career Intelligence.'
+            );
+        }
+    });
+document.getElementById('jobsCareerDocsList')
+    .addEventListener('click', async (event) => {
+        const button = event.target.closest(
+            '[data-remove-jobs-doc]'
+        );
+        if (!button) return;
+        const passphrase = getJobsCareerPassphrase();
+        if (passphrase.length < 4) {
+            setStatusMessageKey(
+                'popup.jobs.resumeRemovePassphraseRequired',
+                'warning',
+                'Enter the session passphrase to remove a resume.'
+            );
+            return;
+        }
+        try {
+            await removeJobsCareerVaultDocument(
+                button.dataset.removeJobsDoc
+            );
+            const nextState = await rebuildAndPersistJobsCareerIntel(
+                {},
+                passphrase
+            );
+            setStatusMessageKey(
+                'popup.jobs.careerUpdated',
+                'success',
+                `Career intelligence updated from ${nextState.documents.length} resume(s).`,
+                [nextState.documents.length]
+            );
+        } catch (error) {
+            setStatusMessage(
+                getJobsCareerIntelErrorMessage(error),
+                'error'
+            );
+        }
     });
 document.getElementById('companyQueryInput')
     .addEventListener('input', saveState);
@@ -3133,9 +4619,11 @@ function loadNurtureStatus() {
         if (!box || !text) return;
 
         if (!list.length) {
-            text.textContent =
-                'No nurture targets yet. ' +
-                'Connect with people to start nurturing.';
+            text.textContent = tr(
+                'popup.nurture.empty',
+                null,
+                'No nurture targets yet. Connect with people to start nurturing.'
+            );
             box.style.display = 'block';
             return;
         }
@@ -3157,9 +4645,11 @@ function loadNurtureStatus() {
             return true;
         });
 
-        text.textContent =
-            `${list.length} total, ` +
-            `${active.length} active targets ready.`;
+        text.textContent = tr(
+            'popup.nurture.summary',
+            [list.length, active.length],
+            `${list.length} total, ${active.length} active targets ready.`
+        );
         box.style.display = 'block';
     });
 }
@@ -3200,9 +4690,11 @@ function loadRateLimitStatus() {
         const dayLeft = Math.max(
             0, lim.daily - dayCount);
 
-        text.textContent =
-            `Rate limits: ${hourLeft}/${lim.hourly} ` +
-            `this hour · ${dayLeft}/${lim.daily} today`;
+        text.textContent = tr(
+            'popup.rateLimits.summary',
+            [hourLeft, lim.hourly, dayLeft, lim.daily],
+            `Rate limits: ${hourLeft}/${lim.hourly} this hour · ${dayLeft}/${lim.daily} today`
+        );
 
         if (hourLeft === 0 || dayLeft === 0) {
             text.style.color = 'var(--warning)';

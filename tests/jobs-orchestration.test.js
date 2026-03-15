@@ -1,6 +1,9 @@
 const {
     encryptJobsProfileCache
 } = require('../extension/lib/jobs-cache');
+const {
+    encryptJobsCareerIntelState
+} = require('../extension/lib/jobs-career-cache');
 
 describe('jobs orchestration in background', () => {
     let runtimeListener;
@@ -65,6 +68,14 @@ describe('jobs orchestration in background', () => {
             '../extension/lib/jobs-cache'
         );
         Object.assign(global, jobsCache);
+        const jobsCareerCache = require(
+            '../extension/lib/jobs-career-cache'
+        );
+        Object.assign(global, jobsCareerCache);
+        const jobsCareerIntelligence = require(
+            '../extension/lib/jobs-career-intelligence'
+        );
+        Object.assign(global, jobsCareerIntelligence);
         const jobsUtils = require(
             '../extension/lib/jobs-utils'
         );
@@ -264,6 +275,17 @@ describe('jobs orchestration in background', () => {
         delete global.encryptJobsProfileCache;
         delete global.decryptJobsProfileCache;
         delete global.getJobsProfileCacheStatus;
+        delete global.CAREER_INTEL_CACHE_VERSION;
+        delete global.normalizeCareerIntelState;
+        delete global.encryptJobsCareerIntelState;
+        delete global.decryptJobsCareerIntelState;
+        delete global.getJobsCareerIntelStatus;
+        delete global.MAX_RESUME_BYTES;
+        delete global.MAX_RESUME_FILES;
+        delete global.validateResumeVaultFileMeta;
+        delete global.analyzeJobsCareerInputs;
+        delete global.buildJobsCareerSearchPlan;
+        delete global.getBrazilOffshoreSignals;
         delete global.matchesExcludedJobCompany;
         delete global.evaluateJobCandidate;
         delete global.rankJobsForApply;
@@ -425,6 +447,98 @@ describe('jobs orchestration in background', () => {
             reason: 'profile-cache-locked'
         });
         expect(createdTabs).toHaveLength(0);
+    });
+
+    it('loads encrypted jobs career intelligence state with a valid passphrase', async () => {
+        storageData.jobsCareerIntelStateV1 = await encryptJobsCareerIntelState(
+            {
+                importedProfile: {
+                    headline: 'Senior Full Stack Engineer'
+                },
+                analysisSnapshot: {
+                    inferredRoles: ['full stack engineer'],
+                    keywordTerms: ['react', 'node.js', 'aws']
+                },
+                documents: [{
+                    id: 'resume-1',
+                    fileName: 'cv.pdf'
+                }]
+            },
+            'career-passphrase'
+        );
+
+        const response = await sendRequest({
+            action: 'loadJobsCareerIntel',
+            profilePassphrase: 'career-passphrase'
+        });
+
+        expect(response).toEqual({
+            status: 'loaded',
+            state: expect.objectContaining({
+                analysisSnapshot: expect.objectContaining({
+                    inferredRoles: ['full stack engineer']
+                })
+            })
+        });
+    });
+
+    it('blocks jobs run when career intelligence is enabled and locked', async () => {
+        storageData.jobsCareerIntelStateV1 = await encryptJobsCareerIntelState(
+            {
+                analysisSnapshot: {
+                    inferredRoles: ['full stack engineer'],
+                    keywordTerms: ['react']
+                }
+            },
+            'career-passphrase'
+        );
+
+        const response = await sendRequest({
+            action: 'startJobsAssist',
+            query: 'full stack engineer',
+            limit: 5,
+            jobsUseCareerIntelligence: true
+        });
+
+        expect(response).toEqual({
+            status: 'blocked',
+            reason: 'career-intel-locked'
+        });
+    });
+
+    it('forwards decrypted career intelligence to jobs runtime when enabled', async () => {
+        storageData.jobsCareerIntelStateV1 = await encryptJobsCareerIntelState(
+            {
+                analysisSnapshot: {
+                    inferredRoles: ['full stack engineer'],
+                    keywordTerms: ['react', 'node.js', 'aws']
+                }
+            },
+            'career-passphrase'
+        );
+
+        const response = await sendRequest({
+            action: 'startJobsAssist',
+            query: 'full stack engineer',
+            limit: 5,
+            jobsUseCareerIntelligence: true,
+            jobsBrazilOffshoreFriendly: true,
+            profilePassphrase: 'career-passphrase'
+        });
+
+        expect(response).toEqual({ status: 'started' });
+        await tick();
+        expect(sentToContent[0].payload.config.keywordTerms).toEqual([
+            'react',
+            'node.js',
+            'aws'
+        ]);
+        expect(
+            sentToContent[0].payload.config.jobsBrazilOffshoreFriendly
+        ).toBe(true);
+        expect(
+            sentToContent[0].payload.config.careerIntelVersion
+        ).toBe(1);
     });
 
     it('stop request interrupts active jobs runtime', async () => {

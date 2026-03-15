@@ -12,6 +12,15 @@
 })(
     typeof globalThis !== 'undefined' ? globalThis : this,
     function() {
+        const searchLanguageApi = typeof require === 'function'
+            ? require('./search-language')
+            : (typeof globalThis !== 'undefined'
+                ? globalThis.LinkedInSearchLanguage
+                : null);
+        const resolveSearchLocale =
+            searchLanguageApi?.resolveSearchLocale;
+        const localizeSearchTerms =
+            searchLanguageApi?.localizeSearchTerms;
         const EXPECTED_RESULTS_BUCKETS = Object.freeze([
             'precise',
             'balanced',
@@ -759,16 +768,45 @@
             return uniqueNormalized(base.concat(extra));
         }
 
+        function localizeTerms(values, locale) {
+            if (typeof localizeSearchTerms !== 'function') {
+                return uniqueNormalized(values);
+            }
+            return uniqueNormalized(localizeSearchTerms(values, locale));
+        }
+
         function buildConnectQueryPlan(template, options) {
             const selectedTags = options?.selectedTags || {};
+            const searchLocale = typeof resolveSearchLocale === 'function'
+                ? resolveSearchLocale({
+                    mode: 'connect',
+                    requestedMode: options?.searchLanguageMode,
+                    marketTerms: listFrom(selectedTags.market),
+                    usageGoal: template.usageGoal,
+                    expectedResultsBucket:
+                        template.expectedResultsBucket
+                })
+                : 'en';
             const expectedResultsBucket = normalizeExpectedResultsBucket(
                 template.expectedResultsBucket
             );
             const groupTerms = {
-                role: mergeGroupTerms(template, selectedTags, 'role'),
-                industry: mergeGroupTerms(template, selectedTags, 'industry'),
-                market: mergeGroupTerms(template, selectedTags, 'market'),
-                level: mergeGroupTerms(template, selectedTags, 'level')
+                role: localizeTerms(
+                    mergeGroupTerms(template, selectedTags, 'role'),
+                    searchLocale
+                ),
+                industry: localizeTerms(
+                    mergeGroupTerms(template, selectedTags, 'industry'),
+                    searchLocale
+                ),
+                market: localizeTerms(
+                    mergeGroupTerms(template, selectedTags, 'market'),
+                    searchLocale
+                ),
+                level: localizeTerms(
+                    mergeGroupTerms(template, selectedTags, 'level'),
+                    searchLocale
+                )
             };
 
             const maxByBucket = CONNECT_ROLE_LIMITS[expectedResultsBucket] || 6;
@@ -805,6 +843,7 @@
                     expectedResultsBucket: template.expectedResultsBucket,
                     operatorCount: compiled.operatorCount,
                     compiledQueryLength: compiled.query.length,
+                    resolvedSearchLocale: searchLocale,
                     roleTermsUsed: roles.length,
                     mode: 'connect'
                 },
@@ -816,6 +855,16 @@
         }
 
         function buildCompaniesQueryPlan(template, options) {
+            const searchLocale = typeof resolveSearchLocale === 'function'
+                ? resolveSearchLocale({
+                    mode: 'companies',
+                    requestedMode: options?.searchLanguageMode,
+                    usageGoal: template.usageGoal,
+                    expectedResultsBucket:
+                        template.expectedResultsBucket,
+                    query: options?.manualQuery
+                })
+                : 'en';
             const manualQuery = String(options?.manualQuery || '').trim();
             if (manualQuery) {
                 return {
@@ -828,6 +877,7 @@
                         expectedResultsBucket: template.expectedResultsBucket,
                         operatorCount: countBooleanOperators(manualQuery),
                         compiledQueryLength: manualQuery.length,
+                        resolvedSearchLocale: searchLocale,
                         mode: 'companies',
                         manualQuery: true
                     },
@@ -835,8 +885,9 @@
                 };
             }
 
-            const keywords = uniqueNormalized(
-                listFrom(template?.querySpec?.keywords)
+            const keywords = localizeTerms(
+                listFrom(template?.querySpec?.keywords),
+                searchLocale
             );
             const compiled = compileBooleanQuery({
                 should: keywords,
@@ -856,6 +907,7 @@
                     expectedResultsBucket: template.expectedResultsBucket,
                     operatorCount: compiled.operatorCount,
                     compiledQueryLength: compiled.query.length,
+                    resolvedSearchLocale: searchLocale,
                     mode: 'companies'
                 },
                 diagnostics: {
@@ -865,6 +917,19 @@
         }
 
         function buildJobsQueryPlan(template, options) {
+            const searchLocale = typeof resolveSearchLocale === 'function'
+                ? resolveSearchLocale({
+                    mode: 'jobs',
+                    requestedMode: options?.searchLanguageMode,
+                    selectedLocations: listFrom(options?.locationTerms),
+                    locationTerms: listFrom(template?.querySpec?.locationTerms),
+                    usageGoal: template.usageGoal,
+                    expectedResultsBucket:
+                        template.expectedResultsBucket,
+                    jobsBrazilOffshoreFriendly:
+                        options?.jobsBrazilOffshoreFriendly === true
+                })
+                : 'en';
             const manualQuery = String(options?.manualQuery || '').trim();
             if (manualQuery) {
                 return {
@@ -877,6 +942,7 @@
                         expectedResultsBucket: template.expectedResultsBucket,
                         operatorCount: countBooleanOperators(manualQuery),
                         compiledQueryLength: manualQuery.length,
+                        resolvedSearchLocale: searchLocale,
                         mode: 'jobs',
                         manualQuery: true
                     },
@@ -886,16 +952,25 @@
 
             const roleTerms = uniqueNormalized(
                 listFrom(options?.roleTerms).concat(
-                    listFrom(template?.querySpec?.roleTerms)
+                    localizeTerms(
+                        listFrom(template?.querySpec?.roleTerms),
+                        searchLocale
+                    )
                 )
             );
             const locationTerms = uniqueNormalized(
                 listFrom(options?.locationTerms).concat(
-                    listFrom(template?.querySpec?.locationTerms)
+                    localizeTerms(
+                        listFrom(template?.querySpec?.locationTerms),
+                        searchLocale
+                    )
                 )
             );
             const keywords = uniqueNormalized(
-                listFrom(template?.querySpec?.keywords)
+                localizeTerms(
+                    listFrom(template?.querySpec?.keywords),
+                    searchLocale
+                )
             );
 
             const compiled = compileBooleanQuery({
@@ -917,6 +992,7 @@
                     expectedResultsBucket: template.expectedResultsBucket,
                     operatorCount: compiled.operatorCount,
                     compiledQueryLength: compiled.query.length,
+                    resolvedSearchLocale: searchLocale,
                     mode: 'jobs'
                 },
                 diagnostics: {
