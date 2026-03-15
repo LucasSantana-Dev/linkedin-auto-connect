@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.28.3] - 2026-03-15
+
+### Changed
+- **Test coverage raised**: 64 new tests (1020 total). `feed-utils.js` 77%→84% stmts / 63%→72% branches. Overall lines 88%→**90.81%**.
+
 ## [1.28.2] - 2026-03-15
 
 ### Changed
