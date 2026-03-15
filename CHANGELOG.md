@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.32.0] - 2026-03-15
+
+### Added
+- **7 `connect.{preset}.recruiter_outreach.precise` templates** for creative sub-presets (graphic-design, art-direction, branding, ui-ux, motion-design, video-editing, videomaker) targeting Brazil recruiters with `activelyHiring: true`.
+- **`tests/feed-dom-extraction.test.js`**: 86 new tests (jsdom) covering all 7 image signal cue types, reaction alt-text fallback parsing, totalEl count extraction, `data-view-tracking-scope` URN path, `parseCompactCountToken` decimal branches, `extractCommentCountFromText` keyword-first pattern, parent traversal in `getPostCommentSignal` and `getExistingComments`.
+- **`scripts/install-hooks.sh`** + `npm run install-hooks`: reproducible pre-push hook installer for fresh clones. Runs lint + typecheck + test:coverage before every push.
+- Pre-push git hook installed locally.
+
+### Changed
+- **Coverage thresholds ratcheted**: stmts 90→91, branches 76→78, lines 92→93.
+- **36 suites, 1263 tests** (+94). 91.4% stmts, 78.7% branches, 96.8% functions, 93.3% lines.
+- Updated `verify` skill thresholds to match `jest.config.cjs`.
+
+### Fixed
+- `jobs-career-vault.js` branch coverage improved: null/undefined passphrase fallback, existing-store upgrade skip, transaction error rejection, `openVault` onerror rejection.
+
 ## [1.31.0] - 2026-03-15
 
 ### Added
