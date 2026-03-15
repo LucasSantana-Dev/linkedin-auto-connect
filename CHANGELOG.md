@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.28.2] - 2026-03-15
+
+### Changed
+- **Test coverage raised**: 65 new tests (956 total). `jobs-career-intelligence.js` 84%→97% stmts / 57%→79% branches, `jobs-utils.js` 78%→88% stmts / 64%→80% branches. Overall lines 87%→88%.
+
 ## [1.28.1] - 2026-03-15
 
 ### Changed
