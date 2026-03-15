@@ -394,4 +394,44 @@ describe('jobs career vault', () => {
             listJobsCareerVaultDocuments(errOpenDb)
         ).rejects.toThrow('open failed');
     });
+
+    it('getCryptoApi uses require("crypto").webcrypto when globalThis.crypto.subtle is absent (line 32)', async () => {
+        const origCrypto = globalThis.crypto;
+
+        // Remove subtle from globalThis.crypto to force the require('crypto') fallback
+        Object.defineProperty(globalThis, 'crypto', {
+            value: { subtle: undefined },
+            configurable: true,
+            writable: true
+        });
+
+        jest.resetModules();
+        // Provide a webcrypto with subtle so line 32 is reached and returned
+        // Note: jest.mock factory cannot reference out-of-scope vars, so we
+        // use require('crypto') inside the factory (allowed via require)
+        jest.mock('crypto', () => {
+            const mockNodeCrypto = jest.requireActual('crypto');
+            return { webcrypto: mockNodeCrypto.webcrypto };
+        });
+
+        const vaultModule = require('../extension/lib/jobs-career-vault');
+
+        try {
+            // sha256Hex calls getCryptoApi() — if line 32 is reached, it returns
+            // nodeCrypto.webcrypto and the hash succeeds
+            const result = await vaultModule.sha256Hex(
+                new Uint8Array([1, 2, 3]).buffer
+            );
+            expect(typeof result).toBe('string');
+            expect(result.length).toBe(64);
+        } finally {
+            Object.defineProperty(globalThis, 'crypto', {
+                value: origCrypto,
+                configurable: true,
+                writable: true
+            });
+            jest.resetModules();
+            jest.unmock('crypto');
+        }
+    });
 });
