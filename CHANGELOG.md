@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.28.1] - 2026-03-15
+
+### Changed
+- **Test coverage raised**: 160 new tests (891 total from 731). `templates.js` 28% → 76%, `jobs-career-cache.js` 74% → 87%, overall statements 82% → 84%, functions 82% → 91%, lines 85% → 87%.
+
 ## [1.28.0] - 2026-03-15
 
 ### Added
