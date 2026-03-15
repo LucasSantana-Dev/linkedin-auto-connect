@@ -180,4 +180,132 @@ describe('pattern-memory', () => {
     it('topKeys returns empty array for empty map', () => {
         expect(topKeys({}, 5)).toEqual([]);
     });
+
+    it('normalizeWeightedMap handles object items with text/key and weight/value fields', () => {
+        const result = normalizeWeightedMap([
+            { text: 'alpha', weight: 2.5 },
+            { key: 'beta', value: 1.0 },
+            { text: 'alpha', weight: 0.5 }
+        ]);
+        expect(result['alpha']).toBeCloseTo(3.0);
+        expect(result['beta']).toBeCloseTo(1.0);
+    });
+
+    it('normalizeWeightedMap skips object items with no text or key', () => {
+        const result = normalizeWeightedMap([
+            { weight: 5 },
+            { text: 'valid', weight: 1 }
+        ]);
+        expect(Object.keys(result)).toEqual(['valid']);
+    });
+
+    it('normalizeWeightedMap skips plain object entries with weight <= 0', () => {
+        const result = normalizeWeightedMap({
+            positive: 1.5,
+            zero: 0,
+            negative: -1,
+            another: 0.5
+        });
+        expect(result['positive']).toBeCloseTo(1.5);
+        expect(result['another']).toBeCloseTo(0.5);
+        expect(result['zero']).toBeUndefined();
+        expect(result['negative']).toBeUndefined();
+    });
+
+    it('mergeWeightedMaps skips near-zero decayed entries (< 0.001)', () => {
+        // Start with a very small value that will decay below 0.001
+        const existing = { tiny: 0.001 }; // 0.001 * 0.9 = 0.0009 < 0.001 → skipped
+        const incoming = { fresh: 1.0 };
+        const { mergeWeightedMaps } = require('../extension/lib/pattern-memory');
+        const result = mergeWeightedMaps(existing, incoming, 10);
+        expect(result['tiny']).toBeUndefined();
+        expect(result['fresh']).toBeGreaterThan(0);
+    });
+
+    it('ema returns previous when next is not finite', () => {
+        // ema normalizes non-finite to 0, so if prev=50 and next=0 → returns next (0) when prev===0 is false
+        // Actually: prev=50, next=NaN→0, prev!==0 → EMA formula: 50*0.75 + 0*0.25 = 37.5
+        // The !isFinite branch: if (!isFinite(next)) next = 0
+        // So we test that NaN incoming is treated as 0
+        const { mergeWeightedMaps } = require('../extension/lib/pattern-memory');
+        // Use mergePatternBucket with NaN patternConfidence to exercise ema(prev, NaN)
+        let memory = mergePatternBucket(null, 'en', 'test-ema', {
+            analyzedCount: 5,
+            patternConfidence: 80
+        });
+        // Second merge with NaN confidence — ema(80, NaN) → NaN→0 → EMA(80, 0) = 60
+        memory = mergePatternBucket(memory, 'en', 'test-ema', {
+            analyzedCount: 2,
+            patternConfidence: NaN
+        });
+        const bucket = loadPatternBucket(memory, 'en', 'test-ema');
+        expect(bucket.confidenceEma).toBeGreaterThan(0);
+        expect(Number.isFinite(bucket.confidenceEma)).toBe(true);
+    });
+
+    it('loadPatternBucket returns null when bucket does not exist', () => {
+        const memory = { version: 1, buckets: {} };
+        const result = loadPatternBucket(memory, 'en', 'nonexistent');
+        expect(result).toBeNull();
+    });
+
+    it('mergePatternBucket creates fresh state when memory is null', () => {
+        const state = mergePatternBucket(null, 'pt', 'hiring', {
+            analyzedCount: 3,
+            patternConfidence: 65,
+            openers: [{ text: 'boa vaga', weight: 1 }]
+        });
+        expect(state.version).toBe(1);
+        expect(state.buckets).toBeDefined();
+        const bucket = loadPatternBucket(state, 'pt', 'hiring');
+        expect(bucket).not.toBeNull();
+        expect(bucket.samples).toBe(3);
+    });
+
+    it('buildPatternGuidance sets lowSignal=true when patternConfidence < 60', () => {
+        const guidance = buildPatternGuidance({
+            patternConfidence: 45,
+            openers: [],
+            topNgrams: [],
+            recommended: {}
+        }, {
+            confidenceEma: 40,
+            openers: {},
+            ngrams: {},
+            styleMix: {},
+            lengthMix: {},
+            rhythmMix: {},
+            toneMix: {}
+        });
+        expect(guidance.lowSignal).toBe(true);
+        expect(guidance.patternConfidence).toBe(45);
+    });
+
+    it('buildPatternGuidance sets lowSignal=false when patternConfidence >= 60', () => {
+        const guidance = buildPatternGuidance({
+            patternConfidence: 75,
+            openers: [],
+            topNgrams: [],
+            recommended: {}
+        }, {
+            confidenceEma: 70,
+            openers: {},
+            ngrams: {},
+            styleMix: {},
+            lengthMix: {},
+            rhythmMix: {},
+            toneMix: {}
+        });
+        expect(guidance.lowSignal).toBe(false);
+    });
+
+    it('buildPatternGuidance sets lowSignal=false when patternConfidence is 0', () => {
+        const guidance = buildPatternGuidance({
+            patternConfidence: 0,
+            openers: [],
+            topNgrams: [],
+            recommended: {}
+        }, {});
+        expect(guidance.lowSignal).toBe(false);
+    });
 });

@@ -464,4 +464,83 @@ describe('getCompanySearchPageState', () => {
         expect(state.resultsCountHint).toBe(0);
         expect(state.isExplicitNoResults).toBe(true);
     });
+
+    it('falls back to body text for results count when no selector matches', () => {
+        // No h2 or known selectors — only body text with count
+        document.body.innerHTML = '<p>About 1,234 results for your search</p>';
+        const state = getCompanySearchPageState(document);
+        expect(state.resultsCountHint).toBe(1234);
+    });
+
+    it('detects explicit no-results via .search-no-results node text', () => {
+        document.body.innerHTML = '<div class="search-no-results">No results found for this query.</div>';
+        const state = getCompanySearchPageState(document);
+        expect(state.isExplicitNoResults).toBe(true);
+    });
+});
+
+describe('getCompanyFollowConfirmationSignals — non-clickable-following', () => {
+    beforeEach(() => {
+        document.body.innerHTML = '';
+    });
+
+    it('adds non-clickable-following signal when button is disabled with Following text', () => {
+        const card = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.disabled = true;
+        btn.textContent = 'Following';
+        card.appendChild(btn);
+        document.body.appendChild(card);
+
+        const signals = getCompanyFollowConfirmationSignals(card, document);
+        expect(signals).toContain('non-clickable-following');
+    });
+
+    it('adds non-clickable-following signal when aria-disabled=true with Following text', () => {
+        const card = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.setAttribute('aria-disabled', 'true');
+        btn.textContent = 'Following';
+        card.appendChild(btn);
+        document.body.appendChild(card);
+
+        const signals = getCompanyFollowConfirmationSignals(card, document);
+        expect(signals).toContain('non-clickable-following');
+    });
+
+    it('does not add non-clickable-following when button is enabled', () => {
+        const card = document.createElement('div');
+        const btn = document.createElement('button');
+        btn.disabled = false;
+        btn.textContent = 'Following';
+        card.appendChild(btn);
+        document.body.appendChild(card);
+
+        const signals = getCompanyFollowConfirmationSignals(card, document);
+        expect(signals).not.toContain('non-clickable-following');
+    });
+});
+
+describe('detectChallenge', () => {
+    const { detectChallenge } = require('../extension/lib/company-utils');
+
+    it('returns true when body text contains security verification', () => {
+        document.body.textContent = 'Security verification required to continue.';
+        expect(detectChallenge()).toBe(true);
+    });
+
+    it('returns true when body text contains unusual activity', () => {
+        document.body.textContent = 'We noticed unusual activity on your account.';
+        expect(detectChallenge()).toBe(true);
+    });
+
+    it('returns true when body text contains verificação de segurança', () => {
+        document.body.textContent = 'Verificação de segurança necessária.';
+        expect(detectChallenge()).toBe(true);
+    });
+
+    it('returns false for normal page content', () => {
+        document.body.textContent = 'Normal search results page content here.';
+        expect(detectChallenge()).toBe(false);
+    });
 });

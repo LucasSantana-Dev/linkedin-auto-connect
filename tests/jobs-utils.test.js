@@ -444,6 +444,96 @@ describe('jobs-utils matching and ranking', () => {
 
             expect(ranked[0].id).toBe('newer');
         });
+
+        it('uses hours tiebreak when score and skip status are equal but postedHoursAgo differs', () => {
+            // Both jobs have same score (same title/company/location/easyApply)
+            // but different postedHoursAgo — newer should rank first
+            const ranked = rankJobsForApply([
+                {
+                    id: 'job-late', title: 'Software Engineer', company: 'TechCo',
+                    location: 'Remote', easyApply: true, postedHoursAgo: 48
+                },
+                {
+                    id: 'job-early', title: 'Software Engineer', company: 'TechCo',
+                    location: 'Remote', easyApply: true, postedHoursAgo: 12
+                }
+            ], {
+                excludedCompanies: [],
+                appliedJobIds: [],
+                desiredSeniorityLevels: [],
+                locationTerms: [],
+                preferredCompanies: []
+            });
+            // job-early (12h) should rank before job-late (48h)
+            expect(ranked[0].id).toBe('job-early');
+        });
+    });
+
+    describe('inferSeniority via evaluateJobCandidate', () => {
+        it('infers lead seniority from director title', () => {
+            const decision = evaluateJobCandidate(
+                {
+                    id: 'job-dir', title: 'Director of Engineering', company: 'Co',
+                    location: 'Remote', easyApply: true
+                },
+                { excludedCompanies: [], appliedJobIds: [], desiredSeniorityLevels: ['lead'] }
+            );
+            expect(decision.skipReason).toBeNull();
+        });
+
+        it('infers lead seniority from lead title', () => {
+            const decision = evaluateJobCandidate(
+                {
+                    id: 'job-lead', title: 'Tech Lead Developer', company: 'Co',
+                    location: 'Remote', easyApply: true
+                },
+                { excludedCompanies: [], appliedJobIds: [], desiredSeniorityLevels: ['lead'] }
+            );
+            expect(decision.skipReason).toBeNull();
+        });
+
+        it('infers intern seniority from intern title', () => {
+            const decision = evaluateJobCandidate(
+                {
+                    id: 'job-intern', title: 'Software Engineering Intern', company: 'Co',
+                    location: 'Remote', easyApply: true
+                },
+                { excludedCompanies: [], appliedJobIds: [], desiredSeniorityLevels: ['intern'] }
+            );
+            expect(decision.skipReason).toBeNull();
+        });
+
+        it('infers intern seniority from trainee title', () => {
+            const decision = evaluateJobCandidate(
+                {
+                    id: 'job-trainee', title: 'Trainee Developer', company: 'Co',
+                    location: 'Remote', easyApply: true
+                },
+                { excludedCompanies: [], appliedJobIds: [], desiredSeniorityLevels: ['intern'] }
+            );
+            expect(decision.skipReason).toBeNull();
+        });
+    });
+
+    describe('getOffshoreCompatibility empty text path', () => {
+        it('returns allowed=true score=0.2 when job has no text fields and offshore is enabled', () => {
+            // Job with no detailText, location, or workType → text is empty → returns {allowed:true, score:0.2}
+            const decision = evaluateJobCandidate(
+                {
+                    id: 'job-empty', title: 'Developer', company: 'Co',
+                    easyApply: true
+                    // no detailText, no location, no workType
+                },
+                {
+                    excludedCompanies: [],
+                    appliedJobIds: [],
+                    jobsBrazilOffshoreFriendly: true
+                }
+            );
+            // Should not skip (offshore allowed=true)
+            expect(decision.skipReason).toBeNull();
+            expect(decision.offshoreCompatibility).toBe(0.2);
+        });
     });
 
     afterAll(() => {
