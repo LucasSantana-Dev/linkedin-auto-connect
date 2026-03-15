@@ -50,13 +50,13 @@
                 )),
                 skills: listFrom(
                     scope,
-                    '#skills ~ * span[aria-hidden=\"true\"], ' +
+                    '#skills + * span[aria-hidden=\"true\"], ' +
                     '[data-field=\"skill_assessment\"] span[aria-hidden=\"true\"]',
                     20
                 ),
                 experiences: listFrom(
                     scope,
-                    '#experience ~ * span[aria-hidden=\"true\"], ' +
+                    '#experience + * span[aria-hidden=\"true\"], ' +
                     '[data-view-name=\"profile-component-entity\"] span[aria-hidden=\"true\"]',
                     20
                 )
