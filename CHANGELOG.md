@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.31.0] - 2026-03-15
+
+### Added
+- **21 dedicated search templates for 7 creative sub-presets**: `graphic-design`, `art-direction`, `branding`, `ui-ux`, `motion-design`, `video-editing`, `videomaker` now each have Connect (`peer_networking.balanced`), Companies (`talent_watchlist.balanced`), and Jobs (`high_fit_easy_apply.precise`) templates — matching the tech sub-preset pattern from v1.28.0. Includes curated Brazilian + global studio company lists.
+- **`tests/feed-safety-guards.test.js`**: 70 new tests covering all four exported functions with full branch paths (filler/sarcasm/overlap detection, PT-BR distance phrases, humor guard, departure-only transitions, bookmark intent, custom duration options).
+
+### Changed
+- **Coverage thresholds ratcheted**: stmts 84→90, branches 70→76, functions 90→96, lines 88→92.
+- **35 suites, 1169 tests** (+117). 90.3% stmts, 76.9% branches, 96.5% functions, 92.4% lines.
+- `jest.config.cjs` — added `forceExit: true` to prevent jsdom RAF open-handle warnings.
+
 ## [1.30.0] - 2026-03-15
 
 ### Refactored
