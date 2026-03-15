@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.29.0] - 2026-03-15
+
+### Added
+- **PR coverage report automation**: CI now posts a coverage table comment on every PR with statements, branches, functions, and lines percentages.
+- **PR template**: `.github/pull_request_template.md` with summary, type checklist, and validation checklist.
+- **Verify skill**: `.agents/skills/verify/SKILL.md` — quality gate sequence for `/verify` command.
+- **Release skill**: `.agents/skills/release/SKILL.md` — release flow automation for `/ship` command.
+
+### Changed
+- **Jest coverage thresholds ratcheted**: statements 80%→84%, branches +70% (new), functions +90% (new), lines 80%→88%. Prevents regression from the current 88/75/92/90 floor.
+- **`.gitignore`**: Added `coverage/` and `opencode.jsonc`.
+
 ## [1.28.3] - 2026-03-15
 
 ### Changed
