@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.28.0] - 2026-03-15
+
+### Added
+- **9 software engineering sub-presets**: Added `tech-frontend`, `tech-backend`, `tech-fullstack`, `tech-devops`, `tech-data`, `tech-cloud`, `tech-security`, `tech-mobile`, and `tech-ml-ai` as first-class presets across Connect, Companies, and Jobs modes.
+- **Company watchlists for all tech sub-presets**: Each new preset ships with curated `defaultTargetCompanies` (global leaders + Brazil-focused scale-ups) and a `defaultQuery` for the Companies mode preset selector.
+- **29 new search templates**: 11 Connect peer_networking/recruiter_outreach templates, 9 Companies talent_watchlist templates, and 9 Jobs high_fit_easy_apply templates — one per sub-preset per mode.
+- **190+ EN/PT-BR term variants**: Extended `search-language.js` with specialist roles (devops engineer, SRE, ML engineer, security architect, iOS/Android developer, etc.) and their disciplines, enabling full locale-aware query generation for all new presets.
+
+### Changed
+- **STATE_TAG_VERSION bumped to 6**: Triggers automatic state migration for existing users selecting a preset that has been added or renamed.
+
 ## [1.27.0] - 2026-03-15
 
 ### Added
