@@ -19,7 +19,7 @@
                 : null);
         const localizeSearchTerms =
             searchLanguageApi?.localizeSearchTerms;
-        const STATE_TAG_VERSION = 6;
+        const STATE_TAG_VERSION = 7;
 
         const AREA_PRESETS = {
             tech: {

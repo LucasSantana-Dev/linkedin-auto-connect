@@ -153,7 +153,7 @@ describe('connect-config', () => {
             });
             expect(result.changed).toBe(true);
             expect(result.state.excludedCompanies).toBe('Acme Corp');
-            expect(result.state.tagVersion).toBe(6);
+            expect(result.state.tagVersion).toBe(7);
             expect(result.state.areaPreset).toBe('custom');
         });
 

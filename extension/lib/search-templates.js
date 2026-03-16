@@ -1788,6 +1788,7 @@
 
         function sanitizeBooleanTerm(value) {
             let text = String(value || '')
+                .replace(/"/g, '')
                 .replace(/[()]/g, ' ')
                 .replace(/[,:;!?]+/g, ' ')
                 .replace(/\s+/g, ' ')
