@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-03-15
+
+### Added
+- Extended **`tests/feed-dom-extraction.test.js`**: `getPostAuthorTitle` full suite (null return, actor/header fallback, short-text filter), `innerText` branch tests via `Object.defineProperty`, visible-thread comment signal, fallback comment traversal (parentElement chain).
+- New **`tests/company-utils-challenge-url.test.js`**: URL-based `detectChallenge` using `@jest-environment-options` jsdom URL, hits line 197 URL branch.
+- Extended **`tests/company-utils.test.js`**: `getResultsCountText` `innerText` branch via `Object.defineProperty`.
+- Extended **`tests/connect-config.test.js`**: `buildConnectQueryFromTags` single-role branch (no OR), `migrateConnectPopupState` with `Array.isArray(excludedCompanies)`.
+- Extended **`tests/jobs-career-intelligence.test.js`**: `validateResumeVaultFileMeta` size≤0 and size>MAX_RESUME_BYTES branches.
+- Extended **`tests/jobs-utils.test.js`**: `inferSeniority` → lead/junior/intern via `rankJobsForApply`, sort tie-break by `postedHoursAgo`.
+- Extended **`tests/feed-comment-generation.test.js`**: `lastRejectReason` set on pattern low-signal, `effectiveLang='pt'` from majority PT comments, `departure_transition`/`hiring_active`/`avoidCelebration` preferredCat branches, `avoidAgreement` filter.
+- Extended **`tests/search-templates.test.js`**: `listFrom` string→`split('\n')` branch, `buildJobsQueryPlan` `manualQuery` path.
+- Extended **`tests/pattern-memory.test.js`** (41 tests): `cloneObject` null-obj branch, `topKeys` zero/negative-value filter, `ema` Infinity guard, `mergeUnique` dedup via `seen.has`, `pickTop` `|| null` path.
+
+### Changed
+- **Coverage thresholds ratcheted**: stmts 95→96, branches 84→85.5, lines 97→97.5.
+- **42 suites, 1584 tests** (+51). 96.35% stmts, 85.7% branches, 99.36% functions, 97.84% lines.
+
 ## [1.35.0] - 2026-03-15
 
 ### Added
