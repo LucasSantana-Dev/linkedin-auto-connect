@@ -6,6 +6,7 @@
 const {
     getPostText,
     getPostAuthor,
+    getPostAuthorTitle,
     getPostReactions,
     getPostUrn,
     getPostImageSignals,
@@ -569,5 +570,129 @@ describe('isCompanyFollowText', () => {
     });
     it('returns false for other text', () => {
         expect(isCompanyFollowText('Like')).toBe(false);
+    });
+});
+
+// ─── getPostAuthorTitle ───────────────────────────────────────────────────────
+
+describe('getPostAuthorTitle', () => {
+    it('returns empty string for null input', () => {
+        expect(getPostAuthorTitle(null)).toBe('');
+    });
+
+    it('returns title from .update-components-actor__description', () => {
+        const post = el('<div><span class="update-components-actor__description">Senior Software Engineer at Acme Corp</span></div>');
+        expect(getPostAuthorTitle(post)).toBe('Senior Software Engineer at Acme Corp');
+    });
+
+    it('returns title from .feed-shared-actor__description', () => {
+        const post = el('<div><span class="feed-shared-actor__description">Product Manager · Tech Industry</span></div>');
+        expect(getPostAuthorTitle(post)).toBe('Product Manager · Tech Industry');
+    });
+
+    it('returns empty string when description text is too short', () => {
+        const post = el('<div><span class="update-components-actor__description">Hi</span></div>');
+        expect(getPostAuthorTitle(post)).toBe('');
+    });
+
+    it('falls back to actor/header span when no description selector matches', () => {
+        const post = el(`<div class="update-components-actor">
+            <a href="/in/johndoe"><span>John Doe</span></a>
+            <span>Director of Engineering at Big Tech</span>
+        </div>`);
+        const result = getPostAuthorTitle(post);
+        expect(result).toBe('Director of Engineering at Big Tech');
+    });
+
+    it('skips spans containing Follow in fallback path', () => {
+        const post = el(`<div class="update-components-actor">
+            <a href="/in/johndoe"><span>Jane Smith</span></a>
+            <span>Follow</span>
+            <span>VP of Product at Startup Inc</span>
+        </div>`);
+        const result = getPostAuthorTitle(post);
+        expect(result).toBe('VP of Product at Startup Inc');
+    });
+
+    it('returns empty string when no matching element found', () => {
+        const post = el('<div><p>Some unrelated content here</p></div>');
+        expect(getPostAuthorTitle(post)).toBe('');
+    });
+});
+
+// ─── innerText branch coverage ────────────────────────────────────────────────
+
+describe('getPostText innerText branches', () => {
+    it('uses innerText when available on expandable-text-box', () => {
+        const post = document.createElement('div');
+        const inner = document.createElement('div');
+        inner.setAttribute('data-testid', 'expandable-text-box');
+        Object.defineProperty(inner, 'innerText', {
+            get: () => 'innerText content from expandable box',
+            configurable: true
+        });
+        post.appendChild(inner);
+        expect(getPostText(post)).toBe('innerText content from expandable box');
+    });
+
+    it('uses innerText on span[dir=ltr] when no expandable-text-box', () => {
+        const post = document.createElement('div');
+        const span = document.createElement('span');
+        span.setAttribute('dir', 'ltr');
+        Object.defineProperty(span, 'innerText', {
+            get: () => 'This is a long enough text from innerText fallback path',
+            configurable: true
+        });
+        post.appendChild(span);
+        const result = getPostText(post);
+        expect(result).toContain('innerText');
+    });
+});
+
+// ─── getPostCommentSignal visible-thread branch ───────────────────────────────
+
+describe('getPostCommentSignal visible-thread source', () => {
+    it('returns visible-thread source when no count found but comments exist', () => {
+        const wrapper = document.createElement('div');
+        const post = document.createElement('div');
+        const commentList = document.createElement('ul');
+        commentList.className = 'comments-comments-list';
+        const commentItem = document.createElement('li');
+        commentItem.className = 'comments-comment-item';
+        // Use a <p> element so the text extractor (textSelectors includes 'p') picks it up
+        const textP = document.createElement('p');
+        textP.textContent = 'This is a meaningful comment text for testing the signal detection path';
+        commentItem.appendChild(textP);
+        commentList.appendChild(commentItem);
+        // post is child of wrapper; commentList is also child of wrapper
+        // getExistingComments traverses post.parentElement (=wrapper) and finds commentList
+        wrapper.appendChild(post);
+        wrapper.appendChild(commentList);
+        const result = getPostCommentSignal(post);
+        expect(result.source).toBe('visible-thread');
+        expect(result.count).toBeGreaterThan(0);
+    });
+});
+
+// ─── getExistingComments fallback traversal ───────────────────────────────────
+
+describe('getExistingComments fallback traversal', () => {
+    it('traverses parentElement to find comment items when no commentList selector matches', () => {
+        const grandparent = document.createElement('div');
+        const parent = document.createElement('div');
+        const postEl = document.createElement('div');
+
+        const commentItem1 = document.createElement('div');
+        commentItem1.setAttribute('data-urn', 'urn:li:comment:123');
+        const text1 = document.createElement('span');
+        text1.textContent = 'First comment text here for testing purposes only';
+        commentItem1.appendChild(text1);
+
+        grandparent.appendChild(commentItem1);
+        grandparent.appendChild(parent);
+        parent.appendChild(postEl);
+
+        const result = getExistingComments(postEl);
+        expect(Array.isArray(result)).toBe(true);
     });
 });

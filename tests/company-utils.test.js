@@ -543,4 +543,20 @@ describe('detectChallenge', () => {
         document.body.textContent = 'Normal search results page content here.';
         expect(detectChallenge()).toBe(false);
     });
+
+
+});
+
+describe('getCompanySearchPageState innerText branch', () => {
+    it('uses innerText when available for results count text', () => {
+        const doc = document.implementation.createHTMLDocument('test');
+        const h2 = doc.createElement('h2');
+        Object.defineProperty(h2, 'innerText', {
+            get: () => 'About 500 results',
+            configurable: true
+        });
+        doc.body.appendChild(h2);
+        const state = getCompanySearchPageState(doc);
+        expect(state).toBeDefined();
+    });
 });

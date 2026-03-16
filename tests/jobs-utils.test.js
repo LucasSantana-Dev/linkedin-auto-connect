@@ -515,6 +515,72 @@ describe('jobs-utils matching and ranking', () => {
         });
     });
 
+    describe('inferSeniority branches via rankJobsForApply (lines 94, 105-108)', () => {
+        const makeRankJob = (id, title, seniority) => ({
+            id, title: title || 'Developer', company: 'Co',
+            location: 'Remote', easyApply: true,
+            postedHoursAgo: 10, seniority: seniority || undefined
+        });
+        const baseConfig = {
+            roleTerms: [],
+            keywordTerms: [],
+            desiredSeniorityLevels: ['lead', 'senior', 'mid', 'junior', 'intern'],
+            excludedCompanies: [],
+            appliedJobIds: []
+        };
+
+        it('infers lead from director/principal title (line 94)', () => {
+            const ranked = rankJobsForApply(
+                [makeRankJob('dir', 'Principal Engineer')],
+                baseConfig
+            );
+            expect(ranked[0].id).toBe('dir');
+            expect(ranked[0].skipReason).toBeNull();
+        });
+
+        it('infers junior from jr title (line 106)', () => {
+            const ranked = rankJobsForApply(
+                [makeRankJob('jr', 'Jr Developer')],
+                baseConfig
+            );
+            expect(ranked[0].id).toBe('jr');
+        });
+
+        it('infers intern from estagio title (line 108)', () => {
+            const ranked = rankJobsForApply(
+                [makeRankJob('est', 'Desenvolvedor Estagio Backend')],
+                baseConfig
+            );
+            expect(ranked[0].id).toBe('est');
+        });
+    });
+
+    describe('rankJobsForApply sort tie-break by postedHoursAgo (lines 339-346)', () => {
+        const makeJob = (id, score_bias, hoursAgo) => ({
+            id, title: 'Developer', company: 'Co', location: 'Remote',
+            easyApply: true, postedHoursAgo: hoursAgo,
+            seniority: 'mid'
+        });
+
+        it('sorts jobs with same score by postedHoursAgo ascending', () => {
+            const ranked = rankJobsForApply(
+                [
+                    makeJob('older', 'unused', 48),
+                    makeJob('newer', 'unused', 6)
+                ],
+                {
+                    roleTerms: ['developer'],
+                    keywordTerms: [],
+                    desiredSeniorityLevels: ['mid'],
+                    excludedCompanies: [],
+                    appliedJobIds: []
+                }
+            );
+            expect(ranked[0].id).toBe('newer');
+            expect(ranked[1].id).toBe('older');
+        });
+    });
+
     describe('getOffshoreCompatibility empty text path', () => {
         it('returns allowed=true score=0.2 when job has no text fields and offshore is enabled', () => {
             // Job with no detailText, location, or workType → text is empty → returns {allowed:true, score:0.2}

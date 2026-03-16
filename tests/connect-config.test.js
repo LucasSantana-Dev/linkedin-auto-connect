@@ -333,4 +333,26 @@ describe('connect-config', () => {
             });
         });
     });
+
+    describe('buildConnectQueryFromTags single-role branch', () => {
+        it('pushes single role term directly without OR join', () => {
+            const tags = { role: ['engineer'] };
+            const result = buildConnectQueryFromTags(tags, 10, 'en');
+            expect(result).toBe('engineer');
+            expect(result).not.toContain(' OR ');
+        });
+    });
+
+    describe('migrateConnectPopupState array excludedCompanies', () => {
+        it('converts array excludedCompanies to newline-joined string', () => {
+            const state = {
+                excludedCompanies: ['Acme Corp', 'Big Tech Inc'],
+                version: 0
+            };
+            const { state: migrated, changed } = migrateConnectPopupState(state);
+            expect(changed).toBe(true);
+            expect(typeof migrated.excludedCompanies).toBe('string');
+            expect(migrated.excludedCompanies).toContain('Acme Corp');
+        });
+    });
 });

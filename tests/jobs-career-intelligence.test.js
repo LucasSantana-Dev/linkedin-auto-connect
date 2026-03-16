@@ -32,6 +32,36 @@ describe('jobs career intelligence', () => {
         }));
     });
 
+    it('rejects file with size of 0', () => {
+        expect(validateResumeVaultFileMeta({
+            name: 'resume.pdf',
+            size: 0
+        })).toEqual(expect.objectContaining({
+            ok: false,
+            reason: 'file-too-large'
+        }));
+    });
+
+    it('rejects file with negative size', () => {
+        expect(validateResumeVaultFileMeta({
+            name: 'resume.docx',
+            size: -1
+        })).toEqual(expect.objectContaining({
+            ok: false,
+            reason: 'file-too-large'
+        }));
+    });
+
+    it('rejects file exceeding max allowed bytes', () => {
+        expect(validateResumeVaultFileMeta({
+            name: 'resume.pdf',
+            size: 999999999
+        })).toEqual(expect.objectContaining({
+            ok: false,
+            reason: 'file-too-large'
+        }));
+    });
+
     it('builds deterministic career intelligence from profile and resumes', () => {
         const intel = analyzeJobsCareerInputs({
             profile: {

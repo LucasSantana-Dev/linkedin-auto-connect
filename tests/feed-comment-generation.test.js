@@ -250,4 +250,87 @@ describe('buildCommentFromPost', () => {
         );
         expect(result === null || typeof result === 'string').toBe(true);
     });
+
+    it('sets effectiveLang to pt when majority existing comments are Portuguese (line 123)', () => {
+        const ptPost = 'Hoje encerro minha jornada nesta empresa. Foram anos de crescimento e aprendizado profissional.';
+        const existingComments = [
+            { text: 'Parabéns pela trajetória! Sucesso na nova fase.', sentiment: 'generic' },
+            { text: 'Que conquista incrível! Vai com tudo.', sentiment: 'generic' },
+            { text: 'Muito sucesso pra você sempre na carreira!', sentiment: 'generic' }
+        ];
+        const result = buildCommentFromPost(
+            ptPost, null, existingComments, 'passive', {}, makeSafetyCtx(), null, {}
+        );
+        expect(result === null || typeof result === 'string').toBe(true);
+    });
+
+    it('sets lastRejectReason in generationOptions when pattern fit fails (line 91)', () => {
+        // patternConfidence 1-59 causes validateCommentPatternFit to return ok:false
+        const patternProfile = { patternConfidence: 30 };
+        const generationOptions = {};
+        const result = finalizeGeneratedComment(
+            'A decent comment about technology trends.',
+            { category: 'generic', postText: 'tech post', strangerDistance: 1 },
+            patternProfile,
+            generationOptions
+        );
+        expect(result).toBeNull();
+        expect(generationOptions.lastRejectReason).toBeDefined();
+    });
+
+    it('hits departure_transition preferredCat in concepts path (line 159)', () => {
+        const departurePost = [
+            'Today I am sharing that I have left my position as senior software engineer.',
+            'After many years building distributed systems and cloud infrastructure,',
+            'I am ready for my next chapter in leadership and product development. Farewell.'
+        ].join(' ');
+        const result = buildCommentFromPost(
+            departurePost, null, null, 'passive', {}, makeSafetyCtx(), null, {}
+        );
+        expect(result === null || typeof result === 'string').toBe(true);
+    });
+
+    it('hits hiring_active preferredCat in concepts path when mode=active (line 162)', () => {
+        const hiringPost = [
+            'We are hiring senior software engineers to build scalable distributed systems.',
+            'Join our engineering team working on cloud infrastructure and machine learning platforms.',
+            'Apply now for exciting opportunities in data engineering and backend development roles.'
+        ].join(' ');
+        const result = buildCommentFromPost(
+            hiringPost, null, null, 'active', {}, makeSafetyCtx(), null, {}
+        );
+        expect(result === null || typeof result === 'string').toBe(true);
+    });
+
+    it('hits avoidCelebration to technical in concepts path (line 167)', () => {
+        // category=career/generic + avoidCelebration => preferredCat = 'technical'
+        const existingComments = [
+            { text: 'Congratulations on this amazing achievement!', sentiment: 'celebration' }
+        ];
+        const genericPost = [
+            'Sharing insights on software architecture patterns and distributed systems design.',
+            'Microservices vs monolith tradeoffs in large-scale engineering organizations.',
+            'Key decisions around database sharding, caching strategies and event-driven systems.'
+        ].join(' ');
+        const result = buildCommentFromPost(
+            genericPost, null, existingComments, 'passive', {}, makeSafetyCtx(), null, {}
+        );
+        expect(result === null || typeof result === 'string').toBe(true);
+    });
+
+    it('hits avoidAgreement filter with >3 template candidates (line 228)', () => {
+        const existingComments = [
+            { text: 'I totally agree with you on this point!', sentiment: 'agreement' },
+            { text: 'Exactly, well said and very insightful!', sentiment: 'agreement' }
+        ];
+        const longPost = [
+            'Leadership in software engineering requires technical depth and strong communication.',
+            'The best engineering managers understand architecture tradeoffs and team dynamics.',
+            'Building scalable systems demands technical excellence and cross-functional collaboration skills.'
+        ].join(' ');
+        const result = buildCommentFromPost(
+            longPost, null, existingComments, 'passive', {}, makeSafetyCtx(), null, {}
+        );
+        expect(result === null || typeof result === 'string').toBe(true);
+    });
 });

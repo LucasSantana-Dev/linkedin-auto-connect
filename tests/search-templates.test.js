@@ -633,6 +633,38 @@ describe('compileBooleanQuery NOT clause', () => {
     });
 });
 
+describe('listFrom string branch (lines 1770-1771)', () => {
+    it('handles selectedTags.role as newline-separated string', () => {
+        // listFrom is called with a string when selectedTags fields are strings
+        // This triggers lines 1770-1771: value.split('\n')
+        const result = buildSearchTemplatePlan({
+            mode: 'connect',
+            areaPreset: 'tech',
+            selectedTags: {
+                role: 'engineer\nmanager\nlead',
+                market: 'startup\nscaleup'
+            }
+        });
+        expect(result).toBeDefined();
+        expect(result.meta).toBeDefined();
+        expect(result.query).toBeTruthy();
+    });
+});
+
+describe('buildJobsQueryPlan manualQuery path (line 2163)', () => {
+    it('returns manualQuery directly when provided', () => {
+        const result = buildSearchTemplatePlan({
+            mode: 'jobs',
+            areaPreset: 'tech',
+            manualQuery: 'software engineer React'
+        });
+        expect(result).toBeDefined();
+        expect(result.query).toBe('software engineer React');
+        expect(result.meta.manualQuery).toBe(true);
+        expect(result.meta.mode).toBe('jobs');
+    });
+});
+
 describe('buildSearchTemplatePlan null template path', () => {
     it('returns null template when no template matches', () => {
         const result = buildSearchTemplatePlan({
