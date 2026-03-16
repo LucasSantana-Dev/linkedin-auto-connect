@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.2] - 2026-03-16
+
+### Fixed
+- **Connect query OR logic**: `buildConnectQueryPlan` now merges industry/market/level tags into the `should` (OR) bucket instead of `must`. Previously, tags from Industry, Market Focus, and Level They Hire were placed in the `must` parameter of `compileBooleanQuery`, which caused them to be space-appended after the OR chain (implicit AND), over-constraining the query and returning "No results found". All tag groups now join with `OR` as expected by LinkedIn People Search.
+
 ## [1.36.1] - 2026-03-16
 
 ### Fixed
