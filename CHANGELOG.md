@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.5] - 2026-03-18
+
+### Fixed
+- **Connect optional group semantics**: Connect search planning now omits template defaults for `role` and `industry` only when those groups are explicitly provided as empty arrays, preserving previous defaults when keys are missing/undefined. This enables intentionally running without industry/domain terms while avoiding accidental broad queries from callers that do not send those keys.
+- **Connect fallback query consistency**: The popup connect manual fallback now composes role/industry/market/level terms as a single OR chain, matching the template planner semantics and preventing mixed query behavior when template helpers are unavailable.
+
+### Added
+- Extended **`tests/search-templates.test.js`** with explicit contract tests for omitted vs missing role/industry selections and undefined-value behavior.
+
 ## [1.36.4] - 2026-03-16
 
 ### Changed
