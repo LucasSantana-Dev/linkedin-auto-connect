@@ -86,6 +86,13 @@ function selectedCountText() {
     return (el && el.textContent) || '';
 }
 
+function switchToJobsMode() {
+    const jobsModeBtn = document.querySelector(
+        'button.mode-btn[data-mode="jobs"]'
+    );
+    click(jobsModeBtn);
+}
+
 describe('popup connect refine runtime', () => {
     let chromeMock;
 
@@ -114,6 +121,7 @@ describe('popup connect refine runtime', () => {
         jest.runOnlyPendingTimers();
         jest.useRealTimers();
         delete global.chrome;
+        delete global.buildSearchTemplatePlan;
         delete global.alert;
         delete global.confirm;
         delete global.prompt;
@@ -220,5 +228,39 @@ describe('popup connect refine runtime', () => {
 
         jest.advanceTimersByTime(450);
         expect(ninthTag.classList.contains('tag-limit-shake')).toBe(false);
+    });
+
+    test('jobs planner treats blank refine fields as missing, not explicit empty arrays', () => {
+        global.buildSearchTemplatePlan = jest.fn((opts) => ({
+            query: 'software engineer remote easy apply',
+            filterSpec: {},
+            defaults: {},
+            meta: { mode: 'jobs', source: 'template', optionsEcho: opts }
+        }));
+
+        switchToJobsMode();
+
+        document.getElementById('jobsQueryInput').value = '';
+        document.getElementById('jobsRoleTermsInput').value = '';
+        document.getElementById('jobsLocationTermsInput').value = '';
+        document.getElementById('jobsKeywordTermsInput').value = '';
+
+        click(document.getElementById('startBtn'));
+
+        expect(global.buildSearchTemplatePlan).toHaveBeenCalled();
+        const plannerArg = global.buildSearchTemplatePlan.mock.calls[0][0];
+        expect(plannerArg.mode).toBe('jobs');
+        expect(plannerArg.roleTerms).toBeUndefined();
+        expect(plannerArg.locationTerms).toBeUndefined();
+        expect(plannerArg.keywords).toBeUndefined();
+
+        const launchCall = chromeMock.runtime.sendMessage.mock.calls.find(
+            ([message]) => message && message.action === 'startJobsAssist'
+        );
+        expect(launchCall).toBeTruthy();
+
+        const payload = launchCall[0];
+        expect(typeof payload.query).toBe('string');
+        expect(payload.query.trim().length).toBeGreaterThan(0);
     });
 });
