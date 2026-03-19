@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.7] - 2026-03-19
+
+### Fixed
+- **Jobs effective payload parity**: `startJobsAssist` now sends resolved planner diagnostics term arrays (`roleTerms`, `locationTerms`, `keywordTerms`) instead of raw refine inputs, keeping launch payload behavior aligned with the generated Jobs query.
+- **Jobs popup runtime hardening**: Added regression assertions in `tests/popup-connect-refine-runtime.test.js` to verify blank refine fields remain treated as missing planner inputs and that launch payload terms use effective planner values.
+
 ## [1.36.6] - 2026-03-19
 
 ### Fixed
