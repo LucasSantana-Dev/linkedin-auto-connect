@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.6] - 2026-03-19
+
+### Fixed
+- **Jobs and Companies optional-group parity**: Search template planners now honor explicit empty arrays for optional groups in Jobs (`roleTerms`, `locationTerms`, `keywords`) and Companies (`keywords`), allowing intentional omission of defaults while preserving defaults when keys are missing or `undefined`.
+- **Jobs popup planner alignment**: Popup jobs search planning now forwards raw role/location/keyword inputs into template planning instead of forcing preset role fallbacks, so user-cleared groups are respected consistently.
+
+### Added
+- New **`tests/popup-connect-refine-runtime.test.js`** runtime regression suite covering area-pill group isolation, hidden-selected-tag recoverability/count integrity, and 9th-tag-per-group limit behavior with shake feedback reset.
+- Extended **`tests/search-templates.test.js`** with missing-vs-empty-vs-undefined parity coverage for Companies and Jobs planners.
+
 ## [1.36.5] - 2026-03-18
 
 ### Fixed
