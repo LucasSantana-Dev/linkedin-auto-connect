@@ -235,7 +235,12 @@ describe('popup connect refine runtime', () => {
             query: 'software engineer remote easy apply',
             filterSpec: {},
             defaults: {},
-            meta: { mode: 'jobs', source: 'template', optionsEcho: opts }
+            meta: { mode: 'jobs', source: 'template', optionsEcho: opts },
+            diagnostics: {
+                roleTerms: ['software engineer'],
+                locationTerms: ['remote'],
+                keywords: ['easy apply']
+            }
         }));
 
         switchToJobsMode();
@@ -262,5 +267,8 @@ describe('popup connect refine runtime', () => {
         const payload = launchCall[0];
         expect(typeof payload.query).toBe('string');
         expect(payload.query.trim().length).toBeGreaterThan(0);
+        expect(payload.roleTerms).toEqual(['software engineer']);
+        expect(payload.locationTerms).toEqual(['remote']);
+        expect(payload.keywordTerms).toEqual(['easy apply']);
     });
 });

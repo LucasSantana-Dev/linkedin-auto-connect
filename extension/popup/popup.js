@@ -3274,6 +3274,21 @@ function startJobsAssist() {
         document.getElementById('jobsLocationTermsInput').value
     );
     const keywordTerms = buildJobsKeywordTerms();
+    const effectiveRoleTerms = Array.isArray(
+        plan?.diagnostics?.roleTerms
+    )
+        ? plan.diagnostics.roleTerms
+        : roleTerms;
+    const effectiveLocationTerms = Array.isArray(
+        plan?.diagnostics?.locationTerms
+    )
+        ? plan.diagnostics.locationTerms
+        : locationTerms;
+    const effectiveKeywordTerms = Array.isArray(
+        plan?.diagnostics?.keywords
+    )
+        ? plan.diagnostics.keywords
+        : keywordTerms;
     const preferredCompaniesInput = parseMultilineList(
         document.getElementById('jobsPreferredCompaniesInput').value
     );
@@ -3341,9 +3356,9 @@ function startJobsAssist() {
         query,
         limit,
         areaPreset: jobsAreaPreset,
-        roleTerms,
-        keywordTerms,
-        locationTerms,
+        roleTerms: effectiveRoleTerms,
+        keywordTerms: effectiveKeywordTerms,
+        locationTerms: effectiveLocationTerms,
         preferredCompanies,
         excludedCompanies,
         desiredLevels,
