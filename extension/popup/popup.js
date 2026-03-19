@@ -1551,13 +1551,29 @@ function buildJobsSearchPlan() {
     const manualQuery = document.getElementById(
         'jobsQueryInput'
     )?.value.trim() || '';
-    const roleTerms = parseMultilineList(
-        document.getElementById('jobsRoleTermsInput')?.value
-    );
-    const locationTerms = parseMultilineList(
-        document.getElementById('jobsLocationTermsInput')?.value
-    );
-    const keywordTerms = buildJobsKeywordTerms();
+    const roleTermsInput = document.getElementById(
+        'jobsRoleTermsInput'
+    )?.value;
+    const locationTermsInput = document.getElementById(
+        'jobsLocationTermsInput'
+    )?.value;
+    const keywordTermsInput = document.getElementById(
+        'jobsKeywordTermsInput'
+    )?.value;
+
+    const parsedRoleTerms = parseMultilineList(roleTermsInput);
+    const parsedLocationTerms = parseMultilineList(locationTermsInput);
+    const parsedKeywordTerms = parseMultilineList(keywordTermsInput);
+
+    const roleTerms = roleTermsInput && roleTermsInput.trim()
+        ? parsedRoleTerms
+        : undefined;
+    const locationTerms = locationTermsInput && locationTermsInput.trim()
+        ? parsedLocationTerms
+        : undefined;
+    const keywordTerms = keywordTermsInput && keywordTermsInput.trim()
+        ? parsedKeywordTerms
+        : undefined;
     if (typeof buildSearchTemplatePlan === 'function') {
         const plan = buildSearchTemplatePlan({
             mode: 'jobs',
@@ -1576,10 +1592,10 @@ function buildJobsSearchPlan() {
         if (plan?.query) return plan;
     }
     const parts = [];
-    if (roleTerms.length === 1) {
-        parts.push(roleTerms[0]);
-    } else if (roleTerms.length > 1) {
-        parts.push(roleTerms.join(' OR '));
+    if (parsedRoleTerms.length === 1) {
+        parts.push(parsedRoleTerms[0]);
+    } else if (parsedRoleTerms.length > 1) {
+        parts.push(parsedRoleTerms.join(' OR '));
     }
     const location = document.getElementById(
         'jobsLocationInput'
