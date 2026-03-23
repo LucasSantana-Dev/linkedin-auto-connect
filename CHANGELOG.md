@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.8] - 2026-03-23
+
+### Fixed
+- **Connect filter precedence**: Connect launches (manual, scheduled, and quota-retry) now always honor user-selected popup filters (`degree2nd`, `degree3rd`, `activelyHiring`) instead of silently prioritizing template `filterSpec` defaults.
+- **Connect zero-results recovery**: Added a one-time automatic relaxed retry when a Connect run ends with no processed items, broadening network scope to 2nd+3rd degree, disabling `activelyHiring`, and simplifying overly restrictive boolean queries.
+- **Test runtime portability**: Updated Jest scripts to use portable `NODE_OPTIONS` flags across CI Node versions and removed forced Jest exit behavior to avoid runtime warning noise while keeping full test compatibility.
+
 ## [1.36.7] - 2026-03-19
 
 ### Fixed
