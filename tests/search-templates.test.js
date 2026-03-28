@@ -585,9 +585,10 @@ describe('search-templates', () => {
                 expectedResultsBucket: 'balanced',
                 searchLanguageMode: 'en'
             });
-            expect(plan.query.toLowerCase()).toMatch(
-                /devops|site reliability|platform|infrastructure/
-            );
+            const query = plan.query.toLowerCase();
+            expect(query).toMatch(/devops|site reliability|platform|infrastructure/);
+            expect(query).toMatch(/hiring latam developers|latam talent partner/);
+            expect(query).toContain('not university');
         });
 
         it('buildSearchTemplatePlan — tech-backend pt_BR generates Portuguese terms', () => {

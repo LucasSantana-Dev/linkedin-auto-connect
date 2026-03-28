@@ -94,6 +94,22 @@
             any: 'custom'
         });
 
+        const TECH_COMPANIES_OFFSHORE_KEYWORDS = Object.freeze([
+            'hiring latam developers',
+            'nearshore software company',
+            'latam talent partner'
+        ]);
+
+        const TECH_COMPANIES_EXCLUDE_KEYWORDS = Object.freeze([
+            'university',
+            'college',
+            'institute',
+            'academy',
+            'bootcamp',
+            'group',
+            'jobs'
+        ]);
+
         const SEARCH_TEMPLATES = Object.freeze([
             {
                 id: 'connect.tech.recruiter_outreach.precise',
@@ -2181,6 +2197,19 @@
 
             const selectedTags = options?.selectedTags || {};
 
+            const hasExplicitKeywords = Object.prototype.hasOwnProperty.call(
+                selectedTags,
+                'keywords'
+            );
+            const hasExplicitExcludeKeywords = Object.prototype.hasOwnProperty.call(
+                selectedTags,
+                'excludeKeywords'
+            );
+
+            const isTechTalentWatchlist = normalizeAreaFamily(
+                template?.areaPreset
+            ) === 'tech' && template?.usageGoal === 'talent_watchlist';
+
             const keywords = resolveLocalizedOptionalGroup(
                 selectedTags,
                 'keywords',
@@ -2193,8 +2222,45 @@
                 template?.querySpec?.excludeKeywords,
                 searchLocale
             );
-            const prioritizedKeywords = keywords.slice(0, 4);
-            const prioritizedExcludeKeywords = excludeKeywords.slice(0, 3);
+
+            const localizedTechOffshoreKeywords = localizeTerms(
+                TECH_COMPANIES_OFFSHORE_KEYWORDS,
+                searchLocale
+            );
+            const localizedTechExcludeKeywords = localizeTerms(
+                TECH_COMPANIES_EXCLUDE_KEYWORDS,
+                searchLocale
+            );
+
+            const mergedKeywords = !isTechTalentWatchlist || hasExplicitKeywords
+                ? keywords
+                : (function() {
+                    if (template?.areaPreset === 'tech') {
+                        return localizedTechOffshoreKeywords.concat(keywords);
+                    }
+                    const specialtyKeywords = keywords.slice();
+                    const offshoreKeywords = localizedTechOffshoreKeywords.slice();
+                    const firstSpecialty = specialtyKeywords.shift();
+                    if (!firstSpecialty) {
+                        return offshoreKeywords;
+                    }
+                    const firstOffshore = offshoreKeywords.shift();
+                    if (!firstOffshore) {
+                        return [firstSpecialty].concat(specialtyKeywords);
+                    }
+                    return [firstSpecialty, firstOffshore]
+                        .concat(specialtyKeywords)
+                        .concat(offshoreKeywords);
+                })();
+
+            const mergedExcludeKeywords = !isTechTalentWatchlist || hasExplicitExcludeKeywords
+                ? excludeKeywords
+                : excludeKeywords.concat(localizedTechExcludeKeywords);
+
+            const prioritizedKeywords = uniqueNormalized(mergedKeywords).slice(0, 6);
+            const prioritizedExcludeKeywords = uniqueNormalized(
+                mergedExcludeKeywords
+            ).slice(0, 5);
             const compiled = compileBooleanQuery({
                 should: prioritizedKeywords,
                 must: [],

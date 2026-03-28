@@ -758,8 +758,10 @@
             },
             'tech-devops': {
                 defaultQuery:
-                    'devops OR "site reliability" OR SRE OR ' +
-                    '"platform engineering" OR infrastructure',
+                    '"devops engineering remote" OR "site reliability remote" OR ' +
+                    '"hiring latam devops" OR "cloud platform team" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Datadog', 'HashiCorp', 'Cloudflare',
                     'Grafana Labs', 'GitLab', 'Docker',
@@ -771,8 +773,10 @@
             },
             'tech-data': {
                 defaultQuery:
-                    '"data engineering" OR "data science" OR ' +
-                    '"analytics engineering" OR "machine learning"',
+                    '"data engineering remote" OR "analytics platform team" OR ' +
+                    '"hiring latam data" OR "machine learning product team" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Databricks', 'Snowflake', 'dbt Labs',
                     'Confluent', 'Datadog', 'MongoDB', 'Elastic',
@@ -784,8 +788,10 @@
             },
             'tech-cloud': {
                 defaultQuery:
-                    '"cloud engineering" OR "cloud architect" OR ' +
-                    '"solutions architect" OR "cloud infrastructure"',
+                    '"cloud engineering remote" OR "platform infrastructure company" OR ' +
+                    '"hiring latam cloud" OR "distributed cloud team" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Amazon Web Services', 'Google Cloud',
                     'Microsoft Azure', 'Cloudflare', 'HashiCorp',
@@ -797,8 +803,10 @@
             },
             'tech-security': {
                 defaultQuery:
-                    'cybersecurity OR "information security" OR ' +
-                    '"application security" OR "security engineering"',
+                    '"security engineering remote" OR "application security company" OR ' +
+                    '"hiring latam security" OR "cybersecurity platform" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'CrowdStrike', 'Palo Alto Networks',
                     'Cloudflare', 'Snyk', 'Wiz', 'Fortinet',
@@ -810,8 +818,10 @@
             },
             'tech-mobile': {
                 defaultQuery:
-                    '"mobile development" OR "ios developer" OR ' +
-                    '"android developer" OR "react native"',
+                    '"mobile engineering remote" OR "consumer app platform" OR ' +
+                    '"hiring latam mobile" OR "react native product team" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Apple', 'Google', 'Meta', 'Spotify', 'Uber',
                     'Airbnb', 'Shopify', 'Block', 'Nubank',
@@ -822,8 +832,10 @@
             },
             'tech-ml-ai': {
                 defaultQuery:
-                    '"artificial intelligence" OR "machine learning" OR ' +
-                    '"ai engineer" OR "generative ai"',
+                    '"machine learning platform remote" OR "ai product company" OR ' +
+                    '"hiring latam ai" OR "generative ai engineering" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'OpenAI', 'Anthropic', 'Google DeepMind',
                     'Meta AI', 'Hugging Face', 'Cohere',
