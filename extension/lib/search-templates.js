@@ -1014,10 +1014,17 @@
                     keywords: [
                         'nearshore software company',
                         'latam talent partner',
-                        'empresa de software nearshore'
+                        'remote product engineering',
+                        'hiring latam developers'
                     ],
                     excludeKeywords: [
-                        'university'
+                        'university',
+                        'college',
+                        'institute',
+                        'academy',
+                        'bootcamp',
+                        'group',
+                        'jobs'
                     ]
                 },
                 filterSpec: {
@@ -1040,9 +1047,19 @@
                 expectedResultsBucket: 'balanced',
                 querySpec: {
                     keywords: [
-                        'frontend engineering',
-                        'web development',
-                        'design systems'
+                        'frontend engineering remote',
+                        'react product team',
+                        'hiring latam frontend',
+                        'remote web platform'
+                    ],
+                    excludeKeywords: [
+                        'university',
+                        'college',
+                        'institute',
+                        'academy',
+                        'bootcamp',
+                        'group',
+                        'jobs'
                     ]
                 },
                 filterSpec: { batchSize: 10 },
@@ -1061,9 +1078,19 @@
                 expectedResultsBucket: 'balanced',
                 querySpec: {
                     keywords: [
-                        'backend engineering',
-                        'api development',
-                        'platform engineering'
+                        'backend engineering remote',
+                        'api platform company',
+                        'hiring latam backend',
+                        'distributed engineering team'
+                    ],
+                    excludeKeywords: [
+                        'university',
+                        'college',
+                        'institute',
+                        'academy',
+                        'bootcamp',
+                        'group',
+                        'jobs'
                     ]
                 },
                 filterSpec: { batchSize: 10 },
@@ -1082,9 +1109,19 @@
                 expectedResultsBucket: 'balanced',
                 querySpec: {
                     keywords: [
-                        'software engineering',
-                        'full stack development',
-                        'product engineering'
+                        'full stack engineering remote',
+                        'product engineering company',
+                        'hiring latam fullstack',
+                        'distributed product team'
+                    ],
+                    excludeKeywords: [
+                        'university',
+                        'college',
+                        'institute',
+                        'academy',
+                        'bootcamp',
+                        'group',
+                        'jobs'
                     ]
                 },
                 filterSpec: { batchSize: 10 },
@@ -2156,11 +2193,13 @@
                 template?.querySpec?.excludeKeywords,
                 searchLocale
             );
+            const prioritizedKeywords = keywords.slice(0, 4);
+            const prioritizedExcludeKeywords = excludeKeywords.slice(0, 3);
             const compiled = compileBooleanQuery({
-                should: keywords,
+                should: prioritizedKeywords,
                 must: [],
-                mustNot: keywords.length > 0
-                    ? excludeKeywords
+                mustNot: prioritizedKeywords.length > 0
+                    ? prioritizedExcludeKeywords
                     : [],
                 budget: 12,
                 explicitAnd: true,

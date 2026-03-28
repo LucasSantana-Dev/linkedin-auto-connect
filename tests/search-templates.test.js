@@ -303,7 +303,7 @@ describe('search-templates', () => {
         expect(plan.query.toLowerCase()).toContain('brasil');
     });
 
-    it('builds companies template plan with bilingual market terms within budget', () => {
+    it('builds companies template plan with offshore terms and exclusions within budget', () => {
         const plan = buildSearchTemplatePlan({
             mode: 'companies',
             areaPreset: 'tech',
@@ -314,7 +314,7 @@ describe('search-templates', () => {
         });
 
         expect(plan.query.toLowerCase()).toContain('nearshore software company');
-        expect(plan.query.toLowerCase()).toContain('empresa de software nearshore');
+        expect(plan.query.toLowerCase()).toContain('latam talent partner');
         expect(plan.query.toLowerCase()).toContain('not university');
         expect(plan.meta.operatorCount).toBeLessThanOrEqual(12);
     });

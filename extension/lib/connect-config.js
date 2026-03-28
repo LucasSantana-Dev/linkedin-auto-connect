@@ -515,8 +515,9 @@
             tech: {
                 defaultQuery:
                     '"nearshore software company" OR "latam talent partner" OR ' +
-                    '"offshore engineering team" OR "remote product company" ' +
-                    'NOT university NOT college NOT institute NOT academy',
+                    '"offshore engineering team" OR "hiring latam developers" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Google',
                     'Microsoft',
@@ -715,8 +716,10 @@
             },
             'tech-frontend': {
                 defaultQuery:
-                    '"frontend engineering" OR "frontend developer" OR ' +
-                    '"react developer" OR "web development"',
+                    '"frontend engineering remote" OR "react product team" OR ' +
+                    '"hiring latam frontend" OR "remote web platform" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Vercel', 'Netlify', 'Shopify', 'Canva',
                     'Figma', 'Airbnb', 'Stripe', 'GitHub',
@@ -727,8 +730,10 @@
             },
             'tech-backend': {
                 defaultQuery:
-                    '"backend engineering" OR "backend developer" OR ' +
-                    '"api development" OR "platform engineering"',
+                    '"backend engineering remote" OR "api platform company" OR ' +
+                    '"hiring latam backend" OR "distributed engineering team" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Stripe', 'Datadog', 'Cloudflare', 'Twilio',
                     'MongoDB', 'Elastic', 'Redis', 'Confluent',
@@ -739,8 +744,10 @@
             },
             'tech-fullstack': {
                 defaultQuery:
-                    '"full stack" OR "software engineering" OR ' +
-                    '"product engineering" OR "fullstack developer"',
+                    '"full stack engineering remote" OR "product engineering company" OR ' +
+                    '"hiring latam fullstack" OR "distributed product team" ' +
+                    'NOT university NOT college NOT institute NOT academy ' +
+                    'NOT bootcamp NOT group NOT jobs',
                 defaultTargetCompanies: [
                     'Vercel', 'Supabase', 'Shopify', 'Stripe',
                     'GitHub', 'GitLab', 'Notion', 'Linear',
