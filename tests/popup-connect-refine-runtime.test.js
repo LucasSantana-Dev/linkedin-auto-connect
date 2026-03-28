@@ -382,6 +382,18 @@ describe('popup connect refine runtime', () => {
         expect(launchCall[0].limit).toBe(13);
     });
 
+    test('companies area preset select includes tech and engineering options', () => {
+        switchToCompaniesMode();
+
+        const select = document.getElementById('companyAreaPresetSelect');
+        const values = Array.from(select.options).map((option) => option.value);
+
+        expect(values).toContain('tech');
+        expect(values).toContain('tech-fullstack');
+        expect(values).toContain('tech-frontend');
+        expect(values).toContain('tech-backend');
+    });
+
     test('companies done no-results with zero processed is treated as success in popup', () => {
         const listener = chromeMock.runtime.onMessage.addListener.mock.calls[0][0];
         const statusBox = document.getElementById('statusBox');
