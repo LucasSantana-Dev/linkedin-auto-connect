@@ -19,7 +19,7 @@
                 : null);
         const localizeSearchTerms =
             searchLanguageApi?.localizeSearchTerms;
-        const STATE_TAG_VERSION = 7;
+        const STATE_TAG_VERSION = 8;
 
         const AREA_PRESETS = {
             tech: {
@@ -512,6 +512,31 @@
                 defaultQuery: '',
                 defaultTargetCompanies: []
             },
+            tech: {
+                defaultQuery:
+                    '"software engineering" OR "software development" OR ' +
+                    '"product engineering" OR "technology platform"',
+                defaultTargetCompanies: [
+                    'Google',
+                    'Microsoft',
+                    'Amazon',
+                    'Meta',
+                    'Apple',
+                    'Stripe',
+                    'Shopify',
+                    'Cloudflare',
+                    'Datadog',
+                    'GitHub',
+                    'Nubank',
+                    'iFood',
+                    'Mercado Livre',
+                    'VTEX',
+                    'QuintoAndar',
+                    'PicPay',
+                    'CI&T',
+                    'Thoughtworks'
+                ]
+            },
             'graphic-design': {
                 defaultQuery:
                     '"graphic design" OR "designer grafico" OR ' +
@@ -804,6 +829,7 @@
 
         const COMPANY_AREA_PRESET_VALUES = Object.freeze([
             'custom',
+            'tech',
             'graphic-design',
             'art-direction',
             'branding',

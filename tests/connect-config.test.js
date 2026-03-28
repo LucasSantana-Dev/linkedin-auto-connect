@@ -153,7 +153,7 @@ describe('connect-config', () => {
             });
             expect(result.changed).toBe(true);
             expect(result.state.excludedCompanies).toBe('Acme Corp');
-            expect(result.state.tagVersion).toBe(7);
+            expect(result.state.tagVersion).toBe(8);
             expect(result.state.areaPreset).toBe('custom');
         });
 
@@ -209,6 +209,15 @@ describe('connect-config', () => {
                     normalizeCompanyAreaPreset(preset)
                 ).toBe(preset);
             });
+        });
+
+        it('includes generic tech company preset with defaults', () => {
+            expect(COMPANY_AREA_PRESET_VALUES).toContain('tech');
+            expect(normalizeCompanyAreaPreset('tech')).toBe('tech');
+            expect(getCompanyAreaPresetDefaultQuery('tech')).not.toBe('');
+            expect(
+                getCompanyAreaPresetDefaultTargetCompanies('tech').length
+            ).toBeGreaterThan(0);
         });
 
         it('returns default query and target companies for creative presets', () => {
