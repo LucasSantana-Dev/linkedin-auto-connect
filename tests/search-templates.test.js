@@ -122,6 +122,44 @@ describe('search-templates', () => {
         );
     });
 
+    it('collapses companies tech sub-presets to generic tech template selection', () => {
+        const template = selectSearchTemplate({
+            mode: 'companies',
+            areaPreset: 'tech-devops',
+            usageGoal: 'talent_watchlist',
+            expectedResultsBucket: 'balanced',
+            auto: true
+        });
+        expect(template.id).toBe('companies.tech.talent_watchlist.balanced');
+    });
+
+    it('keeps non-tech companies preset selection unchanged', () => {
+        const template = selectSearchTemplate({
+            mode: 'companies',
+            areaPreset: 'ui-ux',
+            usageGoal: 'talent_watchlist',
+            expectedResultsBucket: 'balanced',
+            auto: true
+        });
+        expect(template).not.toBeNull();
+        expect(template.areaPreset).toBe('ui-ux');
+    });
+
+    it('falls back to companies custom balanced template when custom goal bucket is missing', () => {
+        const template = selectSearchTemplate({
+            mode: 'companies',
+            areaPreset: 'unknown-preset',
+            usageGoal: 'competitor_watch',
+            expectedResultsBucket: 'broad',
+            auto: true
+        });
+
+        expect(template).not.toBeNull();
+        expect(template.id).toBe('companies.custom.talent_watchlist.balanced');
+        expect(template.areaPreset).toBe('custom');
+        expect(template.expectedResultsBucket).toBe('balanced');
+    });
+
     it('uses manual template when auto mode is off', () => {
         const template = selectSearchTemplate({
             mode: 'jobs',
@@ -591,6 +629,23 @@ describe('search-templates', () => {
             expect(query).toContain('not university');
         });
 
+        it('buildSearchTemplatePlan — manual companies tech sub-preset interleaves specialty with offshore terms', () => {
+            const plan = buildSearchTemplatePlan({
+                mode: 'companies',
+                auto: false,
+                templateId: 'companies.tech-backend.talent_watchlist.balanced',
+                searchLanguageMode: 'en'
+            });
+            const query = plan.query.toLowerCase();
+
+            expect(plan.template.id).toBe('companies.tech-backend.talent_watchlist.balanced');
+            expect(query).toContain('backend engineering remote');
+            expect(query).toContain('hiring latam developers');
+            expect(
+                query.indexOf('backend engineering remote')
+            ).toBeLessThan(query.indexOf('hiring latam developers'));
+        });
+
         it('buildSearchTemplatePlan — tech-backend pt_BR generates Portuguese terms', () => {
             const plan = buildSearchTemplatePlan({
                 mode: 'connect',
@@ -758,6 +813,17 @@ describe('listSearchTemplates', () => {
         expect(filtered.length).toBeGreaterThan(0);
         filtered.forEach((t) => {
             expect(['tech', 'any', 'custom'].includes(t.areaPreset)).toBe(true);
+        });
+    });
+
+    it('filters companies by non-tech preset without collapsing families', () => {
+        const filtered = listSearchTemplates({
+            mode: 'companies',
+            areaPreset: 'ui-ux'
+        });
+        expect(filtered.length).toBeGreaterThan(0);
+        filtered.forEach((t) => {
+            expect(['ui-ux', 'creative', 'any', 'custom'].includes(t.areaPreset)).toBe(true);
         });
     });
 });
