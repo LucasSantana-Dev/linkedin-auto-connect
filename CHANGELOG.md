@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.10] - 2026-03-28
+
+### Added
+- **Companies tech presets in popup**: Added software-engineering focused Companies area preset options in the popup selector (`tech`, `tech-fullstack`, `tech-frontend`, `tech-backend`, `tech-devops`, `tech-data`, `tech-cloud`, `tech-security`, `tech-mobile`, `tech-ml-ai`).
+- **Generic Companies tech preset defaults**: Added a base `tech` Companies preset with curated default query and target companies for talent-watchlist workflows.
+
+### Fixed
+- **Preset migration alignment**: Bumped area preset state tag to `8` and updated regression coverage to ensure migration and config normalization include the new generic Companies `tech` preset.
+- **Manifest/package parity**: Aligned extension manifest version with the package release line (`1.36.10`).
+
 ## [1.36.9] - 2026-03-28
 
 ### Fixed
