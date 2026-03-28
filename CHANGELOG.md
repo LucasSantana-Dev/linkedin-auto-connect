@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.14] - 2026-03-28
+
+### Fixed
+- **Companies auto-follow execution reliability**: Company follow runtime now recollects lazy-loaded result cards before processing, improving follow execution when LinkedIn loads additional cards only after scrolling.
+- **Pagination next-button detection robustness**: Added broader next-page button detection (`Next` / `Avançar` and additional selectors) so multi-page company runs continue more reliably.
+- **Low-fit classifier false positives**: Narrowed group-related low-fit patterns to explicit community/study group signals so legitimate company names containing “Group” are no longer skipped by default.
+
+### Added
+- **Runtime regression coverage for lazy-load follow flow**: Added tests to verify additional cards collected after scroll are processed and followed automatically.
+
 ## [1.36.13] - 2026-03-28
 
 ### Fixed
