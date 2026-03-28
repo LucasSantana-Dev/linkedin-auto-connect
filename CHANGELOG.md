@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.16] - 2026-03-28
+
+### Fixed
+- **Companies tech preset simplification and normalization**: Reduced Companies mode tech selector surface to the generic `tech` preset and normalized legacy `tech-*` values to `tech` across popup launch payloads, config normalization, and template resolution.
+
+### Added
+- **Regression coverage for Companies fallback paths**: Expanded search-template and popup runtime tests to lock legacy tech-preset normalization, Companies custom balanced fallback selection, and tech-subpreset offshore-keyword interleave ordering.
+
 ## [1.36.15] - 2026-03-28
 
 ### Fixed
