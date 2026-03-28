@@ -239,13 +239,65 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
 
     function findNextPageButton() {
         const btns = document.querySelectorAll(
-            'button[aria-label="Next"], ' +
-            'button[aria-label="Avançar"]'
+            'button[aria-label*="Next"], ' +
+            'button[aria-label*="Avançar"], ' +
+            'button.artdeco-pagination__button--next, ' +
+            'button[aria-label*="next" i]'
         );
         for (const btn of btns) {
             if (!btn.disabled) return btn;
         }
+        const fallbackButtons = document.querySelectorAll('button');
+        for (const btn of fallbackButtons) {
+            if (btn.disabled) continue;
+            const text = String(btn.innerText || btn.textContent || '')
+                .trim();
+            if (/^(Next|Avançar)$/i.test(text)) {
+                return btn;
+            }
+        }
         return null;
+    }
+
+    async function collectVisibleCompanyCards(initialCards) {
+        const seen = new Set();
+        const collected = [];
+        const seedCards = Array.from(initialCards || []);
+        for (const card of seedCards) {
+            if (!card || seen.has(card)) continue;
+            seen.add(card);
+            collected.push(card);
+        }
+
+        const isJsDom = /jsdom/i.test(
+            String(window?.navigator?.userAgent || '')
+        );
+        const canScroll = typeof window.scrollBy === 'function' && (
+            !isJsDom || window.scrollBy?._isMockFunction === true
+        );
+
+        for (let i = 0; i < 3; i++) {
+            if (stopRequested) break;
+            if (canScroll) {
+                try {
+                    window.scrollBy(0, 700);
+                } catch (_err) {
+                    // no-op in non-browser test environments
+                }
+            }
+            await delay(300);
+            const currentCards = findCompanyCards();
+            let added = 0;
+            for (const card of currentCards) {
+                if (!card || seen.has(card)) continue;
+                seen.add(card);
+                collected.push(card);
+                added++;
+            }
+            if (added === 0) break;
+        }
+
+        return collected;
     }
 
     function reportProgress(followed, limit, page) {
@@ -608,8 +660,12 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                     break;
                 }
 
+                const visibleCards = await collectVisibleCompanyCards(
+                    waitResult.state.cards
+                );
+
                 const pageResult = await processCurrentPage(
-                    waitResult.state.cards,
+                    visibleCards,
                     companies,
                     limit,
                     totalFollowed,

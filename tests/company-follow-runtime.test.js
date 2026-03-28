@@ -313,4 +313,94 @@ describe('company-follow runtime classification', () => {
             ])
         );
     });
+
+    it('collects additional cards after scroll and follows eligible company', async () => {
+        const initialCard = document.createElement('div');
+        initialCard.className = 'entity-result';
+        initialCard.dataset.companyName = 'Engineering University';
+        const initialBtn = document.createElement('button');
+        initialBtn.textContent = 'Follow';
+        initialBtn.scrollIntoView = jest.fn();
+        initialCard.appendChild(initialBtn);
+        document.body.appendChild(initialCard);
+
+        const loadedCard = document.createElement('div');
+        loadedCard.className = 'entity-result';
+        loadedCard.dataset.companyName = 'Software Co';
+        const loadedBtn = document.createElement('button');
+        loadedBtn.textContent = '+ Follow';
+        loadedBtn.scrollIntoView = jest.fn();
+        loadedBtn.addEventListener('click', () => {
+            loadedBtn.textContent = 'Following';
+        });
+        loadedCard.appendChild(loadedBtn);
+
+        let loaded = false;
+        window.scrollBy = jest.fn(() => {
+            if (loaded) return;
+            loaded = true;
+            document.body.appendChild(loadedCard);
+        });
+
+        global.extractCompanyInfo = (card) => ({
+            name: card.dataset.companyName,
+            subtitle: card.dataset.companyName.includes('University')
+                ? 'Higher Education'
+                : 'Software Development',
+            companyUrl: 'https://www.linkedin.com/company/' +
+                card.dataset.companyName.toLowerCase().replace(/\s+/g, '-')
+        });
+        global.matchesTargetCompanies = () => true;
+        global.isCompanyFollowText = (text) =>
+            /^(\+\s*)?follow$/i.test(String(text || '').trim());
+        global.isFollowingText = (text) =>
+            /^following$/i.test(String(text || '').trim());
+        global.isCompanyFollowConfirmed = undefined;
+        global.isLowFitCompanyEntity = (info) => ({
+            isLowFit: /university/i.test(info?.name || ''),
+            reason: /university/i.test(info?.name || '')
+                ? 'education'
+                : '',
+            match: /university/i.test(info?.name || '')
+                ? 'university'
+                : ''
+        });
+        global.actionDelay = () => 0;
+        global.shouldTakePause = () => false;
+        global.getCompanySearchPageState = () => ({
+            cards: Array.from(document.querySelectorAll('.entity-result')),
+            cardsFound: true,
+            isExplicitNoResults: false,
+            resultsCountHint: loaded ? 2 : 1,
+            resultsCountText: loaded ? '2 results' : '1 result',
+            selectorHits: {}
+        });
+
+        require('../extension/company-follow');
+        const donePromise = waitForCompanyDone(6000);
+        window.dispatchEvent(new MessageEvent('message', {
+            data: {
+                type: 'LINKEDIN_COMPANY_FOLLOW_START',
+                config: {
+                    query: 'software engineering',
+                    limit: 1,
+                    targetCompanies: []
+                }
+            },
+            source: window
+        }));
+
+        const result = await donePromise;
+        expect(window.scrollBy).toHaveBeenCalled();
+        expect(result.success).toBe(true);
+        expect(result.actionCount).toBe(1);
+        expect(result.log).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    name: 'Software Co',
+                    status: 'followed'
+                })
+            ])
+        );
+    });
 });

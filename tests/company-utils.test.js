@@ -210,9 +210,9 @@ describe('isLowFitCompanyEntity', () => {
         }).isLowFit).toBe(true);
     });
 
-    it('flags generic groups and job boards as low-fit entities', () => {
+    it('flags explicit community groups and job boards as low-fit entities', () => {
         expect(isLowFitCompanyEntity({
-            name: 'Software Improvement Group',
+            name: 'Software Improvement Community Group',
             subtitle: 'Professional Training and Jobs'
         }).isLowFit).toBe(true);
     });
@@ -221,6 +221,13 @@ describe('isLowFitCompanyEntity', () => {
         expect(isLowFitCompanyEntity({
             name: 'Vercel',
             subtitle: 'Software Development'
+        }).isLowFit).toBe(false);
+    });
+
+    it('does not skip legitimate companies with group in their name', () => {
+        expect(isLowFitCompanyEntity({
+            name: 'Software Improvement Group',
+            subtitle: 'IT Services and IT Consulting'
         }).isLowFit).toBe(false);
     });
 });

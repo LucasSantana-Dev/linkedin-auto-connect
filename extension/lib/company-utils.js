@@ -122,7 +122,8 @@ function isLowFitCompanyEntity(info) {
         { term: 'e learning', reason: 'training' },
         { term: 'training', reason: 'training' },
         { term: 'curso', reason: 'training' },
-        { term: 'group', reason: 'generic-group' },
+        { term: 'community group', reason: 'generic-group' },
+        { term: 'study group', reason: 'generic-group' },
         { term: 'jobs', reason: 'job-board' },
         { term: 'vagas', reason: 'job-board' }
     ];
