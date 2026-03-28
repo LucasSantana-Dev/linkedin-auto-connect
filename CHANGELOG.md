@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.12] - 2026-03-28
+
+### Fixed
+- **Companies search quality**: Tightened tech talent-watchlist query terms toward offshore/LATAM software employers and added exclusion clauses to reduce education/group noise in company search results.
+- **Low-fit entity handling in runtime**: Company follow automation now classifies and skips low-fit entities (for example universities, institutes, generic groups, and job-board-like pages) before attempting follow actions.
+
+### Added
+- **Companies quality diagnostics and regressions**: Added runtime and query-planning coverage for low-fit skipping and exclusion-aware Companies query generation.
+
 ## [1.36.11] - 2026-03-28
 
 ### Fixed
