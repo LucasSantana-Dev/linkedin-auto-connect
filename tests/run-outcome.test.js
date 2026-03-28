@@ -52,6 +52,23 @@ describe('normalizeRunOutcome', () => {
         expect(result.success).toBe(false);
     });
 
+    test('keeps company no-results as success when explicitly signaled', () => {
+        const result = normalizeRunOutcome({
+            mode: 'company',
+            success: true,
+            reason: 'no-results',
+            stepCode: 'no-results',
+            processedCount: 0,
+            actionCount: 0,
+            skippedCount: 0,
+            log: [{ status: 'skipped-no-results' }]
+        });
+
+        expect(result.runStatus).toBe(RUN_STATUS_SUCCESS);
+        expect(result.reason).toBe('no-results');
+        expect(result.success).toBe(true);
+    });
+
     test('preserves explicit failed reason when provided', () => {
         const result = normalizeRunOutcome({
             mode: 'company',
