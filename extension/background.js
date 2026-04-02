@@ -458,7 +458,7 @@ function buildCompanySearchRuntimeFromState(state) {
             companyAreaPreset
         );
     }
-    query = String(query || '').trim();
+    query = sanitizeCompanySearchQuery(query);
 
     const fallbackMeta = {
         templateId,
@@ -583,6 +583,48 @@ function buildCompanySearchUrl(query) {
         '&origin=FACETED_SEARCH';
 }
 
+function sanitizeCompanySearchQuery(value) {
+    const normalizedQuotes = String(value || '')
+        .replace(/[“”]/g, '"')
+        .replace(/[‘’]/g, "'");
+    const normalizedWhitespace = normalizedQuotes
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!normalizedWhitespace) return '';
+
+    return normalizedWhitespace
+        .replace(/\b(and|or|not)\b/gi, function(match) {
+            return match.toUpperCase();
+        })
+        .replace(/\b(OR|AND|NOT)\s+(?=\b(OR|AND|NOT)\b)/g, '')
+        .replace(/^(OR|AND|NOT)\b\s*/i, '')
+        .replace(/\s+\b(OR|AND)\s*$/i, '')
+        .trim();
+}
+
+function splitCompanySearchQueries(value) {
+    return String(value || '')
+        .split(/\n+/)
+        .map(function(part) {
+            return sanitizeCompanySearchQuery(part);
+        })
+        .filter(Boolean);
+}
+
+function normalizeCompanyTargets(values) {
+    const seen = new Set();
+    const normalized = [];
+    for (const raw of values || []) {
+        const clean = String(raw || '').replace(/\s+/g, ' ').trim();
+        if (!clean) continue;
+        const key = clean.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        normalized.push(clean);
+    }
+    return normalized;
+}
+
 function buildJobsSearchUrl(query, options) {
     if (typeof buildLinkedInJobsSearchUrl === 'function') {
         return buildLinkedInJobsSearchUrl(query, options);
@@ -597,10 +639,11 @@ function resolveCompanySearches(
     targetCompanies,
     companyAreaPreset
 ) {
-    const companies = Array.isArray(targetCompanies)
-        ? targetCompanies.map(c => String(c || '').trim())
-            .filter(Boolean)
-        : [];
+    const companies = normalizeCompanyTargets(
+        Array.isArray(targetCompanies)
+            ? targetCompanies
+            : []
+    );
     if (companies.length > 0) return companies;
     let fallback = String(query || '').trim();
     if (!fallback &&
@@ -609,7 +652,10 @@ function resolveCompanySearches(
             companyAreaPreset
         );
     }
-    return fallback ? [fallback] : [];
+    const fallbackQueries = splitCompanySearchQueries(fallback);
+    return fallbackQueries.length > 0
+        ? fallbackQueries
+        : [];
 }
 
 function countFollowedEntries(log) {

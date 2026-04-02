@@ -699,6 +699,79 @@ describe('company orchestration in background', () => {
         expect(updatedTabs).toHaveLength(0);
     });
 
+    it('splits multiline company queries into sequential sanitized searches', async () => {
+        const response = await sendRequest({
+            action: 'startCompanyFollow',
+            query: '  nearshore software company  \n OR latam talent partner  ',
+            limit: 10,
+            targetCompanies: []
+        });
+
+        expect(response).toEqual({ status: 'started' });
+        expect(createdTabs).toHaveLength(1);
+        expect(createdTabs[0].url).toContain(
+            encodeURIComponent('nearshore software company')
+        );
+        expect(createdTabs[0].url).not.toContain('%0A');
+
+        runtimeListener({
+            action: 'companyStepDone',
+            result: {
+                success: true,
+                mode: 'company',
+                followedThisStep: 0,
+                log: [{ status: 'skipped-already-following' }]
+            }
+        }, {}, () => {});
+        await tick();
+
+        expect(updatedTabs).toHaveLength(1);
+        expect(updatedTabs[0].opts.url).toContain(
+            encodeURIComponent('latam talent partner')
+        );
+    });
+
+    it('deduplicates repeated target companies before queue execution', async () => {
+        const response = await sendRequest({
+            action: 'startCompanyFollow',
+            query: 'software technology',
+            limit: 10,
+            targetCompanies: ['Acme', '  Acme  ', 'Beta']
+        });
+
+        expect(response).toEqual({ status: 'started' });
+        expect(createdTabs).toHaveLength(1);
+        expect(createdTabs[0].url).toContain('keywords=Acme');
+
+        runtimeListener({
+            action: 'companyStepDone',
+            result: {
+                success: true,
+                mode: 'company',
+                followedThisStep: 0,
+                log: [{ status: 'skipped-already-following' }]
+            }
+        }, {}, () => {});
+        await tick();
+
+        expect(updatedTabs).toHaveLength(1);
+        expect(updatedTabs[0].opts.url).toContain('keywords=Beta');
+
+        runtimeListener({
+            action: 'companyStepDone',
+            result: {
+                success: true,
+                mode: 'company',
+                followedThisStep: 0,
+                log: [{ status: 'skipped-already-following' }]
+            }
+        }, {}, () => {});
+        await tick();
+
+        expect(doneMessages()).toHaveLength(1);
+        expect(updatedTabs).toHaveLength(1);
+    });
+
     it('scheduled company run does not auto-apply template default targets', async () => {
         storageData.popupState = {
             targetCompanies: '',
