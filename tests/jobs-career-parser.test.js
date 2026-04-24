@@ -254,15 +254,7 @@ describe('jobs career parser', () => {
     });
 
     it('extractTextFromPdf loads pdfjs and extracts text from pages (lines 31-56)', async () => {
-        // Use a file:// URL pointing to a fake pdfjs fixture so the dynamic
-        // import() in loadPdfJs succeeds in Node CJS Jest.
         jest.resetModules();
-        const path = require('path');
-        const fixturePath = path.resolve(
-            __dirname, 'fixtures/fake-pdfjs.mjs'
-        );
-        const fixtureUrl = 'file://' + fixturePath;
-
         global.crypto = require('crypto').webcrypto;
         global.LinkedInJobsCareerIntelligence = require(
             '../extension/lib/jobs-career-intelligence'
@@ -272,14 +264,15 @@ describe('jobs career parser', () => {
         );
         global.chrome = {
             runtime: {
-                getURL: (p) => p.includes('pdf.min.mjs') ? fixtureUrl
-                    : `chrome-extension://fake-id/${p}`
+                getURL: (p) => `chrome-extension://fake-id/${p}`
             }
         };
 
-        const { extractTextFromPdf } = require('../extension/lib/jobs-career-parser');
-        const buf = new Uint8Array([1, 2, 3, 4]).buffer;
+        const { extractTextFromPdf, _setPdfJsLoader } = require('../extension/lib/jobs-career-parser');
+        const fakePdfJs = require('./fixtures/fake-pdfjs.cjs');
+        _setPdfJsLoader(() => fakePdfJs);
 
+        const buf = new Uint8Array([1, 2, 3, 4]).buffer;
         const text = await extractTextFromPdf(buf);
         expect(text).toContain('Hello from page 1');
         expect(text).toContain('More text');

@@ -16,6 +16,8 @@
     typeof globalThis !== 'undefined' ? globalThis : this,
     function(careerIntel, careerVault) {
         let pdfJsPromise = null;
+        let _pdfJsLoader = null;
+        function _setPdfJsLoader(fn) { _pdfJsLoader = fn; pdfJsPromise = null; }
 
         function sanitizeText(value) {
             return String(value || '')
@@ -25,6 +27,10 @@
 
         async function loadPdfJs() {
             if (pdfJsPromise) return pdfJsPromise;
+            if (_pdfJsLoader) {
+                pdfJsPromise = Promise.resolve(_pdfJsLoader());
+                return pdfJsPromise;
+            }
             pdfJsPromise = import(
                 chrome.runtime.getURL('vendor/pdf.min.mjs')
             ).then((module) => {
@@ -102,7 +108,8 @@
         return {
             parseResumeFile,
             extractTextFromPdf,
-            extractTextFromDocx
+            extractTextFromDocx,
+            _setPdfJsLoader
         };
     }
 );
