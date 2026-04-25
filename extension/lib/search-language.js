@@ -212,6 +212,10 @@
                 en: ['hybrid'],
                 pt_BR: ['híbrido']
             },
+            'on-site': {
+                en: ['on-site', 'onsite'],
+                pt_BR: ['presencial']
+            },
             'easy apply': {
                 en: ['easy apply'],
                 pt_BR: ['candidatura simplificada']
@@ -271,6 +275,22 @@
             'mid-level': {
                 en: ['mid-level'],
                 pt_BR: ['pleno']
+            },
+            junior: {
+                en: ['junior'],
+                pt_BR: ['júnior']
+            },
+            staff: {
+                en: ['staff', 'staff engineer'],
+                pt_BR: ['staff', 'engenheiro staff']
+            },
+            intern: {
+                en: ['intern', 'internship'],
+                pt_BR: ['estagiário', 'estágio']
+            },
+            associate: {
+                en: ['associate'],
+                pt_BR: ['associate', 'assistente']
             },
             'frontend engineer': {
                 en: ['frontend engineer'],
@@ -657,6 +677,8 @@
             remoto: 'remote',
             hibrido: 'hybrid',
             híbrido: 'hybrid',
+            presencial: 'on-site',
+            onsite: 'on-site',
             'candidatura simplificada': 'easy apply',
             'ferramentas para desenvolvedores': 'developer tools',
             'empresa de software': 'software company',
@@ -672,6 +694,13 @@
             senior: 'senior',
             sênior: 'senior',
             'pleno': 'mid-level',
+            'júnior': 'junior',
+            'estagiário': 'intern',
+            'estagiaria': 'intern',
+            'estagiária': 'intern',
+            estagio: 'intern',
+            'estágio': 'intern',
+            assistente: 'associate',
             global: 'global',
             latam: 'latam',
             nearshore: 'nearshore',

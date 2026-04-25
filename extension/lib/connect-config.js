@@ -1286,7 +1286,8 @@
                 role: toArray(source.role),
                 industry: toArray(source.industry),
                 market: toArray(source.market),
-                level: toArray(source.level)
+                level: toArray(source.level),
+                workMode: toArray(source.workMode)
             };
             if (normalized === 'custom') return out;
             const preset = AREA_PRESETS[normalized];
@@ -1357,7 +1358,7 @@
             } else if (safeRoles.length > 1) {
                 parts.push(safeRoles.join(' OR '));
             }
-            ['industry', 'market', 'level']
+            ['industry', 'market', 'level', 'workMode']
                 .forEach(function(group) {
                     localizeTerms(
                         source[group],

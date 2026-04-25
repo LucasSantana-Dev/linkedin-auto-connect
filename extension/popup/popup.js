@@ -1621,7 +1621,8 @@ function buildConnectSearchPlan(selectedTags) {
             role: getSelectedTags('role'),
             industry: getSelectedTags('industry'),
             market: getSelectedTags('market'),
-            level: getSelectedTags('level')
+            level: getSelectedTags('level'),
+            workMode: getSelectedTags('workMode')
         };
 
     const templateState = getTemplateState('connect');
