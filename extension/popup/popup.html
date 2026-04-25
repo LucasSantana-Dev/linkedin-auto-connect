@@ -1527,6 +1527,39 @@
             <div class="section-label">Search Builder</div>
 
             <div class="input-group" style="margin-bottom:8px;">
+                <label for="intentPresetSelect">
+                    Preset intent
+                </label>
+                <select id="intentPresetSelect">
+                    <option value="custom">Custom (advanced)</option>
+                    <optgroup label="Recruiter outreach">
+                        <option value="recruiter-tech-global">Recruiters — Tech (global)</option>
+                        <option value="recruiter-tech-senior">Recruiters — Senior / Head of Talent</option>
+                        <option value="recruiter-tech-remote">Recruiters — Remote / LATAM-friendly</option>
+                        <option value="recruiter-tech-startup">Recruiters — Startup / SaaS</option>
+                        <option value="recruiter-tech-agency">Recruiters — Agency / Executive Search</option>
+                        <option value="recruiter-tech-brazil">Recruiters — Brasil (pt-BR)</option>
+                        <option value="recruiter-design">Recruiters — Design / Creative</option>
+                    </optgroup>
+                    <optgroup label="Networking">
+                        <option value="peer-networking-tech">Peer networking — Tech</option>
+                        <option value="decision-makers-tech">Tech decision-makers</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="accordion"
+                id="connectAdvancedAccordion"
+                data-mode="connect"
+                data-panel="advanced">
+                <button class="accordion-toggle" type="button"
+                    data-accordion-toggle="connect:advanced">
+                    <span>Advanced search settings</span>
+                    <span class="accordion-chevron">▼</span>
+                </button>
+                <div class="accordion-body">
+
+            <div class="input-group" style="margin-bottom:8px;">
                 <label for="goalMode">
                     Goal
                 </label>
@@ -1630,6 +1663,9 @@
                     <option value="pt_BR">Português (Brasil)</option>
                     <option value="bilingual">Bilingual</option>
                 </select>
+            </div>
+
+                </div>
             </div>
 
             <div class="accordion"
