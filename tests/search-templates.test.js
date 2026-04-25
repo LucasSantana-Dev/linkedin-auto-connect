@@ -1044,3 +1044,85 @@ describe('selectSearchTemplate final fallback', () => {
         expect(result.mode).toBe('connect');
     });
 });
+
+describe('connect plan — workMode and seniority chip groups', () => {
+    it('merges workMode tags into the should chain (EN)', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'connect',
+            areaPreset: 'custom',
+            usageGoal: 'brazil_focus',
+            expectedResultsBucket: 'precise',
+            auto: false,
+            templateId: 'connect.custom.brazil_focus.precise',
+            searchLanguageMode: 'en',
+            selectedTags: {
+                role: [],
+                industry: [],
+                market: [],
+                level: ['senior'],
+                workMode: ['remote', 'hybrid']
+            }
+        });
+        expect(plan.query).toMatch(/\bremote\b/);
+        expect(plan.query).toMatch(/\bhybrid\b/);
+        expect(plan.query).toMatch(/\bsenior\b/);
+    });
+
+    it('localizes workMode terms to PT-BR', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'connect',
+            areaPreset: 'custom',
+            usageGoal: 'brazil_focus',
+            expectedResultsBucket: 'precise',
+            auto: false,
+            templateId: 'connect.custom.brazil_focus.precise',
+            searchLanguageMode: 'pt_BR',
+            selectedTags: {
+                role: [],
+                industry: [],
+                market: [],
+                workMode: ['remote', 'on-site', 'hybrid']
+            }
+        });
+        expect(plan.query).toMatch(/\bremoto\b/);
+        expect(plan.query).toMatch(/\bpresencial\b/);
+        expect(plan.query).toMatch(/\bhíbrido\b/);
+    });
+
+    it('localizes new seniority chips to PT-BR (intern, associate, junior)', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'connect',
+            areaPreset: 'custom',
+            usageGoal: 'brazil_focus',
+            expectedResultsBucket: 'precise',
+            auto: false,
+            templateId: 'connect.custom.brazil_focus.precise',
+            searchLanguageMode: 'pt_BR',
+            selectedTags: {
+                role: [],
+                industry: [],
+                market: [],
+                level: ['intern', 'associate', 'junior']
+            }
+        });
+        expect(plan.query).toMatch(/estagiário|estágio/);
+        expect(plan.query).toMatch(/\bjúnior\b/);
+        expect(plan.query).toMatch(/\bassistente\b/);
+    });
+
+    it('produces no workMode terms when none selected', () => {
+        const plan = buildSearchTemplatePlan({
+            mode: 'connect',
+            areaPreset: 'tech',
+            usageGoal: 'peer_networking',
+            expectedResultsBucket: 'balanced',
+            auto: true,
+            searchLanguageMode: 'en',
+            selectedTags: {
+                role: ['developer'],
+                level: ['senior']
+            }
+        });
+        expect(plan.query).not.toMatch(/\b(remote|on-site|hybrid)\b/);
+    });
+});

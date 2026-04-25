@@ -2130,6 +2130,10 @@
                 level: localizeTerms(
                     mergeGroupTerms(template, selectedTags, 'level'),
                     searchLocale
+                ),
+                workMode: localizeTerms(
+                    mergeGroupTerms(template, selectedTags, 'workMode'),
+                    searchLocale
                 )
             };
 
@@ -2157,7 +2161,8 @@
                 should: roles.concat(
                     groupTerms.industry,
                     groupTerms.market,
-                    groupTerms.level
+                    groupTerms.level,
+                    groupTerms.workMode
                 ),
                 must: [],
                 mustNot: excludeKeywords,

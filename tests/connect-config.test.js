@@ -115,7 +115,8 @@ describe('connect-config', () => {
                 role: ['recruiter'],
                 industry: ['software'],
                 market: ['brazil'],
-                level: ['lead']
+                level: ['lead'],
+                workMode: ['remote']
             };
             expect(applyAreaPresetToTags(tags, 'custom')).toEqual(tags);
         });
