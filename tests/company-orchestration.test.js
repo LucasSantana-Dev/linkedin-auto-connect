@@ -69,6 +69,10 @@ describe('company orchestration in background', () => {
             '../extension/lib/search-templates'
         );
         Object.assign(global, searchTemplates);
+        const connectQuery = require(
+            '../extension/lib/connect-query'
+        );
+        Object.assign(global, connectQuery);
 
         let tabIdCounter = 100;
         const tabMap = new Map();
@@ -294,6 +298,12 @@ describe('company orchestration in background', () => {
         delete global.RUN_STATUS_FAILED;
         delete global.RUN_STATUS_CANCELED;
         delete global.normalizeRunOutcome;
+        delete global.normalizeConnectQueryTerm;
+        delete global.buildRelaxedConnectQuery;
+        delete global.buildConnectSearchKeywords;
+        delete global.shouldRetryConnectWithRelaxedQuery;
+        delete global.buildRelaxedConnectConfig;
+        delete global.countBooleanOperatorsSafe;
         delete global.EXPECTED_RESULTS_BUCKETS;
         delete global.MODE_USAGE_GOALS;
         delete global.MODE_DEFAULT_USAGE_GOAL;
