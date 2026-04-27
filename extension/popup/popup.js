@@ -2921,43 +2921,58 @@ function loadState() {
 
 const MAX_ACTIVE_TAGS_PER_GROUP = 8;
 
-document.querySelectorAll('.tag').forEach(tag => {
-    tag.addEventListener('click', () => {
-        if (useCustomQuery) return;
-        const isActive = tag.classList.contains('active');
-        if (!isActive) {
+// Use event delegation on connectSection to handle clicks on dynamically-created tag elements
+(() => {
+    function setupTagClickHandler() {
+        const connectSection = document.getElementById('connectSection');
+        if (!connectSection) {
+            // Try again in next tick if connectSection doesn't exist yet
+            setTimeout(setupTagClickHandler, 0);
+            return;
+        }
+
+        connectSection.addEventListener('click', (event) => {
+            const tag = event.target.closest('.tag');
+            if (!tag) return;
+
+            if (useCustomQuery) return;
+            const isActive = tag.classList.contains('active');
+            if (!isActive) {
+                const group = tag.dataset.group;
+                const activeInGroup = document.querySelectorAll(
+                    `.tag.active[data-group="${group}"]`
+                ).length;
+                if (activeInGroup >= MAX_ACTIVE_TAGS_PER_GROUP) {
+                    tag.classList.add('tag-limit-shake');
+                    setTimeout(() => tag.classList.remove('tag-limit-shake'), 400);
+                    return;
+                }
+            }
+            tag.classList.toggle('active');
             const group = tag.dataset.group;
-            const activeInGroup = document.querySelectorAll(
-                `.tag.active[data-group="${group}"]`
-            ).length;
-            if (activeInGroup >= MAX_ACTIVE_TAGS_PER_GROUP) {
-                tag.classList.add('tag-limit-shake');
-                setTimeout(() => tag.classList.remove('tag-limit-shake'), 400);
-                return;
+            const shouldResetPreset = typeof
+                shouldResetAreaPresetOnManualTag === 'function'
+                ? shouldResetAreaPresetOnManualTag(group)
+                : (group === 'role' || group === 'industry');
+            if (shouldResetPreset &&
+                getSelectedAreaPreset() !== 'custom') {
+                setAreaPresetSelectValue('custom');
+                refreshTemplatesForArea();
+                const activeTemplate = document.querySelector(
+                    '.template-card.active'
+                )?.dataset.template || DEFAULT_TEMPLATE_KEY;
+                if (activeTemplate !== 'custom') {
+                    setActiveTemplate(activeTemplate);
+                }
             }
-        }
-        tag.classList.toggle('active');
-        const group = tag.dataset.group;
-        const shouldResetPreset = typeof
-            shouldResetAreaPresetOnManualTag === 'function'
-            ? shouldResetAreaPresetOnManualTag(group)
-            : (group === 'role' || group === 'industry');
-        if (shouldResetPreset &&
-            getSelectedAreaPreset() !== 'custom') {
-            setAreaPresetSelectValue('custom');
-            refreshTemplatesForArea();
-            const activeTemplate = document.querySelector(
-                '.template-card.active'
-            )?.dataset.template || DEFAULT_TEMPLATE_KEY;
-            if (activeTemplate !== 'custom') {
-                setActiveTemplate(activeTemplate);
-            }
-        }
-        updateQueryPreview();
-        updateRefineSelectedCount();
-        saveState();
-    });
-});
+            updateQueryPreview();
+            updateRefineSelectedCount();
+            saveState();
+        });
+    }
+
+    setupTagClickHandler();
+})();
 
 document.getElementById('areaPresetSelect').addEventListener(
     'change',
@@ -5276,6 +5291,10 @@ function loadRateLimitStatus() {
 }
 
 initializeAccordionInteractions();
+// Hydrate chip groups from AREA_PRESETS
+if (typeof hydrateAllChips === 'function' && typeof AREA_PRESETS === 'object') {
+    hydrateAllChips(document, { AREA_PRESETS });
+}
 refreshTemplateControls();
 loadState();
 updateWeeklyDisplay();

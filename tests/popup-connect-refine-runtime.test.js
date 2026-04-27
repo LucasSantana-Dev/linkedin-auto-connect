@@ -131,6 +131,14 @@ describe('popup connect refine runtime', () => {
                 '../extension/lib/popup-state'
             );
             Object.assign(global, popupState);
+            const connectConfig = require(
+                '../extension/lib/connect-config'
+            );
+            Object.assign(global, connectConfig);
+            const chipHydrator = require(
+                '../extension/lib/chip-hydrator'
+            );
+            Object.assign(global, chipHydrator);
             require('../extension/popup/popup.js');
         });
     });
