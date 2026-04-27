@@ -127,6 +127,10 @@ describe('popup connect refine runtime', () => {
         };
 
         jest.isolateModules(() => {
+            const popupState = require(
+                '../extension/lib/popup-state'
+            );
+            Object.assign(global, popupState);
             require('../extension/popup/popup.js');
         });
     });

@@ -2362,10 +2362,7 @@ function saveState() {
         }
     });
 
-    chrome.storage.local.set({
-        popupState: state,
-        uiLanguageMode: getUiLanguageMode()
-    });
+    savePopupState(state, getUiLanguageMode());
 }
 
 function loadState() {
@@ -2375,9 +2372,11 @@ function loadState() {
                 .value = data.groqApiKey;
         }
     });
-    chrome.storage.local.get(
-        ['popupState', 'uiLanguageMode'],
-        ({ popupState, uiLanguageMode }) => {
+    loadPopupState(
+        typeof migrateConnectPopupState === 'function'
+            ? migrateConnectPopupState
+            : null
+    ).then(({ state: popupState, uiLanguageMode }) => {
         if (!popupState) {
             popupUiState = normalizePopupUi();
             setAreaPresetSelectValue(DEFAULT_AREA_PRESET);
@@ -2458,15 +2457,6 @@ function loadState() {
             return;
         }
 
-        let migratedState = popupState;
-        if (typeof migrateConnectPopupState === 'function') {
-            const migration = migrateConnectPopupState(popupState);
-            migratedState = migration.state;
-            if (migration.changed) {
-                chrome.storage.local.set({ popupState: migratedState });
-            }
-        }
-        popupState = migratedState;
         popupUiState = normalizePopupUi(popupState.ui);
         setSelectValue(
             'uiLanguageModeSelect',
