@@ -62,6 +62,9 @@ describe('background connect runtime config', () => {
         const runOutcome = require('../extension/lib/run-outcome');
         Object.assign(global, runOutcome);
 
+        const connectQuery = require('../extension/lib/connect-query');
+        Object.assign(global, connectQuery);
+
         let tabIdCounter = 300;
         const tabMap = new Map();
 
@@ -257,6 +260,12 @@ describe('background connect runtime config', () => {
         delete global.RUN_STATUS_FAILED;
         delete global.RUN_STATUS_CANCELED;
         delete global.normalizeRunOutcome;
+        delete global.normalizeConnectQueryTerm;
+        delete global.buildRelaxedConnectQuery;
+        delete global.buildConnectSearchKeywords;
+        delete global.shouldRetryConnectWithRelaxedQuery;
+        delete global.buildRelaxedConnectConfig;
+        delete global.countBooleanOperatorsSafe;
     });
 
     it('forwards areaPreset and excludedCompanies to content on start', async () => {

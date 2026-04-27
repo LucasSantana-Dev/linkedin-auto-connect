@@ -85,6 +85,11 @@ describe('jobs orchestration in background', () => {
         );
         Object.assign(global, runOutcome);
 
+        const connectQuery = require(
+            '../extension/lib/connect-query'
+        );
+        Object.assign(global, connectQuery);
+
         let tabIdCounter = 600;
         const tabMap = new Map();
 
@@ -294,6 +299,12 @@ describe('jobs orchestration in background', () => {
         delete global.RUN_STATUS_FAILED;
         delete global.RUN_STATUS_CANCELED;
         delete global.normalizeRunOutcome;
+        delete global.normalizeConnectQueryTerm;
+        delete global.buildRelaxedConnectQuery;
+        delete global.buildConnectSearchKeywords;
+        delete global.shouldRetryConnectWithRelaxedQuery;
+        delete global.buildRelaxedConnectConfig;
+        delete global.countBooleanOperatorsSafe;
     });
 
     it('starts jobs assist with decrypted profile and forwards config to page runtime', async () => {
