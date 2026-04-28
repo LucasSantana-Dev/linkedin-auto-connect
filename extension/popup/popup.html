@@ -480,6 +480,37 @@
             display: block;
         }
 
+        /* ========== ADVANCED DISCLOSURE ========== */
+        .advanced-disclosure {
+            margin-top: var(--space-3);
+            padding: 0;
+            border: none;
+        }
+
+        .advanced-disclosure summary {
+            cursor: pointer;
+            padding: var(--space-2) 0;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            transition: color var(--transition-fast);
+        }
+
+        .advanced-disclosure summary:hover {
+            color: var(--text-secondary);
+        }
+
+        .advanced-disclosure[open] summary {
+            margin-bottom: var(--space-3);
+        }
+
+        .advanced-disclosure > *:not(summary) {
+            margin-bottom: var(--space-2);
+        }
+
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -1672,28 +1703,6 @@
                 <div class="accordion-body">
 
             <div class="input-group" style="margin-bottom:8px;">
-                <label for="goalMode">
-                    Goal
-                </label>
-                <select id="goalMode">
-                    <option value="passive">
-                        Networking & Visibility
-                    </option>
-                    <option value="active">
-                        Actively Looking
-                    </option>
-                </select>
-            </div>
-
-            <div class="input-group" style="margin-bottom:8px;">
-                <label for="roleTermsLimitInput">
-                    Role Terms Limit
-                </label>
-                <input type="number" id="roleTermsLimitInput"
-                    min="1" max="10" value="6" />
-            </div>
-
-            <div class="input-group" style="margin-bottom:8px;">
                 <label for="areaPresetSelect">
                     Area Preset
                 </label>
@@ -1728,28 +1737,52 @@
                 </select>
             </div>
 
-            <div class="row">
-                <div class="input-group">
-                    <label for="connectUsageGoalSelect">
-                        Usage Goal
-                    </label>
-                    <select id="connectUsageGoalSelect">
-                        <option value="recruiter_outreach">Recruiter Outreach</option>
-                        <option value="peer_networking">Peer Networking</option>
-                        <option value="decision_makers">Decision Makers</option>
-                        <option value="brazil_focus">Brazil Focus</option>
-                    </select>
-                </div>
-                <div class="input-group">
-                    <label for="connectExpectedResultsSelect">
-                        Expected Results
-                    </label>
-                    <select id="connectExpectedResultsSelect">
-                        <option value="precise">Precise (50-300)</option>
-                        <option value="balanced" selected>Balanced (300-1200)</option>
-                        <option value="broad">Broad (1200+)</option>
-                    </select>
-                </div>
+            <div class="input-group" style="margin-bottom:8px;">
+                <label for="connectExpectedResultsSelect">
+                    Expected Results
+                </label>
+                <select id="connectExpectedResultsSelect">
+                    <option value="precise">Precise (50-300)</option>
+                    <option value="balanced" selected>Balanced (300-1200)</option>
+                    <option value="broad">Broad (1200+)</option>
+                </select>
+            </div>
+
+            <details class="advanced-disclosure">
+                <summary>Edit advanced…</summary>
+
+            <div class="input-group" style="margin-bottom:8px;">
+                <label for="goalMode">
+                    Goal
+                </label>
+                <select id="goalMode">
+                    <option value="passive">
+                        Networking & Visibility
+                    </option>
+                    <option value="active">
+                        Actively Looking
+                    </option>
+                </select>
+            </div>
+
+            <div class="input-group" style="margin-bottom:8px;">
+                <label for="roleTermsLimitInput">
+                    Role Terms Limit
+                </label>
+                <input type="number" id="roleTermsLimitInput"
+                    min="1" max="10" value="6" />
+            </div>
+
+            <div class="input-group" style="margin-bottom:8px;">
+                <label for="connectUsageGoalSelect">
+                    Usage Goal
+                </label>
+                <select id="connectUsageGoalSelect">
+                    <option value="recruiter_outreach">Recruiter Outreach</option>
+                    <option value="peer_networking">Peer Networking</option>
+                    <option value="decision_makers">Decision Makers</option>
+                    <option value="brazil_focus">Brazil Focus</option>
+                </select>
             </div>
 
             <div class="checkbox-group" style="margin-top:4px;">
@@ -1765,6 +1798,7 @@
                 <label for="connectTemplateSelect">Template</label>
                 <select id="connectTemplateSelect"></select>
             </div>
+
             <div class="input-group" style="margin-bottom:8px;">
                 <label for="connectSearchLanguageModeSelect">
                     Search Language
@@ -1776,6 +1810,8 @@
                     <option value="bilingual">Bilingual</option>
                 </select>
             </div>
+
+            </details>
 
                 </div>
             </div>
