@@ -239,6 +239,7 @@ describe('company orchestration in background', () => {
         jest.resetModules();
         setupChrome();
         Object.assign(global, require('../extension/lib/company-query'));
+        Object.assign(global, require('../extension/lib/jobs-profile'));
         require('../extension/background');
     });
 

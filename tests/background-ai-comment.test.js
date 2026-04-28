@@ -160,6 +160,7 @@ describe('background AI comment copy guard', () => {
         Object.assign(global, aiContextLib);
         const runOutcome = require('../extension/lib/run-outcome');
         Object.assign(global, runOutcome);
+        Object.assign(global, require('../extension/lib/jobs-profile'));
         setupChrome();
         require('../extension/background');
     });

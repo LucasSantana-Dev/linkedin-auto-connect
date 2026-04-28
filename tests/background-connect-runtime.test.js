@@ -201,6 +201,7 @@ describe('background connect runtime config', () => {
     beforeEach(() => {
         jest.resetModules();
         setupChrome();
+        Object.assign(global, require('../extension/lib/jobs-profile'));
         require('../extension/background');
     });
 
