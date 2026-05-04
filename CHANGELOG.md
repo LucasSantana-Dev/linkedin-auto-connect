@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.29] - 2026-05-04
+
+### Internal
+- **`search-runtime-builders` extracted to `extension/lib/search-runtime-builders.js`** (#107, E-11 phase 6): UMD module with `normalizeTemplateMeta`, `normalizeRuntimeAreaPreset`, `mergeLogWithTemplateMeta`, `buildQueryFromTags`, `buildConnectSearchRuntimeFromState`, `buildCompanySearchRuntimeFromState`. 40 contract tests covering all branches including the `buildQueryFromTags` native-fallback path. All existing `background.js` call sites continue to work via the UMD global exposure.
+- **Popup `DEFAULT_*` constants derived from `DEFAULT_POPUP_STATE`** (#108, B-4 phase 3): the 10 top-of-file literal constants in `popup.js` (`DEFAULT_ROLE_TERMS_LIMIT`, `DEFAULT_FEED_WARMUP_RUNS`, `DEFAULT_TEMPLATE_KEY`, `DEFAULT_AREA_PRESET`, `DEFAULT_COMPANY_AREA_PRESET`, `DEFAULT_JOBS_AREA_PRESET`, `DEFAULT_CONNECT_USAGE_GOAL`, `DEFAULT_COMPANY_USAGE_GOAL`, `DEFAULT_JOBS_USAGE_GOAL`, `DEFAULT_EXPECTED_RESULTS`) now derive from `DEFAULT_POPUP_STATE` fields, making `popup-state.js` the single source of truth. All call sites unchanged.
+
 ## [1.36.28] - 2026-04-27
 
 ### Internal
