@@ -202,6 +202,7 @@ describe('background connect runtime config', () => {
         jest.resetModules();
         setupChrome();
         Object.assign(global, require('../extension/lib/jobs-profile'));
+        Object.assign(global, require('../extension/lib/search-runtime-builders'));
         require('../extension/background');
     });
 
@@ -267,6 +268,12 @@ describe('background connect runtime config', () => {
         delete global.shouldRetryConnectWithRelaxedQuery;
         delete global.buildRelaxedConnectConfig;
         delete global.countBooleanOperatorsSafe;
+        delete global.normalizeTemplateMeta;
+        delete global.normalizeRuntimeAreaPreset;
+        delete global.mergeLogWithTemplateMeta;
+        delete global.buildQueryFromTags;
+        delete global.buildConnectSearchRuntimeFromState;
+        delete global.buildCompanySearchRuntimeFromState;
     });
 
     it('forwards areaPreset and excludedCompanies to content on start', async () => {
