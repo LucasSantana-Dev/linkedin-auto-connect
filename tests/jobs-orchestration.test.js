@@ -231,6 +231,7 @@ describe('jobs orchestration in background', () => {
         setupChrome();
         Object.assign(global, require('../extension/lib/company-query'));
         Object.assign(global, require('../extension/lib/jobs-profile'));
+        Object.assign(global, require('../extension/lib/search-runtime-builders'));
         require('../extension/background');
     });
 
@@ -312,6 +313,12 @@ describe('jobs orchestration in background', () => {
         delete global.splitCompanySearchQueries;
         delete global.normalizeCompanyTargets;
         delete global.buildJobsSearchUrl;
+        delete global.normalizeTemplateMeta;
+        delete global.normalizeRuntimeAreaPreset;
+        delete global.mergeLogWithTemplateMeta;
+        delete global.buildQueryFromTags;
+        delete global.buildConnectSearchRuntimeFromState;
+        delete global.buildCompanySearchRuntimeFromState;
     });
 
     it('starts jobs assist with decrypted profile and forwards config to page runtime', async () => {

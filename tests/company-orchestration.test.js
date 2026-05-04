@@ -240,6 +240,7 @@ describe('company orchestration in background', () => {
         setupChrome();
         Object.assign(global, require('../extension/lib/company-query'));
         Object.assign(global, require('../extension/lib/jobs-profile'));
+        Object.assign(global, require('../extension/lib/search-runtime-builders'));
         require('../extension/background');
     });
 
@@ -329,6 +330,10 @@ describe('company orchestration in background', () => {
         delete global.splitCompanySearchQueries;
         delete global.normalizeCompanyTargets;
         delete global.buildJobsSearchUrl;
+        delete global.normalizeRuntimeAreaPreset;
+        delete global.mergeLogWithTemplateMeta;
+        delete global.buildConnectSearchRuntimeFromState;
+        delete global.buildCompanySearchRuntimeFromState;
     });
 
     it('executes multi-company queue and emits one final done', async () => {
