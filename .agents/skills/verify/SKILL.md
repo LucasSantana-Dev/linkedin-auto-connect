@@ -25,14 +25,16 @@ Run the repo's quality gates and report pass/fail.
 
 ### Coverage thresholds (jest.config.cjs)
 
-| Metric | Threshold |
-|---|---|
-| Statements | 96% |
-| Branches | 85.7% |
-| Functions | 99% |
-| Lines | 97.5% |
+| Metric | Threshold | Floor (warn) | Actual (v1.36.29) |
+|---|---|---|---|
+| Statements | 96% | — | 96.32% |
+| Branches | 85.7% | **86.0%** | 86.11% |
+| Functions | 99% | — | 99.17% |
+| Lines | 97.5% | — | 97.71% |
 
-Coverage applies to `extension/lib/**` only (see `collectCoverageFrom`). As of v1.36.23 main is at 96.21 / 86.07 / 99.12 / 97.63 — branch headroom is the tightest at ~0.37pp; watch on refactors that add new conditionals.
+Coverage applies to `extension/lib/**` only (see `collectCoverageFrom`).
+
+**Branch headroom rule:** branches is the tightest metric (~0.41pp over threshold as of v1.36.29). If `npm test -- --coverage` reports branches below **86.0%**, stop and add branch-covering tests before opening any PR — this is a 0.3pp buffer above the hard CI threshold. Any refactor that adds new conditionals must include matching branch tests.
 
 ## Commands
 
