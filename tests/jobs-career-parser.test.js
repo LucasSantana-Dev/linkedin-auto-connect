@@ -278,4 +278,61 @@ describe('jobs career parser', () => {
         expect(text).toContain('More text');
         expect(text).toContain('Hello from page 2');
     });
+
+    it('loadPdfJs returns the cached promise on subsequent calls', async () => {
+        jest.resetModules();
+        global.crypto = require('crypto').webcrypto;
+        global.LinkedInJobsCareerIntelligence = require(
+            '../extension/lib/jobs-career-intelligence'
+        );
+        global.LinkedInJobsCareerVault = require(
+            '../extension/lib/jobs-career-vault'
+        );
+
+        const { extractTextFromPdf, _setPdfJsLoader } = require('../extension/lib/jobs-career-parser');
+        const fakePdfJs = require('./fixtures/fake-pdfjs.cjs');
+        let loaderCallCount = 0;
+        _setPdfJsLoader(() => {
+            loaderCallCount++;
+            return fakePdfJs;
+        });
+
+        const buf = new Uint8Array([1, 2, 3, 4]).buffer;
+        await extractTextFromPdf(buf); // first call — sets pdfJsPromise
+        await extractTextFromPdf(buf); // second call — must return cached promise
+
+        // Loader called only once; second call hit the pdfJsPromise cache branch
+        expect(loaderCallCount).toBe(1);
+    });
+
+    it('readFileBuffer rejects when the FileReader fires an error event', async () => {
+        const { parseResumeFile } = loadParser();
+
+        // Provide a File-like object whose FileReader.readAsArrayBuffer triggers onerror
+        const originalFileReader = globalThis.FileReader;
+        globalThis.FileReader = class {
+            readAsArrayBuffer() {
+                setTimeout(() => {
+                    this.error = new Error('read-error');
+                    this.onerror();
+                }, 0);
+            }
+        };
+
+        global.mammoth = {
+            extractRawText: jest.fn(async () => ({ value: 'x' }))
+        };
+
+        const file = new File(
+            [new Uint8Array([1])],
+            'resume.docx',
+            { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }
+        );
+
+        try {
+            await expect(parseResumeFile(file)).rejects.toThrow('read-error');
+        } finally {
+            globalThis.FileReader = originalFileReader;
+        }
+    });
 });
