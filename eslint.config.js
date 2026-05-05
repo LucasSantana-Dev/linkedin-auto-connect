@@ -4,7 +4,8 @@ module.exports = [
             'node_modules/**',
             'dist/**',
             'coverage/**',
-            'linkedin_session/**'
+            'linkedin_session/**',
+            'extension/vendor/**'
         ]
     },
     {
@@ -13,6 +14,6 @@ module.exports = [
             ecmaVersion: 'latest',
             sourceType: 'script'
         },
-        rules: {}
+        rules: { "no-console": "error" }
     }
 ];

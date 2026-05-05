@@ -1395,6 +1395,7 @@ function logAccordionBreadcrumb(label, payload) {
         }
         chrome.storage.local.get('lkdDebug', (data) => {
             if (!data || !data.lkdDebug) return;
+            // eslint-disable-next-line no-console
             console.log('[lkd-debug] accordion.' + label, payload);
         });
     } catch (_e) {

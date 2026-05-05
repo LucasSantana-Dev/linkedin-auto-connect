@@ -1,6 +1,11 @@
 if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
     window.linkedInCompanyFollowInjected = true;
 
+    let lkdDebug = false;
+    try { chrome.storage.local.get('lkdDebug', d => { lkdDebug = !!d?.lkdDebug; }); } catch (_e) {}
+    // eslint-disable-next-line no-console
+    function log(...args) { if (lkdDebug) console.log(...args); }
+
     const delay = ms => new Promise(r => setTimeout(r, ms));
     const CARD_POLL_MS = 500;
     const CARD_TIMEOUT_MS = 20000;
@@ -321,7 +326,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
             confirmSignalsSeen: {},
             targetFilterActive: companies.length > 0
         };
-        console.log(
+        log(
             `[LinkedIn Bot] ${cards.length} company ` +
             `cards on page`
         );
@@ -332,7 +337,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
 
             stats.cardsScanned++;
             if (detectChallenge()) {
-                console.log(
+                log(
                     '[LinkedIn Bot] CAPTCHA detected'
                 );
                 if (typeof showTopNotification === 'function') {
@@ -417,7 +422,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                 stats.followAttempts +=
                     attemptResult.attempts || 0;
                 const success = attemptResult.confirmed;
-                console.log(
+                log(
                     '[LinkedIn Bot] Company follow confirmation:',
                     {
                         company: info.name,
@@ -464,7 +469,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                     const p = typeof pauseDuration
                         === 'function'
                         ? pauseDuration() : 15000;
-                    console.log(
+                    log(
                         '[LinkedIn Bot] Human pause: ' +
                         Math.round(p / 1000) + 's'
                     );
@@ -478,7 +483,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                 }
 
             } catch (cardErr) {
-                console.log(
+                log(
                     '[LinkedIn Bot] Error on card:',
                     cardErr.message
                 );
@@ -490,7 +495,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
                         300000
                     );
                     backoffMultiplier *= 2;
-                    console.log(
+                    log(
                         '[LinkedIn Bot] ' +
                         consecutiveFails +
                         ' consecutive fails, ' +
@@ -511,7 +516,7 @@ if (typeof window.linkedInCompanyFollowInjected === 'undefined') {
     }
 
     async function runCompanyFollow(config) {
-        console.log(
+        log(
             '[LinkedIn Bot] Company follow started',
             config
         );

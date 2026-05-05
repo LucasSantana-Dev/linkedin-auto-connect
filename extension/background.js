@@ -66,6 +66,11 @@ importScripts('lib/run-outcome.js');
 importScripts('lib/profile-visitor.js');
 importScripts('lib/storage-key-sweeper.js');
 
+let lkdDebug = false;
+try { chrome.storage.local.get('lkdDebug', d => { lkdDebug = !!d?.lkdDebug; }); } catch (_e) {}
+// eslint-disable-next-line no-console
+function log(...args) { if (lkdDebug) console.log(...args); }
+
 let profileWalkStopRequested = false;
 
 function getProfileWalkDateKey() {
@@ -240,6 +245,7 @@ function logLaunchBreadcrumb(context) {
     try {
         chrome.storage.local.get('lkdDebug', (data) => {
             if (!data || !data.lkdDebug) return;
+            // eslint-disable-next-line no-console
             console.log('[lkd-debug] connect.launch', context);
         });
     } catch (_e) {
@@ -2055,7 +2061,7 @@ async function generateAIComment(data) {
                 }
             );
             if (!resp.ok) {
-                console.log(
+                log(
                     '[LinkedIn Bot] AI API error: ' +
                     resp.status
                 );
@@ -2075,7 +2081,7 @@ async function generateAIComment(data) {
                 .replace(/^Comment:\s*/i, '')
                 .trim();
             if (/\?\s*$/.test(comment)) {
-                console.log(
+                log(
                     '[LinkedIn Bot] AI generated a ' +
                     'question, skipping: "' +
                     comment.substring(0, 60) + '"'
@@ -2086,7 +2092,7 @@ async function generateAIComment(data) {
                 };
             }
             if (/^skip$/i.test(comment)) {
-                console.log(
+                log(
                     '[LinkedIn Bot] AI chose to SKIP'
                 );
                 return {
@@ -2108,7 +2114,7 @@ async function generateAIComment(data) {
                 commentThreadSummary
             );
             if (!grounding.grounded) {
-                console.log(
+                log(
                     '[LinkedIn Bot] AI comment not grounded' +
                     ' in thread context'
                 );
@@ -2138,7 +2144,7 @@ async function generateAIComment(data) {
                 postText,
                 imageSignals
             })) {
-                console.log(
+                log(
                     '[LinkedIn Bot] AI comment rejected by' +
                     ' safety guard'
                 );
@@ -2187,7 +2193,7 @@ async function generateAIComment(data) {
                 groundingRatio: grounding.ratio
             });
             if (confidence.score < 60) {
-                console.log(
+                log(
                     '[LinkedIn Bot] AI comment low confidence' +
                     ` (${confidence.score}), skipping`
                 );
@@ -2214,7 +2220,7 @@ async function generateAIComment(data) {
             attempts: copyRiskAttempts
         };
     } catch (e) {
-        console.log(
+        log(
             '[LinkedIn Bot] AI error: ' + e.message
         );
         return { comment: null, reason: null };

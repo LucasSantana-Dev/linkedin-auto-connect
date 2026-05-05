@@ -1,6 +1,11 @@
 if (typeof window.linkedInFeedEngageInjected === 'undefined') {
     window.linkedInFeedEngageInjected = true;
 
+    let lkdDebug = false;
+    try { chrome.storage.local.get('lkdDebug', d => { lkdDebug = !!d?.lkdDebug; }); } catch (_e) {}
+    // eslint-disable-next-line no-console
+    function log(...args) { if (lkdDebug) console.log(...args); }
+
     const delay = ms => new Promise(r => setTimeout(r, ms));
     let stopRequested = false;
     const engageLog = [];
@@ -222,7 +227,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 '[role="listitem"]'
             );
             if (items.length > 0) {
-                console.log(
+                log(
                     '[LinkedIn Bot] findPosts: matched ' +
                     items.length +
                     ' via mainFeed listitem'
@@ -240,7 +245,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 }
             }
             if (postChildren.length > 0) {
-                console.log(
+                log(
                     '[LinkedIn Bot] findPosts: matched ' +
                     postChildren.length +
                     ' via mainFeed children'
@@ -268,7 +273,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     adjusted.push(wide);
                 }
             }
-            console.log(
+            log(
                 '[LinkedIn Bot] findPosts: matched ' +
                 adjusted.length + ' via legacy selectors'
             );
@@ -282,7 +287,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             'button[aria-label*="React"], ' +
             'button[aria-label*="Reagir"]'
         );
-        console.log(
+        log(
             '[LinkedIn Bot] findPosts: primary=0, ' +
             'searching from ' + likeBtns.length +
             ' action buttons'
@@ -335,7 +340,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             }
         }
 
-        console.log(
+        log(
             '[LinkedIn Bot] findPosts: found ' +
             real.length + ' posts via button walk-up'
         );
@@ -465,7 +470,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         }
         if (!likeBtn) {
             const actionBtns = findActionButtons(postEl);
-            console.log(
+            log(
                 '[LinkedIn Bot] No like button found. ' +
                 'Buttons in scope: ' +
                 [...actionBtns].map(b =>
@@ -593,14 +598,14 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         reactionType) {
                     btn.click();
                     await delay(500);
-                    console.log(
+                    log(
                         '[LinkedIn Bot] Reacted: ' +
                         enLabel
                     );
                     return true;
                 }
             }
-            console.log(
+            log(
                 '[LinkedIn Bot] Popup open but no match' +
                 ' for ' + enLabel + '. Found: ' +
                 [...btns].map(b =>
@@ -615,7 +620,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     btn.getAttribute('alt')) {
                     btn.click();
                     await delay(500);
-                    console.log(
+                    log(
                         '[LinkedIn Bot] Used first ' +
                         'available reaction: ' +
                         (btn.getAttribute('aria-label') ||
@@ -625,7 +630,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                 }
             }
         } else {
-            console.log(
+            log(
                 '[LinkedIn Bot] No reaction popup after' +
                 ' 2 attempts, falling back to Like'
             );
@@ -841,7 +846,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         const actionBtns = findActionButtons(postEl);
         const commentBtn = findCommentActionButton(postEl);
         if (!commentBtn) {
-            console.log(
+            log(
                 '[LinkedIn Bot] No comment button found.' +
                 ' Action buttons: ' +
                 [...actionBtns].map(b =>
@@ -916,14 +921,14 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             }
         }
         if (!editor) {
-            console.log(
+            log(
                 '[LinkedIn Bot] No comment editor found ' +
                 'for post by ' + getPostAuthor(postEl)
             );
             return false;
         }
 
-        console.log(
+        log(
             '[LinkedIn Bot] Found editor for post by ' +
             getPostAuthor(postEl) + ', typing: ' +
             commentText.substring(0, 50)
@@ -1031,7 +1036,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
         }
 
         if (submitBtn) {
-            console.log(
+            log(
                 '[LinkedIn Bot] Clicking submit: ' +
                 (submitBtn.className || '').substring(0, 50)
             );
@@ -1044,7 +1049,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             ).trim();
             if (editorText.length > 0 &&
                 editorText !== commentText) {
-                console.log(
+                log(
                     '[LinkedIn Bot] Comment may not have ' +
                     'submitted (editor still has text)'
                 );
@@ -1052,7 +1057,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             return true;
         }
 
-        console.log(
+        log(
             '[LinkedIn Bot] No submit button found ' +
             'after 8 attempts. Editor scope: ' +
             (searchScope.className || '').substring(0, 60)
@@ -1127,7 +1132,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
     }
 
     async function runFeedEngage(config) {
-        console.log(
+        log(
             '[LinkedIn Bot] Feed engagement started',
             config
         );
@@ -1203,7 +1208,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             commentedPostUrns.add(cu);
         }
         const newCommentedUrns = [];
-        console.log(
+        log(
             '[LinkedIn Bot] Loaded ' +
             previousUrns.length +
             ' previously engaged URNs, ' +
@@ -1267,7 +1272,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             };
         };
         if (warmupActive) {
-            console.log(
+            log(
                 '[LinkedIn Bot] Warmup run active: ' +
                 warmupRunNumber + '/' +
                 warmupRequiredRuns +
@@ -1279,7 +1284,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             await delay(3000);
 
             if (detectChallenge()) {
-                console.log(
+                log(
                     '[LinkedIn Bot] Login wall or ' +
                     'challenge detected at start'
                 );
@@ -1301,7 +1306,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
             }
 
             if (findPosts().length === 0) {
-                console.log(
+                log(
                     '[LinkedIn Bot] No posts on first ' +
                     'try, dumping DOM debug info...'
                 );
@@ -1313,20 +1318,20 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                     const l = b.getAttribute('aria-label');
                     if (l) labels.push(l);
                 }
-                console.log(
+                log(
                     '[LinkedIn Bot] All button aria-labels:',
                     [...new Set(labels)].slice(0, 30)
                 );
                 const allUrns = document.querySelectorAll(
                     '[data-urn], [data-id]'
                 );
-                console.log(
+                log(
                     '[LinkedIn Bot] Elements with data-urn' +
                     '/data-id:', allUrns.length
                 );
                 for (let i = 0; i < Math.min(5,
                     allUrns.length); i++) {
-                    console.log(
+                    log(
                         '  ', allUrns[i].tagName,
                         allUrns[i].getAttribute('data-urn') ||
                         allUrns[i].getAttribute('data-id'),
@@ -1343,7 +1348,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
                 await delay(2000);
                 const posts = findPosts();
-                console.log(
+                log(
                     `[LinkedIn Bot] Found ${posts.length}` +
                     ` posts (scroll ${scrollCount + 1})`
                 );
@@ -1355,7 +1360,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         stopRequested) break;
 
                     if (detectChallenge()) {
-                        console.log(
+                        log(
                             '[LinkedIn Bot] CAPTCHA detected'
                         );
                         if (typeof showTopNotification === 'function') {
@@ -1402,7 +1407,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 ? getPostReactions(post)
                                 : {};
 
-                        console.log(
+                        log(
                             '[LinkedIn Bot] Post by ' + author +
                             ': "' + postText.substring(0, 80) +
                             '..." | lang=' +
@@ -1552,7 +1557,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 postText,
                                 reactionKeywords
                             );
-                            console.log(
+                            log(
                                 '[LinkedIn Bot] Reaction type: ' +
                                 reactionType + ' (' +
                                 REACTION_MAP[reactionType] + ')'
@@ -1587,7 +1592,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         if (doComment) {
                             let skipComment = false;
                             if (urn && commentedPostUrns.has(urn)) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] URN already commented, skip'
                                 );
                                 skipComment = true;
@@ -1597,7 +1602,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                     existing,
                                     getMyName()
                                 )) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Already commented (name), skip'
                                 );
                                 skipComment = true;
@@ -1605,7 +1610,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             if (!skipComment &&
                                 totalCommented >=
                                 MAX_COMMENTS_PER_SESSION) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Comment cap reached (' +
                                     MAX_COMMENTS_PER_SESSION + '), skip rest'
                                 );
@@ -1613,7 +1618,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             }
                             if (!skipComment &&
                                 postText.length < MIN_POST_LENGTH) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Post too short (' +
                                     postText.length + ' chars), skip comment'
                                 );
@@ -1621,7 +1626,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             }
                             if (!skipComment &&
                                 commentSignal.count === 0) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Skipping comment — no comment signal on post'
                                 );
                                 commentSkipReason = 'skip-no-comment-signal';
@@ -1630,7 +1635,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             if (!skipComment &&
                                 commentSignal.count >= 1 &&
                                 existing.length === 0) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Skipping comment — thread comments unavailable after hydration'
                                 );
                                 commentSkipReason =
@@ -1645,13 +1650,13 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             if (!skipComment &&
                                 typeof isPolemicPost === 'function' &&
                                 isPolemicPost(postText, existing)) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Skipping comment — polemic post'
                                 );
                                 skipComment = true;
                             }
                             if (existing.length > 0) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Found ' +
                                     existing.length +
                                     ' existing comments: ' +
@@ -1667,7 +1672,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                     ? null
                                     : patternProfile;
                             if (!skipComment && aiApiKey) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Requesting AI comment...'
                                 );
                                 const aiResult =
@@ -1700,12 +1705,12 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                     );
                                 }
                                 if (comment) {
-                                    console.log(
+                                    log(
                                         '[LinkedIn Bot] AI comment: "' +
                                         comment.substring(0, 80) + '"'
                                     );
                                 } else {
-                                    console.log(
+                                    log(
                                         '[LinkedIn Bot] AI skipped/fallback: ' +
                                         (commentSkipReason || 'no-reason')
                                     );
@@ -1763,14 +1768,14 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             if (comment &&
                                 typeof isLowQualityComment === 'function' &&
                                 isLowQualityComment(comment, postText)) {
-                                console.log(
+                                log(
                                     '[LinkedIn Bot] Skipping low quality comment: "' +
                                     comment.substring(0, 60) + '"'
                                 );
                                 comment = null;
                                 commentSkipReason = 'skip-safety-guard';
                             }
-                            console.log(
+                            log(
                                 '[LinkedIn Bot] Comment: lang=' +
                                 lang + ' cat=' + category +
                                 ' text="' +
@@ -1867,7 +1872,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                         3000 + Math.random() * 5000
                                     );
                                 } else {
-                                    console.log(
+                                    log(
                                         '[LinkedIn Bot] Comment failed to post'
                                     );
                                 }
@@ -1986,7 +1991,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                             const p = typeof pauseDuration
                                 === 'function'
                                 ? pauseDuration() : 15000;
-                            console.log(
+                            log(
                                 '[LinkedIn Bot] Human pause: ' +
                                 Math.round(p / 1000) + 's'
                             );
@@ -2000,7 +2005,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                         }
 
                     } catch (postErr) {
-                        console.log(
+                        log(
                             '[LinkedIn Bot] Error on post:',
                             postErr.message
                         );
@@ -2012,7 +2017,7 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
                                 300000
                             );
                             backoffMultiplier *= 2;
-                            console.log(
+                            log(
                                 '[LinkedIn Bot] ' +
                                 consecutiveFails +
                                 ' consecutive fails, ' +
@@ -2050,14 +2055,14 @@ if (typeof window.linkedInFeedEngageInjected === 'undefined') {
 
             if (newUrns.length > 0) {
                 saveEngagedUrns(newUrns);
-                console.log(
+                log(
                     '[LinkedIn Bot] Saved ' +
                     newUrns.length + ' new engaged URNs'
                 );
             }
             if (newCommentedUrns.length > 0) {
                 saveCommentedUrns(newCommentedUrns);
-                console.log(
+                log(
                     '[LinkedIn Bot] Saved ' +
                     newCommentedUrns.length +
                     ' new commented URNs'
