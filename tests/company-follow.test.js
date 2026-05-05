@@ -7,12 +7,14 @@ const {
     isFollowingText,
     isNextPageButton,
     detectChallenge,
-    buildCompanySearchUrl,
     findCompanyCards,
     findFollowBtnInCard,
     isCompanyFollowText,
     buildBatchFromRotation
 } = require('../extension/lib/company-utils');
+const {
+    buildCompanySearchUrl
+} = require('../extension/lib/company-query');
 
 function createCard({ name, subtitle, companyUrl, followText }) {
     const card = document.createElement('div');

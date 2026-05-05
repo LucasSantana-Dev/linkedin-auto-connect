@@ -1,3 +1,14 @@
+(function(root, factory) {
+    const api = factory();
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = api;
+    }
+    root.LinkedInCompanyUtils = api;
+    Object.keys(api).forEach(function(k) {
+        if (typeof root[k] === 'undefined') root[k] = api[k];
+    });
+})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+
 function normalizeCompanyName(value) {
     return String(value || '')
         .trim()
@@ -275,13 +286,6 @@ function detectChallenge() {
     return /security verification|unusual activity|verificação de segurança/i.test(text);
 }
 
-function buildCompanySearchUrl(query) {
-    return 'https://www.linkedin.com/search/results/' +
-        'companies/' +
-        `?keywords=${encodeURIComponent(query)}` +
-        '&origin=FACETED_SEARCH';
-}
-
 function findCompanyCards(root) {
     const el = root || document;
     const legacy = Array.from(el.querySelectorAll('.entity-result'));
@@ -430,21 +434,20 @@ function buildBatchFromRotation(
     return allCompanies.slice(start, start + batchSize);
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        extractCompanyInfo,
-        matchesTargetCompanies,
-        isLowFitCompanyEntity,
-        isFollowingText,
-        isCompanyFollowConfirmed,
-        getCompanyFollowConfirmationSignals,
-        isNextPageButton,
-        detectChallenge,
-        buildCompanySearchUrl,
-        findCompanyCards,
-        findFollowBtnInCard,
-        isCompanyFollowText,
-        getCompanySearchPageState,
-        buildBatchFromRotation
-    };
-}
+return Object.freeze({
+    extractCompanyInfo,
+    matchesTargetCompanies,
+    isLowFitCompanyEntity,
+    isFollowingText,
+    isCompanyFollowConfirmed,
+    getCompanyFollowConfirmationSignals,
+    isNextPageButton,
+    detectChallenge,
+    findCompanyCards,
+    findFollowBtnInCard,
+    isCompanyFollowText,
+    getCompanySearchPageState,
+    buildBatchFromRotation
+});
+
+});
