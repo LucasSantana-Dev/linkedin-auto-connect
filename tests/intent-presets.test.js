@@ -57,4 +57,43 @@ describe('INTENT_PRESETS contract', () => {
     it('object is frozen so entries cannot mutate at runtime', () => {
         expect(Object.isFrozen(INTENT_PRESETS)).toBe(true);
     });
+
+    it('exposes exactly the expected preset keys', () => {
+        expect(Object.keys(INTENT_PRESETS)).toEqual([
+            'recruiter-tech-global',
+            'recruiter-tech-senior',
+            'recruiter-tech-remote',
+            'recruiter-tech-startup',
+            'recruiter-tech-agency',
+            'recruiter-tech-brazil',
+            'recruiter-design',
+            'peer-networking-tech',
+            'decision-makers-tech'
+        ]);
+    });
+});
+
+describe('INTENT_PRESETS UMD global registration', () => {
+    afterEach(() => {
+        // Clean up any globals set during tests
+        delete globalThis.INTENT_PRESETS;
+    });
+
+    it('does not overwrite a key already defined on globalThis', () => {
+        jest.resetModules();
+        const sentinel = Symbol('existing-intent-presets');
+        globalThis.INTENT_PRESETS = sentinel;
+        require('../extension/lib/intent-presets');
+        // The UMD wrapper checks typeof root[key] === 'undefined' before assigning;
+        // a pre-existing value must survive the registration pass.
+        expect(globalThis.INTENT_PRESETS).toBe(sentinel);
+    });
+
+    it('registers LinkedInIntentPresets on globalThis when loaded fresh', () => {
+        jest.resetModules();
+        delete globalThis.LinkedInIntentPresets;
+        require('../extension/lib/intent-presets');
+        expect(globalThis.LinkedInIntentPresets).toBeDefined();
+        expect(globalThis.LinkedInIntentPresets.INTENT_PRESETS).toBeDefined();
+    });
 });
