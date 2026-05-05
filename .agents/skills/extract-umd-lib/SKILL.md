@@ -12,7 +12,7 @@ Move a cohesive, pure-function cluster out of a monolithic file (`popup.js`, `ba
 
 ## When to use
 
-- A monolith file has grown past comfortable read length (popup.js 5290 LOC, background.js 4479 post-#91).
+- A monolith file has grown past comfortable read length (popup.js ~5200 LOC, background.js ~3792 LOC post E-11 phases 1–6).
 - A cluster of pure functions in that monolith share a clear domain (state shape, query manipulation, URL building, fixture helpers, …) and have no chrome-API dependencies.
 - You want to lock the cluster's public API so future renames or signature drift trip a contract test rather than silently no-op.
 - Backlog item B-4 (popup-state) or E-11 (background.js) is the umbrella; this skill is the per-extract recipe.
@@ -25,10 +25,26 @@ Move a cohesive, pure-function cluster out of a monolithic file (`popup.js`, `ba
 
 ## Steps
 
-1. **Identify the cluster.** Run `grep -n "^function <name>" <source>.js` across the candidate names. Confirm:
-   - Each function is pure (no `chrome.*`, no `document.*`, no closure-mutable module state).
-   - They share a domain (e.g. all "connect query manipulation" or all "company URL construction").
+1. **Identify the cluster and confirm purity.** Run these checks before writing a line of code:
+
+   ```bash
+   # List candidate functions with line numbers
+   grep -n "^function " <source>.js | grep -E "<name1>|<name2>"
+
+   # Purity check — must return 0 hits for each function's body range
+   sed -n '<start>,<end>p' <source>.js | grep -E "chrome\.|document\.|window\.|globalThis\."
+
+   # Closure-mutable state check — scan for module-level let/var reads inside the cluster
+   sed -n '<start>,<end>p' <source>.js | grep -v "^\s*//" | grep -E "\b(let|var) "
+   ```
+
+   Confirm all of:
+   - No `chrome.*`, `document.*`, `window.*`, or `globalThis.*` references inside function bodies.
+   - No reads/writes to module-level mutable state (`let`/`var` declared outside the cluster).
+   - Functions share a domain (e.g. all "connect query manipulation" or all "company URL construction").
    - Total LOC is ≥80 (otherwise the lib is too thin to justify its own module).
+
+   **Phase sequencing rule for background.js (E-11):** extract smaller, self-contained clusters first (≤150 LOC, no cross-cluster deps). Defer tab-router and chrome.tabs.create call sites to a later phase — they have Chrome API dependencies that require careful boundary lifting and don't belong in `lib/`.
 
 2. **Mirror the existing UMD wrapper.** Copy the structure from `extension/lib/connect-query.js` or `extension/lib/popup-state.js`:
    ```js
@@ -126,9 +142,14 @@ Body sections:
 
 ## Reference history
 
-- PR #74 (#74 was the first extract — `INTENT_PRESETS` to `lib/intent-presets.js`, 6 contract assertions).
-- PR #85 + #86 (popup-state — phase 1 introduced the lib + tests; phase 2 swapped call sites in popup.js).
-- PR #91 (connect-query — single PR did both lib + call-site swap, since background.js's `importScripts` makes the swap atomic).
+- PR #74 — first extract: `INTENT_PRESETS` → `lib/intent-presets.js`, 6 contract assertions.
+- PR #85 + #86 — popup-state: phase 1 introduced lib + tests; phase 2 swapped call sites in popup.js.
+- PR #91 — E-11 phase 1: `connect-query` extracted from background.js.
+- PR #93 — E-11 phase 2: `company-query` extracted.
+- PR #98 — E-11 phase 3: `copy-guard` extracted.
+- PR #104 — E-11 phase 4: `ai-context-formatters` extracted.
+- PR #105 — E-11 phase 5: `jobs-profile` helpers extracted.
+- PR #107 — E-11 phase 6: `search-runtime-builders` extracted.
 
 ## Common pitfalls
 
