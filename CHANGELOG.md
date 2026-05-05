@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.36.30] - 2026-05-05
+
+### Fixed
+- **Bridge storage race condition** (#114): concurrent `LINKEDIN_BOT_SAVE_ENGAGED` / `LINKEDIN_BOT_SAVE_COMMENTED` handlers used unguarded `get→set` pairs that could silently drop URNs under rapid back-to-back calls; replaced with a per-key promise-chain serialization queue in `bridge.js`.
+- **Bridge error leakage** (#114): `postBridgeFallback` was forwarding raw `chrome.runtime.lastError.message` strings to the page via `postMessage`; now emits a static `'AI service unavailable'` message.
+
+### Internal
+- **UMD wrappers for `analytics.js` and `company-utils.js`** (#114): the two remaining `lib/` modules that used bare `module.exports` now follow the project-standard UMD pattern (`root.LinkedInAnalytics` / `root.LinkedInCompanyUtils`), consistent with all other lib modules.
+- **`buildCompanySearchUrl` duplicate removed** (#114): identical implementation existed in both `company-utils.js` and `company-query.js`; removed from `company-utils.js`, canonical location is `company-query.js`.
+- **`no-console` ESLint rule enforced** (#112): 64 `console.log` calls across entry-point scripts replaced with a `log()` helper gated on `lkdDebug` storage flag; vendor bundles excluded via `extension/vendor/**` ignore rule.
+- **`search-language.js` test coverage** (#113): 65 new tests covering all 5 exports (`resolveSearchLocale`, `localizeSearchTerms`, `resolveCanonicalTerm`, `buildSearchQuery`, `compileLocaleAwareQuery`) — 98.71% stmt / 94.79% branch; aggregate branch coverage up to 86.86%.
+- **Branch coverage raised** (#111): targeted tests for `intent-presets.js` and `jobs-career-parser.js` edge paths.
+- **Zod bumped 4.3.6 → 4.4.3** (#110).
+
 ## [1.36.29] - 2026-05-04
 
 ### Internal
