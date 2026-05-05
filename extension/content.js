@@ -1,6 +1,11 @@
 if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     window.linkedInAutoConnectInjected = true;
 
+    let lkdDebug = false;
+    try { chrome.storage.local.get('lkdDebug', d => { lkdDebug = !!d?.lkdDebug; }); } catch (_e) {}
+    // eslint-disable-next-line no-console
+    function log(...args) { if (lkdDebug) console.log(...args); }
+
     const delay = ms => new Promise(r => setTimeout(r, ms));
     let stopRequested = false;
     const connectionLog = [];
@@ -671,7 +676,7 @@ if (typeof window.linkedInAutoConnectInjected === 'undefined') {
     }
 
     async function runEngagement(config) {
-        console.log('[LinkedIn Bot] Engagement mode started');
+        log('[LinkedIn Bot] Engagement mode started');
         const limit = config?.limit || 50;
         let totalEngaged = 0;
         let currentPage = 1;
