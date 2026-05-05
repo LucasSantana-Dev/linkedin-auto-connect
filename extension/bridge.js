@@ -1,3 +1,22 @@
+// Serializes concurrent get→set pairs for the same storage key to prevent
+// a later get from reading stale data before an earlier set completes.
+const _storageWriteQueue = {};
+function serializedStorageUpdate(key, urns, maxSize) {
+    const prev = _storageWriteQueue[key] || Promise.resolve();
+    _storageWriteQueue[key] = prev.then(
+        () => new Promise(resolve => {
+            chrome.storage.local.get(key, (data) => {
+                const existing = data[key] || [];
+                const merged = [...new Set([...existing, ...urns])];
+                chrome.storage.local.set(
+                    { [key]: merged.slice(-maxSize) },
+                    resolve
+                );
+            });
+        })
+    );
+}
+
 function safeSend(payload) {
     try {
         const ret = chrome.runtime.sendMessage(payload);
@@ -69,17 +88,11 @@ window.addEventListener('message', (event) => {
         });
     }
     if (event.data?.type === 'LINKEDIN_BOT_SAVE_ENGAGED') {
-        chrome.storage.local.get('engagedPostUrns', (data) => {
-            const existing = data.engagedPostUrns || [];
-            const merged = [...new Set([
-                ...existing,
-                ...(event.data.urns || [])
-            ])];
-            const trimmed = merged.slice(-2000);
-            chrome.storage.local.set({
-                engagedPostUrns: trimmed
-            });
-        });
+        serializedStorageUpdate(
+            'engagedPostUrns',
+            event.data.urns || [],
+            2000
+        );
     }
     if (event.data?.type === 'LINKEDIN_BOT_LOAD_ENGAGED') {
         chrome.storage.local.get('engagedPostUrns', (data) => {
@@ -90,17 +103,11 @@ window.addEventListener('message', (event) => {
         });
     }
     if (event.data?.type === 'LINKEDIN_BOT_SAVE_COMMENTED') {
-        chrome.storage.local.get('commentedPostUrns', (data) => {
-            const existing = data.commentedPostUrns || [];
-            const merged = [...new Set([
-                ...existing,
-                ...(event.data.urns || [])
-            ])];
-            const trimmed = merged.slice(-1000);
-            chrome.storage.local.set({
-                commentedPostUrns: trimmed
-            });
-        });
+        serializedStorageUpdate(
+            'commentedPostUrns',
+            event.data.urns || [],
+            1000
+        );
     }
     if (event.data?.type === 'LINKEDIN_BOT_LOAD_COMMENTED') {
         chrome.storage.local.get('commentedPostUrns', (data) => {
@@ -156,14 +163,14 @@ window.addEventListener('message', (event) => {
     }
     if (event.data?.type === 'LINKEDIN_BOT_AI_COMMENT') {
         const requestId = event.data.requestId;
-        const postBridgeFallback = (message) => {
+        const postBridgeFallback = () => {
             window.postMessage({
                 type: 'LINKEDIN_BOT_AI_COMMENT_RESULT',
                 comment: null,
                 reason: 'bridge-runtime-error',
                 diagnostics: {
                     source: 'bridge',
-                    message: message || 'runtime message failed'
+                    message: 'AI service unavailable'
                 },
                 attempts: 0,
                 requestId
@@ -198,9 +205,7 @@ window.addEventListener('message', (event) => {
                 goalMode: event.data.goalMode
             }, (response) => {
                 if (chrome.runtime.lastError) {
-                    postBridgeFallback(
-                        chrome.runtime.lastError.message
-                    );
+                    postBridgeFallback();
                     return;
                 }
                 window.postMessage({
@@ -212,8 +217,8 @@ window.addEventListener('message', (event) => {
                     requestId
                 }, '*');
             });
-        } catch (error) {
-            postBridgeFallback(error?.message || '');
+        } catch (_error) {
+            postBridgeFallback();
         }
     }
     if (event.data?.type === 'LINKEDIN_BOT_PATTERN_LEARN') {

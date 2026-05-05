@@ -1,3 +1,14 @@
+(function(root, factory) {
+    const api = factory();
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = api;
+    }
+    root.LinkedInAnalytics = api;
+    Object.keys(api).forEach(function(k) {
+        if (typeof root[k] === 'undefined') root[k] = api[k];
+    });
+})(typeof globalThis !== 'undefined' ? globalThis : this, function() {
+
 function recordEngagement(entry, storage) {
     if (!storage?.get) return;
     storage.get('analyticsLog', (data) => {
@@ -230,12 +241,12 @@ function topKey(obj) {
     return best;
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        recordEngagement,
-        computeStats,
-        computeAcceptanceByTemplate,
-        computeAcceptanceByHour,
-        topKey
-    };
-}
+return Object.freeze({
+    recordEngagement,
+    computeStats,
+    computeAcceptanceByTemplate,
+    computeAcceptanceByHour,
+    topKey
+});
+
+});
