@@ -28,10 +28,6 @@
                     career: false,
                     profile: false
                 },
-                feed: {
-                    commentSettings: false,
-                    automation: false
-                },
                 tools: {
                     extras: false
                 }
@@ -39,8 +35,7 @@
             lastOpenSubpanel: {
                 connect: null,
                 companies: null,
-                jobs: null,
-                feed: null
+                jobs: null
             },
             tagSearch: ''
         });
@@ -48,8 +43,6 @@
         const DASHBOARD_TABS = Object.freeze([
             'overview',
             'activity',
-            'feed',
-            'nurture',
             'logs'
         ]);
 
@@ -78,12 +71,6 @@
                         profile: !!state?.accordions
                             ?.jobs?.profile
                     },
-                    feed: {
-                        commentSettings: !!state?.accordions
-                            ?.feed?.commentSettings,
-                        automation: !!state?.accordions
-                            ?.feed?.automation
-                    },
                     tools: {
                         extras: !!state?.accordions
                             ?.tools?.extras
@@ -95,9 +82,7 @@
                     companies: state?.lastOpenSubpanel
                         ?.companies || null,
                     jobs: state?.lastOpenSubpanel
-                        ?.jobs || null,
-                    feed: state?.lastOpenSubpanel
-                        ?.feed || null
+                        ?.jobs || null
                 },
                 tagSearch: String(
                     state?.tagSearch || ''
@@ -161,8 +146,8 @@
             return label.includes(q) || raw.includes(q);
         }
 
-        function isCommentSettingsVisible(feedCommentEnabled) {
-            return feedCommentEnabled === true;
+        function isCommentSettingsVisible(enabled) {
+            return enabled === true;
         }
 
         function normalizeDashboardTab(tab) {
@@ -184,8 +169,6 @@
             return {
                 overview: tab === 'overview',
                 activity: tab === 'activity',
-                feed: tab === 'feed',
-                nurture: tab === 'nurture',
                 logs: tab === 'logs'
             };
         }

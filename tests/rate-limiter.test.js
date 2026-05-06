@@ -15,14 +15,12 @@ describe('constants', () => {
     test('daily limits defined for all modes', () => {
         expect(DAILY_LIMITS.connect).toBe(40);
         expect(DAILY_LIMITS.companyFollow).toBe(30);
-        expect(DAILY_LIMITS.feedEngage).toBe(50);
         expect(DAILY_LIMITS.jobsAssist).toBe(20);
     });
 
     test('hourly limits defined for all modes', () => {
         expect(HOURLY_LIMITS.connect).toBe(12);
         expect(HOURLY_LIMITS.companyFollow).toBe(10);
-        expect(HOURLY_LIMITS.feedEngage).toBe(15);
         expect(HOURLY_LIMITS.jobsAssist).toBe(8);
     });
 
@@ -40,9 +38,9 @@ describe('key generation', () => {
     });
 
     test('getDayKey includes mode and date', () => {
-        const key = getDayKey('feedEngage');
+        const key = getDayKey('connect');
         expect(key).toMatch(
-            /^rate_feedEngage_\d{4}-\d{2}-\d{2}$/
+            /^rate_connect_\d{4}-\d{2}-\d{2}$/
         );
     });
 
@@ -53,7 +51,7 @@ describe('key generation', () => {
 
     test('different modes produce different keys', () => {
         const a = getHourKey('connect');
-        const b = getHourKey('feedEngage');
+        const b = getHourKey('companyFollow');
         expect(a).not.toBe(b);
     });
 });
@@ -91,7 +89,7 @@ describe('checkLimits', () => {
 
     test('weekly limit only applies to connect', () => {
         const result = checkLimits(
-            5, 20, 150, 'feedEngage'
+            5, 20, 150, 'companyFollow'
         );
         expect(result.allowed).toBe(true);
     });
@@ -110,17 +108,6 @@ describe('checkLimits', () => {
         );
         expect(result.allowed).toBe(true);
         expect(result.remaining).toBe(12);
-    });
-
-    test('feedEngage uses its own limits', () => {
-        const result = checkLimits(
-            14, 0, 0, 'feedEngage'
-        );
-        expect(result.allowed).toBe(true);
-        const result2 = checkLimits(
-            15, 0, 0, 'feedEngage'
-        );
-        expect(result2.allowed).toBe(false);
     });
 
     test('companyFollow uses its own limits', () => {

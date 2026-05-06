@@ -8,7 +8,7 @@ const {
 describe('normalizeRunOutcome', () => {
     test('returns canceled when stopped by user', () => {
         const result = normalizeRunOutcome({
-            mode: 'feed',
+            mode: 'connect',
             message: 'Run canceled by user.',
             stoppedByUser: true,
             processedCount: 3
@@ -39,7 +39,7 @@ describe('normalizeRunOutcome', () => {
 
     test('returns failed when no items were processed', () => {
         const result = normalizeRunOutcome({
-            mode: 'feed',
+            mode: 'connect',
             success: true,
             processedCount: 0,
             actionCount: 0,
@@ -134,15 +134,6 @@ describe('normalizeRunOutcome', () => {
     });
 
     test('infers processed count from mode-specific fields and mode hint', () => {
-        const feed = normalizeRunOutcome(
-            {
-                processedCount: 0,
-                processedPosts: 3,
-                actionCount: 0,
-                skippedCount: 0
-            },
-            'feed'
-        );
         const company = normalizeRunOutcome({
             mode: 'company',
             processedCount: 0,
@@ -151,9 +142,6 @@ describe('normalizeRunOutcome', () => {
             skippedCount: 0
         });
 
-        expect(feed.mode).toBe('feed');
-        expect(feed.processedCount).toBe(3);
-        expect(feed.runStatus).toBe(RUN_STATUS_SUCCESS);
         expect(company.processedCount).toBe(2);
         expect(company.runStatus).toBe(RUN_STATUS_SUCCESS);
     });

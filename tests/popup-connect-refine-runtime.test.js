@@ -287,57 +287,6 @@ describe('popup connect refine runtime', () => {
         expect(payload.networkFilter).toBe('%5B%22S%22%2C%22O%22%5D');
     });
 
-    test('skip-keyword template replace overwrites textarea with template terms', () => {
-        switchToFeedMode();
-
-        const textarea = document.getElementById('skipKeywordsInput');
-        const select = document.getElementById('skipKeywordsTemplateSelect');
-        const applyBtn = document.getElementById('applySkipKeywordsTemplateBtn');
-
-        textarea.value = 'legacy\nold-term';
-        select.value = 'sponsored';
-
-        click(applyBtn);
-
-        expect(textarea.value).toBe(
-            'sponsored\nad\npromoted\nadvertisement\npartnership'
-        );
-    });
-
-    test('skip-keyword template append preserves existing terms and deduplicates', () => {
-        switchToFeedMode();
-
-        const textarea = document.getElementById('skipKeywordsInput');
-        const select = document.getElementById('skipKeywordsTemplateSelect');
-        const appendBtn = document.getElementById('appendSkipKeywordsTemplateBtn');
-
-        textarea.value = 'custom term\nad\nSponsored';
-        select.value = 'sponsored';
-
-        click(appendBtn);
-
-        expect(textarea.value).toBe(
-            'custom term\nad\nSponsored\npromoted\nadvertisement\npartnership'
-        );
-    });
-
-    test('skip-keyword crypto template replace applies expected terms', () => {
-        switchToFeedMode();
-
-        const textarea = document.getElementById('skipKeywordsInput');
-        const select = document.getElementById('skipKeywordsTemplateSelect');
-        const applyBtn = document.getElementById('applySkipKeywordsTemplateBtn');
-
-        textarea.value = 'old';
-        select.value = 'crypto_hype';
-
-        click(applyBtn);
-
-        expect(textarea.value).toBe(
-            'crypto\nweb3\nnft\ntoken presale\nairdrop'
-        );
-    });
-
     test('company batch size update syncs active schedule settings', () => {
         switchToCompaniesMode();
 

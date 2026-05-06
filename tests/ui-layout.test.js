@@ -22,9 +22,6 @@ describe('ui-layout', () => {
                 .toBe(false);
             expect(ui.accordions.jobs.refine).toBe(false);
             expect(ui.accordions.jobs.profile).toBe(false);
-            expect(ui.accordions.feed.commentSettings)
-                .toBe(false);
-            expect(ui.accordions.feed.automation).toBe(false);
         });
 
         it('persists and restores accordion state with last-open panel', () => {
@@ -39,8 +36,7 @@ describe('ui-layout', () => {
                 lastOpenSubpanel: {
                     connect: null,
                     companies: null,
-                    jobs: null,
-                    feed: null
+                    jobs: null
                 },
                 tagSearch: 'ux'
             });
@@ -83,17 +79,15 @@ describe('ui-layout', () => {
             expect(DASHBOARD_TABS).toEqual([
                 'overview',
                 'activity',
-                'feed',
-                'nurture',
                 'logs'
             ]);
         });
 
         it('normalizes active tab and restores dashboard state', () => {
             const state = normalizeDashboardState({
-                activeTab: 'feed'
+                activeTab: 'logs'
             });
-            expect(state.activeTab).toBe('feed');
+            expect(state.activeTab).toBe('logs');
             expect(normalizeDashboardTab('unknown'))
                 .toBe('overview');
         });
@@ -104,8 +98,6 @@ describe('ui-layout', () => {
             );
             expect(visibility.overview).toBe(false);
             expect(visibility.activity).toBe(false);
-            expect(visibility.feed).toBe(false);
-            expect(visibility.nurture).toBe(false);
             expect(visibility.logs).toBe(true);
         });
     });

@@ -59,8 +59,6 @@ describe('popup-state contract', () => {
                 'goalMode',
                 'limit',
                 'scheduleEnabled',
-                'feedComment',
-                'aiApiKey',
                 'ui',
                 'tagVersion'
             ];

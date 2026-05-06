@@ -45,13 +45,6 @@ function translateDashboardStatus(status) {
         const [key, fallback] = map[value];
         return dt(key, null, fallback);
     }
-    if (value.startsWith('feed-')) {
-        return dt(
-            'status.feedEngaged',
-            null,
-            value.replace(/^feed-/, 'feed ')
-        );
-    }
     if (value.startsWith('company-')) {
         return dt(
             'status.companyAction',
@@ -70,8 +63,6 @@ function translateTabName(tab) {
     const key = {
         overview: 'options.tab.overview',
         activity: 'options.tab.activity',
-        feed: 'options.tab.feed',
-        nurture: 'options.tab.nurture',
         logs: 'options.tab.logs'
     }[tab];
     return key ? dt(key, null, tab) : tab;
@@ -132,7 +123,6 @@ function applyDashboardLocalization() {
         'options.card.engaged',
         'options.card.followed',
         'options.card.companies',
-        'options.card.feed',
         'options.card.commentsSent',
         'options.card.commentRate',
         'options.card.topReaction',
@@ -150,13 +140,10 @@ function applyDashboardLocalization() {
 
     const cardSubs = [
         ['#acceptRate', 'options.card.connectionsMade', 'connections made'],
-        ['#commentRate', 'options.feed.commentRateSub', 'of posts engaged'],
-        ['#topReactionCount', 'options.feed.topReactionSub', 'most used'],
         ['#activityTitle', 'options.section.activity', 'Activity (last 14 days)'],
         ['#chartEmpty', 'options.empty.activity', 'No activity data yet.'],
         ['#scheduleStatus', 'common.loading', 'Loading...'],
         ['#emptyMsg', 'options.empty.logs', 'No connection history yet. Run the automation to start tracking.'],
-        ['#nurtureEmpty', 'options.empty.nurture', 'No nurture targets yet. New connections are added automatically during connect runs.'],
         ['#exportBtn', 'options.exportCsv', 'Export CSV']
     ];
     cardSubs.forEach(([selector, key, fallback]) => {
@@ -172,8 +159,7 @@ function applyDashboardLocalization() {
         ['options.card.acceptRateSub', 'accepted / verified sent'],
         ['options.card.engagedSub', 'profile visits + follows'],
         ['options.card.followedSub', 'follow actions'],
-        ['options.card.companiesSub', 'companies followed'],
-        ['options.card.feedSub', 'posts reacted/commented']
+        ['options.card.companiesSub', 'companies followed']
     ];
     document.querySelectorAll('.grid[data-tab-section="overview"] .card-sub')
         .forEach((node, index) => {
@@ -185,27 +171,6 @@ function applyDashboardLocalization() {
                 node.textContent = dt(entry[0], null, entry[1]);
             }
         });
-
-    const commentedRateNode = document.querySelector(
-        '.grid[data-tab-section="feed"] .card:nth-child(2) .card-sub'
-    );
-    if (commentedRateNode) {
-        commentedRateNode.textContent = dt(
-            'options.card.commentedSub',
-            null,
-            'commented / engaged'
-        );
-    }
-    const feedSkippedNode = document.querySelector(
-        '.grid[data-tab-section="feed"] .card:nth-child(4) .card-sub'
-    );
-    if (feedSkippedNode) {
-        feedSkippedNode.textContent = dt(
-            'options.feed.skippedSub',
-            null,
-            'keyword/duplicate filter'
-        );
-    }
 
     const analyticsSubs = [
         ['options.analytics.utc', 'UTC'],
@@ -229,8 +194,7 @@ function applyDashboardLocalization() {
         ['#templateAcceptance h3', 'options.section.templateAcceptance', 'Acceptance by Note Template'],
         ['#hourAcceptance h3', 'options.section.hourAcceptance', 'Acceptance by Hour (UTC)'],
         ['div.section[data-tab-section="overview"] h2', 'options.section.schedule', 'Schedule'],
-        ['div.section[data-tab-section="logs"] h2', 'options.section.logs', 'Recent Connection Log'],
-        ['#nurtureSection h2', 'options.section.nurture', 'Connection Nurture List']
+        ['div.section[data-tab-section="logs"] h2', 'options.section.logs', 'Recent Connection Log']
     ];
     sectionTitles.forEach(([selector, key, fallback]) => {
         const node = document.querySelector(selector);
@@ -277,7 +241,7 @@ function normalizeDashboardUiState(state) {
     if (typeof normalizeDashboardState === 'function') {
         return normalizeDashboardState(state);
     }
-    const allowed = ['overview', 'activity', 'feed', 'nurture', 'logs'];
+    const allowed = ['overview', 'activity', 'logs'];
     const activeTab = String(state?.activeTab || 'overview');
     return {
         activeTab: allowed.includes(activeTab)
@@ -296,8 +260,6 @@ function getDashboardVisibility(activeTab) {
     return {
         overview: normalized === 'overview',
         activity: normalized === 'activity',
-        feed: normalized === 'feed',
-        nurture: normalized === 'nurture',
         logs: normalized === 'logs'
     };
 }
@@ -391,9 +353,9 @@ function loadDashboard() {
         [
             weekKey, 'sentProfileUrls',
             'acceptedUrls', 'schedule',
-            'companySchedule', 'feedSchedule',
+            'companySchedule',
             'connectionHistory', 'fuseLimitRetry',
-            'companyFollowHistory', 'feedEngageHistory'
+            'companyFollowHistory'
         ],
         (data) => {
             const weekCount = data[weekKey] || 0;
@@ -423,9 +385,6 @@ function loadDashboard() {
             const totalCompaniesNode = document.getElementById(
                 'totalCompanies'
             );
-            const totalFeedNode = document.getElementById(
-                'totalFeed'
-            );
             const acceptPctNode = document.getElementById(
                 'acceptPct'
             );
@@ -443,7 +402,6 @@ function loadDashboard() {
                 !totalEngagedNode ||
                 !totalFollowedNode ||
                 !totalCompaniesNode ||
-                !totalFeedNode ||
                 !acceptPctNode ||
                 !scheduleStatusNode
             ) {
@@ -496,12 +454,6 @@ function loadDashboard() {
             const companyCount = companyHistory
                 .filter(r => r.status === 'followed')
                 .length;
-            const feedHistory =
-                data.feedEngageHistory || [];
-            const feedCount = feedHistory
-                .filter(r =>
-                    !r.status?.startsWith('skipped'))
-                .length;
 
             totalSkippedNode.textContent = skippedCount;
             const topSkipReasons = Object.entries(
@@ -520,7 +472,6 @@ function loadDashboard() {
             totalEngagedNode.textContent = engagedCount;
             totalFollowedNode.textContent = followedCount;
             totalCompaniesNode.textContent = companyCount;
-            totalFeedNode.textContent = feedCount;
 
             if (sentUrls.length > 0) {
                 const pct = Math.round(
@@ -562,13 +513,6 @@ function loadDashboard() {
                         `Companies: every ${data.companySchedule.intervalHours}h (batch ${data.companySchedule.batchSize || 10})`
                     ));
                 }
-                if (data.feedSchedule?.enabled) {
-                    parts.push(dt(
-                        'options.schedule.feedEvery',
-                        [data.feedSchedule.intervalHours],
-                        `Feed: every ${data.feedSchedule.intervalHours}h`
-                    ));
-                }
                 if (parts.length) {
                     sEl.textContent = parts.join(' · ');
                     sEl.style.color = '#057642';
@@ -581,8 +525,6 @@ function loadDashboard() {
                 }
             }
 
-            renderFeedMetrics(feedHistory);
-
             const companyEntries = companyHistory.map(r => ({
                 name: r.name || dt('common.unknown', null, 'Unknown'),
                 headline: r.subtitle || '',
@@ -591,17 +533,8 @@ function loadDashboard() {
                     ? 'company-followed' : r.status,
                 time: r.time
             }));
-            const feedEntries = feedHistory.map(r => ({
-                name: r.author || dt('common.unknown', null, 'Unknown'),
-                headline: (r.postText || '')
-                    .substring(0, 80),
-                profileUrl: '',
-                status: 'feed-' + (r.status || ''),
-                time: r.time
-            }));
             const allHistory = history
-                .concat(companyEntries)
-                .concat(feedEntries);
+                .concat(companyEntries);
 
             renderChart(allHistory);
             if (!allHistory.length) return;
@@ -658,9 +591,6 @@ function loadDashboard() {
                 } else if (r.status?.startsWith(
                     'company-')) {
                     badge.className += 'badge-company';
-                } else if (r.status?.startsWith(
-                    'feed-')) {
-                    badge.className += 'badge-feed';
                 } else {
                     badge.className += 'badge-skipped';
                 }
@@ -689,136 +619,6 @@ function loadDashboard() {
     );
 }
 
-function renderFeedMetrics(feedHistory) {
-    if (!feedHistory || !feedHistory.length) return;
-
-    const feedMetricsGridNode = document.getElementById(
-        'feedMetricsGrid'
-    );
-    const totalCommentsNode = document.getElementById(
-        'totalComments'
-    );
-    const feedSkippedNode = document.getElementById(
-        'feedSkipped'
-    );
-    const commentPctNode = document.getElementById(
-        'commentPct'
-    );
-    const commentRateNode = document.getElementById(
-        'commentRate'
-    );
-    const topReactionNode = document.getElementById(
-        'topReaction'
-    );
-    const topReactionCountNode = document.getElementById(
-        'topReactionCount'
-    );
-    const reactionBreakdownNode = document.getElementById(
-        'reactionBreakdown'
-    );
-    const reactionBarsNode = document.getElementById(
-        'reactionBars'
-    );
-    if (
-        !feedMetricsGridNode ||
-        !totalCommentsNode ||
-        !feedSkippedNode ||
-        !commentPctNode ||
-        !commentRateNode ||
-        !topReactionNode ||
-        !topReactionCountNode ||
-        !reactionBreakdownNode ||
-        !reactionBarsNode
-    ) {
-        return;
-    }
-
-    feedMetricsGridNode.style.display = 'grid';
-
-    let commentCount = 0;
-    let engagedCount = 0;
-    let skippedCount = 0;
-    const reactions = {};
-
-    for (const r of feedHistory) {
-        const s = r.status || '';
-        if (s.startsWith('skipped')) {
-            skippedCount++;
-            continue;
-        }
-        engagedCount++;
-        if (s.includes('commented')) {
-            commentCount++;
-        }
-        const parts = s.split('+');
-        for (const p of parts) {
-            if (p === 'commented') continue;
-            const name = p.trim();
-            if (name) {
-                reactions[name] =
-                    (reactions[name] || 0) + 1;
-            }
-        }
-    }
-
-    totalCommentsNode.textContent = commentCount;
-    feedSkippedNode.textContent = skippedCount;
-
-    if (engagedCount > 0) {
-        const pct = Math.round(
-            (commentCount / engagedCount) * 100
-        );
-        commentPctNode.textContent = pct + '%';
-        commentRateNode.textContent = dt(
-                'options.feed.commentRateCount',
-                [commentCount, engagedCount],
-                `${commentCount} of ${engagedCount} posts`
-            );
-    }
-
-    const sorted = Object.entries(reactions)
-        .sort((a, b) => b[1] - a[1]);
-    if (sorted.length > 0) {
-        topReactionNode.textContent = sorted[0][0];
-        topReactionCountNode.textContent = dt(
-                'options.feed.timesUsed',
-                [sorted[0][1]],
-                sorted[0][1] + ' times'
-            );
-    }
-
-    if (sorted.length > 1) {
-        reactionBreakdownNode.style.display = 'block';
-        const container = reactionBarsNode;
-        container.textContent = '';
-        const max = sorted[0][1];
-
-        for (const [name, count] of sorted) {
-            const col = document.createElement('div');
-            col.className = 'reaction-bar-col';
-
-            const countEl = document.createElement('span');
-            countEl.className = 'reaction-bar-count';
-            countEl.textContent = count;
-
-            const bar = document.createElement('div');
-            bar.className = 'reaction-bar-fill';
-            const pct = (count / max) * 100;
-            bar.style.height = Math.max(pct, 5) + '%';
-
-            const label = document.createElement('span');
-            label.className = 'reaction-bar-label';
-            label.textContent = name;
-
-            col.appendChild(countEl);
-            col.appendChild(bar);
-            col.appendChild(label);
-            container.appendChild(col);
-        }
-    }
-    applyDashboardLocalization();
-}
-
 function renderChart(history) {
     const chart = document.getElementById('chart');
     const empty = document.getElementById('chartEmpty');
@@ -834,9 +634,7 @@ function renderChart(history) {
         if (!r.time) continue;
         const s = r.status || '';
         if (s === 'sent' ||
-            s === 'company-followed' ||
-            s.startsWith('feed-') &&
-            !s.includes('skipped')) {
+            s === 'company-followed') {
             const day = r.time.substring(0, 10);
             dayCounts[day] = (dayCounts[day] || 0) + 1;
         }
@@ -889,7 +687,7 @@ function renderChart(history) {
 function exportCsv() {
     chrome.storage.local.get(
         ['connectionHistory', 'acceptedUrls',
-            'companyFollowHistory', 'feedEngageHistory'],
+            'companyFollowHistory'],
         (data) => {
             const history = data.connectionHistory || [];
             const acceptedSet = new Set(
@@ -903,16 +701,7 @@ function exportCsv() {
                     status: 'company-' + (r.status || ''),
                     time: r.time || ''
                 }));
-            const feedH =
-                (data.feedEngageHistory || []).map(r => ({
-                    name: r.author || '',
-                    headline: (r.postText || '')
-                        .substring(0, 80),
-                    profileUrl: '',
-                    status: 'feed-' + (r.status || ''),
-                    time: r.time || ''
-                }));
-            history.push(...companyH, ...feedH);
+            history.push(...companyH);
             const rows = [
                 ['Name', 'Headline', 'Profile URL',
                  'Status', 'Time'].join(',')
@@ -1220,94 +1009,6 @@ function renderHourAcceptance(history, accepted) {
 document.getElementById('exportBtn')
     .addEventListener('click', exportCsv);
 
-function renderNurtureList() {
-    chrome.storage.local.get('nurtureList', (data) => {
-        const list = data.nurtureList || [];
-        const container = document.getElementById(
-            'nurtureList');
-        const empty = document.getElementById(
-            'nurtureEmpty');
-        if (!container) return;
-
-        if (!list.length) {
-            empty.style.display = 'block';
-            while (container.firstChild) {
-                container.removeChild(container.firstChild);
-            }
-            return;
-        }
-
-        empty.style.display = 'none';
-        while (container.firstChild) {
-            container.removeChild(container.firstChild);
-        }
-
-        const now = new Date();
-        for (const entry of list) {
-            const row = document.createElement('div');
-            row.style.cssText =
-                'display:flex; align-items:center; ' +
-                'justify-content:space-between; ' +
-                'padding:8px 12px; ' +
-                'border-bottom:1px solid var(--border); ' +
-                'font-size:13px;';
-
-            const info = document.createElement('div');
-            const nameEl = document.createElement('strong');
-            nameEl.textContent = entry.name ||
-                dt('common.unknown', null, 'Unknown');
-            info.appendChild(nameEl);
-
-            const meta = document.createElement('div');
-            meta.style.cssText =
-                'font-size:11px; color:var(--muted);';
-            const added = new Date(entry.addedAt);
-            const daysAgo = Math.floor(
-                (now - added) / 86400000);
-            meta.textContent =
-                dt(
-                    'options.nurture.entryMeta',
-                    [entry.engagements || 0, daysAgo],
-                    `${entry.engagements || 0}/3 engagements · added ${daysAgo}d ago`
-                );
-            info.appendChild(meta);
-
-            const removeBtn = document.createElement(
-                'button');
-            removeBtn.textContent = dt(
-                'common.remove',
-                null,
-                'Remove'
-            );
-            removeBtn.style.cssText =
-                'background:none; border:1px solid ' +
-                'var(--border); border-radius:6px; ' +
-                'padding:4px 10px; font-size:11px; ' +
-                'color:var(--muted); cursor:pointer;';
-            removeBtn.addEventListener('click', () => {
-                removeNurtureEntry(entry.profileUrl);
-            });
-
-            row.appendChild(info);
-            row.appendChild(removeBtn);
-            container.appendChild(row);
-        }
-        applyDashboardLocalization();
-    });
-}
-
-function removeNurtureEntry(profileUrl) {
-    chrome.storage.local.get('nurtureList', (data) => {
-        const list = (data.nurtureList || []).filter(
-            e => e.profileUrl !== profileUrl
-        );
-        chrome.storage.local.set(
-            { nurtureList: list },
-            () => renderNurtureList()
-        );
-    });
-}
-
 initializeDashboardLocalization().then(() => {
     const languageSelect = document.getElementById(
         'uiLanguageModeSelect'
@@ -1322,7 +1023,6 @@ initializeDashboardLocalization().then(() => {
                 initializeDashboardLocalization().then(() => {
                     loadDashboard();
                     renderAnalytics();
-                    renderNurtureList();
                 });
             });
         });
@@ -1330,5 +1030,4 @@ initializeDashboardLocalization().then(() => {
     initializeDashboardTabs();
     loadDashboard();
     renderAnalytics();
-    renderNurtureList();
 });

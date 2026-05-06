@@ -12,7 +12,6 @@ const TEMPLATES = { ...FALLBACK_TEMPLATES };
 const MAX_CHARS = 300;
 const WEEKLY_LIMIT = 150;
 const DEFAULT_ROLE_TERMS_LIMIT = DEFAULT_POPUP_STATE.roleTermsLimit;
-const DEFAULT_FEED_WARMUP_RUNS = DEFAULT_POPUP_STATE.feedWarmupRunsRequired;
 const DEFAULT_TEMPLATE_KEY = DEFAULT_POPUP_STATE.activeTemplate;
 const DEFAULT_AREA_PRESET = DEFAULT_POPUP_STATE.areaPreset;
 const DEFAULT_COMPANY_AREA_PRESET = DEFAULT_POPUP_STATE.companyAreaPreset;
@@ -37,17 +36,12 @@ const DEFAULT_LOCAL_UI_STATE = {
             career: false,
             profile: false
         },
-        feed: {
-            commentSettings: false,
-            automation: false
-        },
         tools: { extras: false }
     },
     lastOpenSubpanel: {
         connect: null,
         companies: null,
-        jobs: null,
-        feed: null
+        jobs: null
     },
     tagSearch: '',
     activeRoleArea: '',
@@ -127,19 +121,6 @@ const UI_LABEL_KEYS = Object.freeze({
     jobsProfileHeadlineInput: 'popup.jobs.currentTitle',
     jobsProfilePortfolioInput: 'popup.jobs.portfolio',
     jobsProfileSummaryInput: 'popup.jobs.resumeSummary',
-    feedReactCheckbox: 'popup.feed.react',
-    feedCommentCheckbox: 'popup.feed.comment',
-    feedWarmupEnabledCheckbox: 'popup.feed.enableWarmup',
-    feedWarmupRunsRequiredInput: 'popup.feed.warmupRunsRequired',
-    aiApiKeyInput: 'popup.feed.aiApiKey',
-    commentTemplatesInput: 'popup.feed.fallbackTemplates',
-    skipKeywordsInput: 'popup.feed.skipKeywords',
-    skipKeywordsTemplateSelect: 'popup.feed.skipTemplateLabel',
-    feedScheduleCheckbox: 'popup.feed.scheduleRecurring',
-    feedScheduleInterval: 'common.runEveryHours',
-    nurtureScheduleCheckbox: 'popup.feed.nurtureConnections',
-    nurtureScheduleInterval: 'popup.feed.checkEveryHours',
-    nurturePostLimit: 'popup.feed.postsPerVisit',
     goalMode: 'common.goal',
     roleTermsLimitInput: 'popup.connect.roleTermsLimit',
     areaPresetSelect: 'popup.connect.areaPreset',
@@ -236,60 +217,6 @@ const POPUP_SELECT_OPTION_KEYS = Object.freeze({
         '2': 'popup.jobs.workTypeRemote',
         '3': 'popup.jobs.workTypeHybrid'
     },
-    skipKeywordsTemplateSelect: {
-        '': 'popup.feed.skipTemplateChoose',
-        sponsored: 'popup.feed.skipTemplateSponsored',
-        engagement_bait: 'popup.feed.skipTemplateEngagementBait',
-        politics: 'popup.feed.skipTemplatePolitics',
-        controversy: 'popup.feed.skipTemplateControversy',
-        crypto_hype: 'popup.feed.skipTemplateCryptoHype',
-        job_spam: 'popup.feed.skipTemplateJobSpam'
-    }
-});
-
-const SKIP_KEYWORD_TEMPLATES = Object.freeze({
-    sponsored: [
-        'sponsored',
-        'ad',
-        'promoted',
-        'advertisement',
-        'partnership'
-    ],
-    engagement_bait: [
-        'comment interested',
-        'type amen',
-        'drop a fire emoji',
-        'follow for part 2',
-        'tag 3 people'
-    ],
-    politics: [
-        'election',
-        'left vs right',
-        'government policy',
-        'political debate',
-        'partisan'
-    ],
-    controversy: [
-        'hot take',
-        'cancel culture',
-        'outrage',
-        'rage bait',
-        'drama'
-    ],
-    crypto_hype: [
-        'crypto',
-        'web3',
-        'nft',
-        'token presale',
-        'airdrop'
-    ],
-    job_spam: [
-        'we are hiring',
-        'urgent hiring',
-        'walk-in interview',
-        'apply now',
-        'multiple openings'
-    ]
 });
 
 const AREA_PRESET_OPTION_KEYS = Object.freeze({
@@ -532,9 +459,6 @@ function getProgressVerb(mode, isEngagementOnly) {
     if (mode === 'jobs') {
         return tr('popup.progress.prepared', null, 'Prepared');
     }
-    if (mode === 'feed') {
-        return tr('popup.progress.engaged', null, 'Engaged');
-    }
     return isEngagementOnly
         ? tr('popup.progress.engaged', null, 'Engaged')
         : tr('popup.progress.sent', null, 'Sent');
@@ -727,8 +651,7 @@ async function applyPopupLocalization() {
         const key = {
             connect: 'common.connect',
             companies: 'common.companies',
-            jobs: 'common.jobs',
-            feed: 'common.feed'
+            jobs: 'common.jobs'
         }[btn.dataset.mode];
         if (key) {
             btn.textContent = tr(key, null, btn.textContent);
@@ -740,9 +663,6 @@ async function applyPopupLocalization() {
     setElementText('#jobsSection > .section .section-label',
         'popup.jobs.section',
         'Jobs Assist');
-    setElementText('#feedSection > .section .section-label',
-        'popup.feed.section',
-        'Feed Engagement');
     setElementText('#connectSection > .section .section-label',
         'popup.connect.section',
         'Search Builder');
@@ -769,12 +689,6 @@ async function applyPopupLocalization() {
     setElementText('#jobsProfileAccordion .accordion-toggle span:first-child',
         'popup.jobs.encryptedProfileCache',
         'Encrypted Profile Cache');
-    setElementText('#commentSettingsAccordion .accordion-toggle span:first-child',
-        'popup.feed.commentSettings',
-        'Comment Settings');
-    setElementText('#feedAutomationAccordion .accordion-toggle span:first-child',
-        'common.automation',
-        'Automation');
     setElementText('#connectRefineAccordion .accordion-toggle > span:first-child',
         'popup.connect.refineFilters',
         'Refine Filters');
@@ -816,18 +730,6 @@ async function applyPopupLocalization() {
     setElementText('#clearJobsProfileCacheBtn',
         'common.clearCache',
         'Clear Cache');
-    setElementText('#resetFeedWarmupProgressBtn',
-        'popup.feed.resetLearningProgress',
-        'Reset Learning Progress');
-    setElementText('#applySkipKeywordsTemplateBtn',
-        'popup.feed.skipTemplateReplace',
-        'Replace list');
-    setElementText('#appendSkipKeywordsTemplateBtn',
-        'popup.feed.skipTemplateAppend',
-        'Append list');
-    setElementText('#skipKeywordsTemplateHelp',
-        'popup.feed.skipTemplateHelp',
-        'Use a template as a starting point, then customize the list.');
     setElementText('#checkAcceptedBtn',
         'popup.tools.checkAccepted',
         'Check Accepted Connections');
@@ -1361,32 +1263,6 @@ function applyAreaFilter(filterEl, targetGroup) {
     applyTagSearchFilter();
 }
 
-function syncFeedCommentSettingsVisibility() {
-    const enabled = document.getElementById(
-        'feedCommentCheckbox'
-    )?.checked === true;
-    const accordion = document.getElementById(
-        'commentSettingsAccordion'
-    );
-    const commentSection = document.getElementById(
-        'commentSection'
-    );
-    if (!accordion || !commentSection) return;
-    const visible = typeof isCommentSettingsVisible ===
-        'function'
-        ? isCommentSettingsVisible(enabled)
-        : enabled;
-    accordion.style.display = visible ? 'block' : 'none';
-    commentSection.style.display = visible ? 'block' : 'none';
-    if (!visible) {
-        setPopupAccordionState(
-            'feed',
-            'commentSettings',
-            false
-        );
-    }
-}
-
 function logAccordionBreadcrumb(label, payload) {
     try {
         if (typeof chrome === 'undefined' ||
@@ -1572,59 +1448,6 @@ function getRoleTermsLimit() {
         return DEFAULT_ROLE_TERMS_LIMIT;
     }
     return Math.max(1, Math.min(10, parsed));
-}
-
-function getFeedWarmupRunsRequired() {
-    const input = document.getElementById(
-        'feedWarmupRunsRequiredInput'
-    );
-    const parsed = parseInt(input?.value, 10);
-    if (!Number.isFinite(parsed)) {
-        return DEFAULT_FEED_WARMUP_RUNS;
-    }
-    return Math.max(0, Math.min(10, parsed));
-}
-
-function renderFeedWarmupProgress(progress) {
-    const text = document.getElementById(
-        'feedWarmupProgressText'
-    );
-    if (!text) return;
-    const enabled = progress?.enabled !== false;
-    const completed = Number(progress?.completedRuns) || 0;
-    const required = Number(progress?.requiredRuns);
-    const safeRequired = Number.isFinite(required)
-        ? required
-        : getFeedWarmupRunsRequired();
-    const unlock = Number(progress?.unlockRunNumber) ||
-        (safeRequired + 1);
-    if (!enabled) {
-        text.textContent = tr(
-            'popup.feed.warmupDisabled',
-            null,
-            'Learning warmup disabled. Comments are unlocked.'
-        );
-        return;
-    }
-    text.textContent = tr(
-        'popup.feed.warmupProgress',
-        [completed, safeRequired, unlock],
-        `Learning progress: ${completed} / ${safeRequired} runs · ` +
-            `Comments unlock on run #${unlock}`
-    );
-}
-
-function refreshFeedWarmupProgress() {
-    chrome.runtime.sendMessage({
-        action: 'getFeedWarmupProgress',
-        feedWarmupEnabled: document.getElementById(
-            'feedWarmupEnabledCheckbox'
-        ).checked,
-        feedWarmupRunsRequired: getFeedWarmupRunsRequired()
-    }, (response) => {
-        if (chrome.runtime.lastError || !response) return;
-        renderFeedWarmupProgress(response);
-    });
 }
 
 function getSafeRoleTerms(roles) {
@@ -2347,39 +2170,14 @@ function saveState() {
         jobsBrazilOffshoreFriendly: document.getElementById(
             'jobsBrazilOffshoreFriendlyCheckbox'
         ).checked,
-        feedReact: document.getElementById(
-            'feedReactCheckbox').checked,
-        feedComment: document.getElementById(
-            'feedCommentCheckbox').checked,
-        feedWarmupEnabled: document.getElementById(
-            'feedWarmupEnabledCheckbox'
-        ).checked,
-        feedWarmupRunsRequired: getFeedWarmupRunsRequired(),
-        aiApiKey: document.getElementById(
-            'aiApiKeyInput').value,
-        commentTemplates: document.getElementById(
-            'commentTemplatesInput').value,
-        skipKeywords: document.getElementById(
-            'skipKeywordsInput').value,
-        skipKeywordsTemplate: getSkipKeywordsTemplateId(),
         companyScheduleEnabled: document.getElementById(
             'companyScheduleCheckbox').checked,
         companyScheduleInterval: document.getElementById(
             'companyScheduleInterval').value,
         companyBatchSize: document.getElementById(
             'companyBatchSize').value,
-        feedScheduleEnabled: document.getElementById(
-            'feedScheduleCheckbox').checked,
-        feedScheduleInterval: document.getElementById(
-            'feedScheduleInterval').value,
         smartMode: document.getElementById(
-            'smartModeCheckbox').checked,
-        nurtureScheduleEnabled: document.getElementById(
-            'nurtureScheduleCheckbox').checked,
-        nurtureScheduleInterval: document.getElementById(
-            'nurtureScheduleInterval').value,
-        nurturePostLimit: document.getElementById(
-            'nurturePostLimit').value
+            'smartModeCheckbox').checked
     };
 
     popupUiState = normalizePopupUi(popupUiState);
@@ -2403,12 +2201,6 @@ function saveState() {
 }
 
 function loadState() {
-    chrome.storage.local.get('groqApiKey', (data) => {
-        if (data.groqApiKey) {
-            document.getElementById('aiApiKeyInput')
-                .value = data.groqApiKey;
-        }
-    });
     loadPopupState(
         typeof migrateConnectPopupState === 'function'
             ? migrateConnectPopupState
@@ -2486,8 +2278,6 @@ function loadState() {
             renderAccordions();
             applyTagSearchFilter();
             updateRefineSelectedCount();
-            syncFeedCommentSettingsVisibility();
-            refreshFeedWarmupProgress();
             refreshJobsCacheStatus();
             refreshJobsCareerIntelStatus();
             applyPopupLocalization().catch(() => {});
@@ -2838,53 +2628,6 @@ function loadState() {
             ).checked =
                 popupState.jobsBrazilOffshoreFriendly === true;
         }
-        if (popupState.feedReact !== undefined) {
-            document.getElementById('feedReactCheckbox').checked =
-                popupState.feedReact;
-        }
-        if (popupState.feedComment) {
-            document.getElementById('feedCommentCheckbox').checked =
-                true;
-        }
-        syncFeedCommentSettingsVisibility();
-        if (popupState.feedWarmupEnabled !== undefined) {
-            document.getElementById(
-                'feedWarmupEnabledCheckbox'
-            ).checked = popupState.feedWarmupEnabled;
-        }
-        if (popupState.feedWarmupRunsRequired !== undefined) {
-            document.getElementById(
-                'feedWarmupRunsRequiredInput'
-            ).value = String(
-                Math.max(
-                    0,
-                    Math.min(
-                        10,
-                        parseInt(
-                            popupState.feedWarmupRunsRequired,
-                            10
-                        ) || 0
-                    )
-                )
-            );
-        }
-        if (popupState.aiApiKey &&
-            !document.getElementById('aiApiKeyInput')
-                .value) {
-            document.getElementById('aiApiKeyInput')
-                .value = popupState.aiApiKey;
-            chrome.storage.local.set({
-                groqApiKey: popupState.aiApiKey
-            });
-        }
-        if (popupState.commentTemplates) {
-            document.getElementById('commentTemplatesInput').value =
-                popupState.commentTemplates;
-        }
-        if (popupState.skipKeywords) {
-            document.getElementById('skipKeywordsInput').value =
-                popupState.skipKeywords;
-        }
         setSelectValue(
             'skipKeywordsTemplateSelect',
             popupState.skipKeywordsTemplate || '',
@@ -2908,37 +2651,6 @@ function loadState() {
                 'companyBatchSize'
             ).value = popupState.companyBatchSize;
         }
-        if (popupState.feedScheduleEnabled) {
-            document.getElementById(
-                'feedScheduleCheckbox'
-            ).checked = true;
-            document.getElementById(
-                'feedScheduleOptions'
-            ).style.display = 'block';
-        }
-        if (popupState.feedScheduleInterval) {
-            document.getElementById(
-                'feedScheduleInterval'
-            ).value = popupState.feedScheduleInterval;
-        }
-        if (popupState.nurtureScheduleEnabled) {
-            document.getElementById(
-                'nurtureScheduleCheckbox'
-            ).checked = true;
-            document.getElementById(
-                'nurtureScheduleOptions'
-            ).style.display = 'block';
-        }
-        if (popupState.nurtureScheduleInterval) {
-            document.getElementById(
-                'nurtureScheduleInterval'
-            ).value = popupState.nurtureScheduleInterval;
-        }
-        if (popupState.nurturePostLimit) {
-            document.getElementById(
-                'nurturePostLimit'
-            ).value = popupState.nurturePostLimit;
-        }
 
         setActiveTemplate(popupState.activeTemplate || DEFAULT_TEMPLATE_KEY);
         updateQueryPreview();
@@ -2947,7 +2659,6 @@ function loadState() {
         if (popupState.currentMode) {
             setMode(popupState.currentMode);
         }
-        refreshFeedWarmupProgress();
         refreshJobsCacheStatus();
         refreshJobsCareerIntelStatus();
         applyPopupLocalization().catch(() => {});
@@ -3414,9 +3125,6 @@ document.getElementById('startBtn').addEventListener('click', async () => {
         }
         return startJobsAssist();
     }
-    if (currentMode === 'feed') {
-        return startFeedEngage();
-    }
     return startConnect();
 });
 
@@ -3827,90 +3535,6 @@ function startJobsAssist() {
     }, handleLaunchResponse);
 }
 
-function startFeedEngage() {
-    const limit = parseInt(
-        document.getElementById('limitInput').value
-    ) || 20;
-    const react = document.getElementById(
-        'feedReactCheckbox'
-    ).checked;
-    const comment = document.getElementById(
-        'feedCommentCheckbox'
-    ).checked;
-    const feedWarmupEnabled = document.getElementById(
-        'feedWarmupEnabledCheckbox'
-    ).checked;
-    const feedWarmupRunsRequired =
-        getFeedWarmupRunsRequired();
-    const aiApiKey = document.getElementById(
-        'aiApiKeyInput'
-    ).value.trim();
-    const goalMode =
-        document.getElementById('goalMode').value || 'passive';
-
-    chrome.runtime.sendMessage({
-        action: 'getFeedWarmupProgress',
-        feedWarmupEnabled,
-        feedWarmupRunsRequired
-    }, (warmupProgress) => {
-        const warmupActive =
-            warmupProgress?.warmupActive === true;
-        if (!react && !comment && !warmupActive) {
-            setStatusMessageKey(
-                'popup.feed.errorEnableReactOrComment',
-                'warning',
-                'Enable at least one: react or comment.'
-            );
-            return;
-        }
-
-        const rawTemplates = document.getElementById(
-            'commentTemplatesInput'
-        ).value.trim();
-        const commentTemplates = rawTemplates
-            ? rawTemplates.split('\n').map(s => s.trim())
-                .filter(Boolean)
-            : [];
-        const rawSkip = document.getElementById(
-            'skipKeywordsInput'
-        ).value.trim();
-        const skipKeywords = rawSkip
-            ? rawSkip.split('\n').map(s => s.trim())
-                .filter(Boolean)
-            : [];
-
-        lastReportedSent = 0;
-        showProgressUI(
-            tr('popup.progress.engaged', null, 'Engaged'),
-            limit,
-            warmupActive
-                ? tr(
-                    'popup.feed.warmupRunning',
-                    null,
-                    'Warmup mode: reacting + learning...'
-                )
-                : tr(
-                    'popup.feed.openingFeed',
-                    null,
-                    'Navigating to feed...'
-                )
-        );
-
-        chrome.runtime.sendMessage({
-            action: 'startFeedEngage',
-            limit,
-            react,
-            comment,
-            goalMode,
-            commentTemplates,
-            skipKeywords,
-            aiApiKey,
-            feedWarmupEnabled,
-            feedWarmupRunsRequired
-        }, handleLaunchResponse);
-    });
-}
-
 function showProgressUI(verb, limit, statusMsg) {
     const startBtn = document.getElementById('startBtn');
     const stopBtn = document.getElementById('stopBtn');
@@ -3989,19 +3613,6 @@ function handleLaunchResponse(response) {
             'error'
         );
         return;
-    }
-    if (response?.status === 'started' &&
-        response.warmupActive) {
-        setStatusMessageKey(
-            'popup.feed.warmupStarted',
-            'info',
-            `Warmup run ${response.currentRunNumber}/${response.requiredRuns}: reactions + learning, no comments.`,
-            [response.currentRunNumber, response.requiredRuns]
-        );
-    }
-    if (response?.status === 'started' &&
-        currentMode === 'feed') {
-        refreshFeedWarmupProgress();
     }
 }
 
@@ -4159,8 +3770,7 @@ chrome.runtime.onMessage.addListener((request) => {
         const verbMap = {
             connect: getProgressVerb('connect', engMode),
             companies: getProgressVerb('companies'),
-            jobs: getProgressVerb('jobs'),
-            feed: getProgressVerb('feed')
+            jobs: getProgressVerb('jobs')
         };
         const verb = verbMap[currentMode] ||
             tr('common.done', null, 'Done');
@@ -4293,9 +3903,6 @@ chrome.runtime.onMessage.addListener((request) => {
             startBtn.disabled = false;
             startBtn.textContent = tr('common.tryAgain', null, 'Try Again');
         }
-        if (response?.mode === 'feed') {
-            refreshFeedWarmupProgress();
-        }
         if (response?.mode === 'jobs') {
             refreshJobsCacheStatus();
         }
@@ -4425,8 +4032,6 @@ function setMode(mode) {
         .style.display = mode === 'companies' ? 'block' : 'none';
     document.getElementById('jobsSection')
         .style.display = mode === 'jobs' ? 'block' : 'none';
-    document.getElementById('feedSection')
-        .style.display = mode === 'feed' ? 'block' : 'none';
     document.getElementById('weeklyCounter')
         .style.display = mode === 'connect' ? 'block' : 'none';
 
@@ -4444,8 +4049,7 @@ function setMode(mode) {
     const labels = {
         connect: tr('popup.start.connect', null, 'Launch Automation'),
         companies: tr('popup.start.companies', null, 'Follow Companies'),
-        jobs: tr('popup.start.jobs', null, 'Assist Job Apply'),
-        feed: tr('popup.start.feed', null, 'Engage Feed')
+        jobs: tr('popup.start.jobs', null, 'Assist Job Apply')
     };
     const startBtn = document.getElementById('startBtn');
     startBtn.textContent = '';
@@ -4470,9 +4074,6 @@ function setMode(mode) {
     startBtn.disabled = false;
 
     saveState();
-    if (mode === 'feed') {
-        refreshFeedWarmupProgress();
-    }
     if (mode === 'jobs') {
         refreshJobsCacheStatus();
     }
@@ -4493,63 +4094,6 @@ document.getElementById('uiLanguageModeSelect')
         saveState();
     });
 
-document.getElementById('feedCommentCheckbox')
-    .addEventListener('change', (e) => {
-        syncFeedCommentSettingsVisibility();
-        saveState();
-    });
-
-document.getElementById('feedReactCheckbox')
-    .addEventListener('change', saveState);
-document.getElementById('feedWarmupEnabledCheckbox')
-    .addEventListener('change', () => {
-        saveState();
-        refreshFeedWarmupProgress();
-    });
-document.getElementById('feedWarmupRunsRequiredInput')
-    .addEventListener('change', () => {
-        const input = document.getElementById(
-            'feedWarmupRunsRequiredInput'
-        );
-        input.value = String(getFeedWarmupRunsRequired());
-        saveState();
-        refreshFeedWarmupProgress();
-    });
-document.getElementById('resetFeedWarmupProgressBtn')
-    .addEventListener('click', () => {
-        chrome.runtime.sendMessage({
-            action: 'resetFeedWarmupProgress',
-            feedWarmupEnabled: document.getElementById(
-                'feedWarmupEnabledCheckbox'
-            ).checked,
-            feedWarmupRunsRequired:
-                getFeedWarmupRunsRequired()
-        }, (response) => {
-            if (chrome.runtime.lastError ||
-                response?.status !== 'ok') {
-                setStatusMessageKey(
-                    'popup.feed.resetWarmupFailed',
-                    'error',
-                    'Failed to reset warmup progress.'
-                );
-                return;
-            }
-            renderFeedWarmupProgress(response);
-            setStatusMessageKey(
-                'popup.feed.resetWarmupSuccess',
-                'success',
-                'Warmup learning progress reset.'
-            );
-            saveState();
-        });
-    });
-document.getElementById('aiApiKeyInput')
-    .addEventListener('change', () => {
-        const key = document.getElementById(
-            'aiApiKeyInput').value.trim();
-        chrome.storage.local.set({ groqApiKey: key });
-        saveState();
-    });
 document.getElementById('companyAreaPresetSelect')
     .addEventListener('change', () => {
         const preset = getSelectedCompanyAreaPreset();
@@ -5005,16 +4549,6 @@ document.getElementById('companyQueryInput')
     .addEventListener('input', saveState);
 document.getElementById('targetCompanies')
     .addEventListener('input', saveState);
-document.getElementById('commentTemplatesInput')
-    .addEventListener('input', saveState);
-document.getElementById('skipKeywordsInput')
-    .addEventListener('input', saveState);
-document.getElementById('skipKeywordsTemplateSelect')
-    .addEventListener('change', saveState);
-document.getElementById('applySkipKeywordsTemplateBtn')
-    .addEventListener('click', () => applySkipKeywordsTemplate('replace'));
-document.getElementById('appendSkipKeywordsTemplateBtn')
-    .addEventListener('click', () => applySkipKeywordsTemplate('append'));
 document.getElementById('loadDefaultCompanies')
     .addEventListener('click', () => {
         const preset = getSelectedCompanyAreaPreset();
@@ -5115,175 +4649,13 @@ document.getElementById('companyBatchSize')
         saveState();
     });
 
-document.getElementById('feedScheduleCheckbox')
-    .addEventListener('change', (e) => {
-        const opts = document.getElementById(
-            'feedScheduleOptions'
-        );
-        opts.style.display = e.target.checked
-            ? 'block' : 'none';
-        const hours = parseInt(
-            document.getElementById(
-                'feedScheduleInterval'
-            ).value
-        ) || 12;
-        chrome.runtime.sendMessage({
-            action: 'setFeedSchedule',
-            enabled: e.target.checked,
-            intervalHours: hours
-        });
-        saveState();
-    });
-
-document.getElementById('feedScheduleInterval')
-    .addEventListener('change', () => {
-        const enabled = document.getElementById(
-            'feedScheduleCheckbox'
-        ).checked;
-        if (!enabled) return;
-        const hours = parseInt(
-            document.getElementById(
-                'feedScheduleInterval'
-            ).value
-        ) || 12;
-        chrome.runtime.sendMessage({
-            action: 'setFeedSchedule',
-            enabled: true,
-            intervalHours: hours
-        });
-        saveState();
-    });
-
-document.getElementById('nurtureScheduleCheckbox')
-    .addEventListener('change', (e) => {
-        const opts = document.getElementById(
-            'nurtureScheduleOptions'
-        );
-        opts.style.display = e.target.checked
-            ? 'block' : 'none';
-        const hours = parseInt(
-            document.getElementById(
-                'nurtureScheduleInterval'
-            ).value
-        ) || 8;
-        const limit = parseInt(
-            document.getElementById(
-                'nurturePostLimit'
-            ).value
-        ) || 3;
-        chrome.runtime.sendMessage({
-            action: 'setNurtureSchedule',
-            enabled: e.target.checked,
-            intervalHours: hours,
-            limit
-        });
-        saveState();
-        if (e.target.checked) loadNurtureStatus();
-    });
-
-document.getElementById('nurtureScheduleInterval')
-    .addEventListener('change', () => {
-        const enabled = document.getElementById(
-            'nurtureScheduleCheckbox'
-        ).checked;
-        if (!enabled) return;
-        const hours = parseInt(
-            document.getElementById(
-                'nurtureScheduleInterval'
-            ).value
-        ) || 8;
-        const limit = parseInt(
-            document.getElementById(
-                'nurturePostLimit'
-            ).value
-        ) || 3;
-        chrome.runtime.sendMessage({
-            action: 'setNurtureSchedule',
-            enabled: true,
-            intervalHours: hours,
-            limit
-        });
-        saveState();
-    });
-
-document.getElementById('nurturePostLimit')
-    .addEventListener('change', () => {
-        const enabled = document.getElementById(
-            'nurtureScheduleCheckbox'
-        ).checked;
-        if (!enabled) return;
-        const hours = parseInt(
-            document.getElementById(
-                'nurtureScheduleInterval'
-            ).value
-        ) || 8;
-        const limit = parseInt(
-            document.getElementById(
-                'nurturePostLimit'
-            ).value
-        ) || 3;
-        chrome.runtime.sendMessage({
-            action: 'setNurtureSchedule',
-            enabled: true,
-            intervalHours: hours,
-            limit
-        });
-        saveState();
-    });
-
-function loadNurtureStatus() {
-    chrome.storage.local.get('nurtureList', (data) => {
-        const list = data.nurtureList || [];
-        const box = document.getElementById(
-            'nurtureStatus');
-        const text = document.getElementById(
-            'nurtureStatusText');
-        if (!box || !text) return;
-
-        if (!list.length) {
-            text.textContent = tr(
-                'popup.nurture.empty',
-                null,
-                'No nurture targets yet. Connect with people to start nurturing.'
-            );
-            box.style.display = 'block';
-            return;
-        }
-
-        const now = new Date();
-        const cutoff = new Date(
-            now.getTime() - 7 * 86400000
-        );
-        const active = list.filter(e => {
-            const added = new Date(e.addedAt);
-            if (added < cutoff) return false;
-            if (e.engagements >= 3) return false;
-            if (e.lastEngaged) {
-                const last = new Date(e.lastEngaged);
-                if ((now - last) < 12 * 3600000) {
-                    return false;
-                }
-            }
-            return true;
-        });
-
-        text.textContent = tr(
-            'popup.nurture.summary',
-            [list.length, active.length],
-            `${list.length} total, ${active.length} active targets ready.`
-        );
-        box.style.display = 'block';
-    });
-}
-
 function loadRateLimitStatus() {
     const now = new Date();
     const h = now.getUTCHours();
     const d = now.toISOString().substring(0, 10);
     const mode = currentMode === 'companies'
         ? 'companyFollow'
-        : currentMode === 'feed'
-            ? 'feedEngage' : 'connect';
+        : 'connect';
     const normalizedMode = currentMode === 'jobs'
         ? 'jobsAssist'
         : mode;
@@ -5293,7 +4665,6 @@ function loadRateLimitStatus() {
     const limits = {
         connect: { hourly: 12, daily: 40 },
         companyFollow: { hourly: 10, daily: 30 },
-        feedEngage: { hourly: 15, daily: 50 },
         jobsAssist: { hourly: 8, daily: 20 }
     };
     const lim = limits[normalizedMode] || { hourly: 12, daily: 40 };
@@ -5341,8 +4712,4 @@ loadRateLimitStatus();
 if (document.getElementById('scheduleCheckbox').checked &&
     document.getElementById('smartModeCheckbox').checked) {
     fetchScheduleInsight();
-}
-if (document.getElementById('nurtureScheduleCheckbox')
-    .checked) {
-    loadNurtureStatus();
 }

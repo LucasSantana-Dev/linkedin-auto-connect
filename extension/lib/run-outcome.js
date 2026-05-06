@@ -41,11 +41,6 @@ function inferProcessed(result, mode, actionCount, skippedCount) {
     var direct = toSafeInt(result?.processedCount);
     if (direct > 0) return direct;
 
-    if (mode === 'feed') {
-        var posts = toSafeInt(result?.processedPosts);
-        if (posts > 0) return posts;
-    }
-
     if (mode === 'company') {
         var perStep = toSafeInt(result?.followedThisStep);
         if (perStep > 0) return perStep;

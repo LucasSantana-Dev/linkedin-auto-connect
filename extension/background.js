@@ -4,21 +4,9 @@ let connectLaunchState = null;
 const JOBS_PROFILE_CACHE_KEY = 'jobsProfileCache';
 const JOBS_CAREER_INTEL_KEY = 'jobsCareerIntelStateV1';
 
-const FEED_LIB_SCRIPTS = [
+const COMPANY_FOLLOW_SCRIPTS = [
     'lib/ui-notify.js',
     'lib/templates.js',
-    'lib/feed-copy-guard.js',
-    'lib/feed-nlp-utils.js',
-    'lib/feed-comment-analysis.js',
-    'lib/feed-post-classification.js',
-    'lib/feed-dom-extraction.js',
-    'lib/feed-comment-patterns.js',
-    'lib/feed-safety-guards.js',
-    'lib/feed-comment-generation.js',
-];
-
-const COMPANY_FOLLOW_SCRIPTS = [
-    ...FEED_LIB_SCRIPTS,
     'lib/company-utils.js',
     'lib/human-behavior.js',
     'company-follow.js'
@@ -43,10 +31,8 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
 });
 
 importScripts('lib/rate-limiter.js');
-importScripts('lib/nurture.js');
 importScripts('lib/analytics.js');
 importScripts('lib/smart-schedule.js');
-importScripts('lib/feed-warmup.js');
 importScripts('lib/pattern-memory.js');
 importScripts('lib/i18n.js');
 importScripts('lib/search-language.js');
@@ -104,23 +90,13 @@ function incrementProfileWalkCount() {
 async function harvestProfileWalkUrls(request) {
     const fromRequest = Array.isArray(request?.urls)
         ? request.urls : [];
-    const fromNurture = await new Promise(resolve => {
-        chrome.storage.local.get('nurtureList', (data) => {
-            const list = Array.isArray(data?.nurtureList)
-                ? data.nurtureList : [];
-            resolve(list.map(x => x && x.profileUrl)
-                .filter(Boolean));
-        });
-    });
     const visitor = typeof LinkedInProfileVisitor !==
         'undefined' ? LinkedInProfileVisitor : null;
     if (visitor && typeof visitor.dedupeProfileUrls
         === 'function') {
-        return visitor.dedupeProfileUrls(
-            fromRequest.concat(fromNurture)
-        );
+        return visitor.dedupeProfileUrls(fromRequest);
     }
-    return fromRequest.concat(fromNurture);
+    return fromRequest;
 }
 
 async function launchProfileWalk(request) {
@@ -382,8 +358,7 @@ function applyRunResult(result) {
     if (actionCount > 0 && r?.mode) {
         const rateMode = r.mode === 'company'
             ? 'companyFollow'
-            : r.mode === 'feed'
-                ? 'feedEngage' : 'connect';
+            : 'connect';
         const normalizedRateMode = r.mode === 'jobs'
             ? 'jobsAssist'
             : rateMode;
@@ -431,10 +406,8 @@ function applyRunResult(result) {
     if (r?.log?.length && r?.mode) {
         const key = r.mode === 'company'
             ? 'companyFollowHistory'
-            : r.mode === 'feed'
-                ? 'feedEngageHistory'
-                : r.mode === 'jobs'
-                    ? 'jobsAssistHistory'
+            : r.mode === 'jobs'
+                ? 'jobsAssistHistory'
                 : null;
         if (key) {
             chrome.storage.local.get(key, (data) => {
@@ -445,20 +418,6 @@ function applyRunResult(result) {
                     [key]: merged
                 });
             });
-        }
-    }
-    if (r?.mode === 'feed') {
-        persistFeedWarmupAfterRun(r).catch(() => {});
-        if (r.warmupActive) {
-            recordEngagement({
-                mode: 'feed',
-                status: 'warmup-run',
-                warmupRun: true,
-                warmupPostsLearned:
-                    Number(r.warmupPostsLearned) || 0,
-                warmupThreadsLearned:
-                    Number(r.warmupThreadsLearned) || 0
-            }, chrome.storage.local);
         }
     }
     if (r?.templateMeta?.templateId) {
@@ -1008,32 +967,6 @@ function launchCompanyFollow(config) {
     );
 }
 
-function launchFeedEngage(config) {
-    const feedUrl = 'https://www.linkedin.com/feed/';
-
-    chrome.tabs.create(
-        { url: feedUrl, active: true },
-        (tab) => {
-            if (chrome.runtime.lastError || !tab) {
-                notifyError(
-                    'Failed to open feed: ' +
-                    (chrome.runtime.lastError?.message
-                        || 'unknown error')
-                );
-                return;
-            }
-            activeTabId = tab.id;
-            injectAndStart(tab.id,
-                [...FEED_LIB_SCRIPTS,
-                    'lib/human-behavior.js',
-                    'feed-engage.js'],
-                'LINKEDIN_FEED_ENGAGE_START',
-                config
-            );
-        }
-    );
-}
-
 function launchJobsAssist(config) {
     const query = String(config?.query || '').trim();
     if (!query) {
@@ -1064,34 +997,6 @@ function launchJobsAssist(config) {
     );
 }
 
-function launchNurture(target, config) {
-    const url = buildNurtureUrl(target.profileUrl);
-    chrome.tabs.create(
-        { url, active: true },
-        (tab) => {
-            if (chrome.runtime.lastError || !tab) {
-                notifyError(
-                    'Failed to open nurture tab: ' +
-                    (chrome.runtime.lastError?.message
-                        || 'unknown error')
-                );
-                return;
-            }
-            activeTabId = tab.id;
-            injectAndStart(tab.id,
-                [...FEED_LIB_SCRIPTS,
-                    'lib/human-behavior.js',
-                    'feed-engage.js'],
-                'LINKEDIN_FEED_ENGAGE_START',
-                {
-                    ...config,
-                    nurtureTarget: target,
-                    limit: config.limit || 3
-                }
-            );
-        }
-    );
-}
 
 function injectAndStart(tabId, scripts, msgType, config) {
     let started = false;
@@ -1183,63 +1088,6 @@ function localStorageSet(payload) {
             resolve();
         });
     });
-}
-
-async function loadFeedWarmupState() {
-    var data = await localStorageGet([
-        FEED_WARMUP_STATE_KEY
-    ]);
-    return sanitizeFeedWarmupState(
-        data[FEED_WARMUP_STATE_KEY]
-    );
-}
-
-async function saveFeedWarmupState(state) {
-    await localStorageSet({
-        [FEED_WARMUP_STATE_KEY]:
-            sanitizeFeedWarmupState(state)
-    });
-}
-
-function buildFeedWarmupProgress(state, overrides) {
-    var runtime = resolveFeedWarmupRuntime(
-        state,
-        overrides || {}
-    );
-    return {
-        ...runtime.state,
-        warmupActive: runtime.warmupActive,
-        currentRunNumber: runtime.currentRunNumber,
-        unlockRunNumber: runtime.requiredRuns + 1,
-        commentsEnabled: runtime.commentsEnabled,
-        reactionsForced: runtime.reactionsForced
-    };
-}
-
-async function resolveFeedWarmupConfig(config) {
-    var current = await loadFeedWarmupState();
-    var runtime = resolveFeedWarmupRuntime(
-        current,
-        config || {}
-    );
-    await saveFeedWarmupState(runtime.state);
-    return {
-        ...(config || {}),
-        feedWarmupEnabled: runtime.enabled,
-        feedWarmupRunsRequired: runtime.requiredRuns,
-        warmupActive: runtime.warmupActive,
-        currentRunNumber: runtime.currentRunNumber
-    };
-}
-
-async function persistFeedWarmupAfterRun(result) {
-    if (!result || result.mode !== 'feed') return;
-    var current = await loadFeedWarmupState();
-    var next = applyFeedWarmupRunResult(
-        current,
-        result
-    );
-    await saveFeedWarmupState(next);
 }
 
 async function loadPatternMemoryState() {
@@ -2890,72 +2738,6 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
-        if (request.action === 'startFeedEngage') {
-            checkRateLimit('feedEngage').then(async status => {
-                if (!status.allowed) {
-                    sendResponse({
-                        status: 'blocked',
-                        reason: status.reason
-                    });
-                    return;
-                }
-                var feedConfig = await resolveFeedWarmupConfig(
-                    request
-                );
-                feedConfig.rateRemaining = status.remaining;
-                launchFeedEngage(feedConfig);
-                sendResponse({
-                    status: 'started',
-                    warmupActive: feedConfig.warmupActive,
-                    currentRunNumber:
-                        feedConfig.currentRunNumber,
-                    requiredRuns:
-                        feedConfig.feedWarmupRunsRequired
-                });
-            }).catch(() => {
-                sendResponse({
-                    status: 'blocked',
-                    reason: 'unknown'
-                });
-            });
-            return true;
-        }
-
-        if (request.action === 'getFeedWarmupProgress') {
-            loadFeedWarmupState().then((state) => {
-                sendResponse(
-                    buildFeedWarmupProgress(
-                        state,
-                        request || {}
-                    )
-                );
-            }).catch(() => {
-                sendResponse(
-                    buildFeedWarmupProgress(
-                        getDefaultFeedWarmupState(),
-                        request || {}
-                    )
-                );
-            });
-            return true;
-        }
-
-        if (request.action === 'resetFeedWarmupProgress') {
-            var resetState = resetFeedWarmupState(request);
-            saveFeedWarmupState(resetState).then(() => {
-                sendResponse({
-                    status: 'ok',
-                    ...buildFeedWarmupProgress(
-                        resetState,
-                        request || {}
-                    )
-                });
-            }).catch(() => {
-                sendResponse({ status: 'error' });
-            });
-            return true;
-        }
-
         if (request.action === 'ingestPatternProfile') {
             updatePatternMemory(
                 request.lang || 'en',
@@ -3048,17 +2830,6 @@ chrome.runtime.onMessage.addListener(
                 'LinkedIn login required. Please log in and restart the automation.'
             );
             sendResponse({ status: 'login_required' });
-            return true;
-        }
-
-        if (request.action === 'nurtureEngaged') {
-            if (request.profileUrl) {
-                recordNurtureEngagement(
-                    request.profileUrl,
-                    chrome.storage.local
-                );
-            }
-            sendResponse({ status: 'ok' });
             return true;
         }
 
@@ -3274,46 +3045,6 @@ chrome.runtime.onMessage.addListener(
             return true;
         }
 
-        if (request.action === 'setFeedSchedule') {
-            chrome.alarms.clear('feedSchedule');
-            if (request.enabled && request.intervalHours > 0) {
-                chrome.alarms.create('feedSchedule', {
-                    delayInMinutes: request.intervalHours * 60,
-                    periodInMinutes: request.intervalHours * 60
-                });
-            }
-            chrome.storage.local.set({
-                feedSchedule: {
-                    enabled: request.enabled,
-                    intervalHours: request.intervalHours
-                }
-            });
-            sendResponse({ status: 'scheduled' });
-            return true;
-        }
-
-        if (request.action === 'setNurtureSchedule') {
-            chrome.alarms.clear('nurtureSchedule');
-            if (request.enabled &&
-                request.intervalHours > 0) {
-                chrome.alarms.create('nurtureSchedule', {
-                    delayInMinutes:
-                        request.intervalHours * 60,
-                    periodInMinutes:
-                        request.intervalHours * 60
-                });
-            }
-            chrome.storage.local.set({
-                nurtureSchedule: {
-                    enabled: request.enabled,
-                    intervalHours: request.intervalHours,
-                    limit: request.limit || 3
-                }
-            });
-            sendResponse({ status: 'scheduled' });
-            return true;
-        }
-
         if (request.action === 'setCompanySchedule') {
             chrome.alarms.clear('companySchedule');
             if (request.enabled && request.intervalHours > 0) {
@@ -3437,87 +3168,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
         return;
     }
 
-    if (alarm.name === 'feedSchedule') {
-        chrome.storage.local.get(
-            ['popupState', 'feedSchedule'],
-            (data) => {
-                const state = data.popupState;
-                const schedule = data.feedSchedule;
-                if (!schedule?.enabled || !state) return;
-
-                const limit = parseInt(
-                    state.limit
-                ) || 20;
-                const react = state.feedReact !== false;
-                const comment = state.feedComment || false;
-
-                const rawTemplates =
-                    (state.commentTemplates || '').trim();
-                const commentTemplates = rawTemplates
-                    ? rawTemplates.split('\n')
-                        .map(s => s.trim())
-                        .filter(Boolean)
-                    : [];
-                const rawSkip =
-                    (state.skipKeywords || '').trim();
-                const skipKeywords = rawSkip
-                    ? rawSkip.split('\n')
-                        .map(s => s.trim())
-                        .filter(Boolean)
-                    : [];
-
-                resolveFeedWarmupConfig({
-                    limit,
-                    react,
-                    comment,
-                    goalMode: state.goalMode || 'passive',
-                    commentTemplates,
-                    skipKeywords,
-                    feedWarmupEnabled:
-                        state.feedWarmupEnabled !== false,
-                    feedWarmupRunsRequired:
-                        parseInt(
-                            state.feedWarmupRunsRequired,
-                            10
-                        )
-                }).then(async (feedConfig) => {
-                    launchFeedEngage(feedConfig);
-                    const feedSuffix = feedConfig.warmupActive
-                        ? ''
-                        : comment
-                            ? await getLocalizedBackgroundMessage(
-                                'notification.feedScheduledEngageCommentSuffix',
-                                null,
-                                ' (react+comment)'
-                            )
-                            : await getLocalizedBackgroundMessage(
-                                'notification.feedScheduledEngageReactSuffix',
-                                null,
-                                ' (react only)'
-                            );
-                    createLocalizedNotification(
-                        feedConfig.warmupActive
-                            ? 'notification.feedScheduledWarmup'
-                            : 'notification.feedScheduledEngage',
-                        feedConfig.warmupActive
-                            ? `Scheduled feed warmup run ${feedConfig.currentRunNumber}/${feedConfig.feedWarmupRunsRequired}: react + learn only`
-                            : `Scheduled feed engagement: ${limit} posts${feedSuffix}`,
-                        feedConfig.warmupActive
-                            ? [
-                                feedConfig.currentRunNumber,
-                                feedConfig.feedWarmupRunsRequired
-                            ]
-                            : [
-                                limit,
-                                feedSuffix
-                            ]
-                    );
-                });
-            }
-        );
-        return;
-    }
-
     if (alarm.name === 'companySchedule') {
         chrome.storage.local.get(
             ['popupState', 'companySchedule',
@@ -3609,42 +3259,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                         [fallbackQuery]
                     );
                 }).catch(() => {});
-            }
-        );
-        return;
-    }
-
-    if (alarm.name === 'nurtureSchedule') {
-        chrome.storage.local.get(
-            ['nurtureSchedule', 'nurtureList'],
-            (data) => {
-                const schedule = data.nurtureSchedule;
-                if (!schedule?.enabled) return;
-
-                const list = data.nurtureList || [];
-                const targets =
-                    getActiveNurtureTargets(list);
-                if (!targets.length) return;
-
-                const target = targets[
-                    Math.floor(
-                        Math.random() * targets.length
-                    )
-                ];
-
-                launchNurture(target, {
-                    limit: schedule.limit || 3,
-                    react: true,
-                    comment: false,
-                    commentTemplates: [],
-                    skipKeywords: []
-                });
-
-                createLocalizedNotification(
-                    'notification.nurtureStarted',
-                    `Nurturing ${target.name}: engaging with recent posts`,
-                    [target.name]
-                );
             }
         );
         return;
@@ -3784,14 +3398,12 @@ function getTemplate(key, lang, areaPreset) {
 }
 
 chrome.runtime.onInstalled.addListener(() => {
-    cleanExpiredNurtures(chrome.storage.local);
     if (typeof sweepStaleDailyKeys === 'function') {
         sweepStaleDailyKeys(chrome.storage.local);
     }
 });
 
 chrome.runtime.onStartup.addListener(() => {
-    cleanExpiredNurtures(chrome.storage.local);
     if (typeof sweepStaleDailyKeys === 'function') {
         sweepStaleDailyKeys(chrome.storage.local);
     }

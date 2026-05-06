@@ -242,10 +242,7 @@
             color: #2563eb;
         }
 
-        .badge-feed {
-            background: rgba(5, 150, 105, 0.1);
-            color: #059669;
-        }
+
 
         .empty {
             text-align: center;
@@ -354,14 +351,6 @@
             Activity
         </button>
         <button type="button" class="tab-btn"
-            data-dashboard-tab="feed">
-            Feed
-        </button>
-        <button type="button" class="tab-btn"
-            data-dashboard-tab="nurture">
-            Nurture
-        </button>
-        <button type="button" class="tab-btn"
             data-dashboard-tab="logs">
             Logs
         </button>
@@ -440,63 +429,6 @@
                 companies followed
             </div>
         </div>
-        <div class="card">
-            <div class="card-label">Feed</div>
-            <div class="card-value" id="totalFeed"
-                style="color:#059669">0</div>
-            <div class="card-sub">
-                posts reacted/commented
-            </div>
-        </div>
-    </div>
-
-    <div class="grid"
-        data-tab-section="feed"
-        id="feedMetricsGrid" style="display:none;
-        grid-template-columns:repeat(4,1fr);">
-        <div class="card">
-            <div class="card-label">Comments Sent</div>
-            <div class="card-value" id="totalComments"
-                style="color:#059669">0</div>
-            <div class="card-sub" id="commentRate">
-                of posts engaged
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-label">Comment Rate</div>
-            <div class="card-value" id="commentPct"
-                style="color:#059669">—</div>
-            <div class="card-sub">
-                commented / engaged
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-label">Top Reaction</div>
-            <div class="card-value" id="topReaction"
-                style="color:var(--primary); font-size:20px">
-                —</div>
-            <div class="card-sub" id="topReactionCount">
-                most used
-            </div>
-        </div>
-        <div class="card">
-            <div class="card-label">Skipped</div>
-            <div class="card-value" id="feedSkipped"
-                style="color:var(--warning)">0</div>
-            <div class="card-sub">
-                keyword/duplicate filter
-            </div>
-        </div>
-    </div>
-
-    <div class="section" id="reactionBreakdown"
-        data-tab-section="feed"
-        style="display:none;">
-        <h2>Reaction Breakdown</h2>
-        <div id="reactionBars" style="
-            display:flex; gap:8px; align-items:flex-end;
-            height:60px; padding:8px 0;
-        "></div>
     </div>
 
     <div class="section" id="analyticsSection"
@@ -591,21 +523,6 @@
             No connection history yet. Run the automation
             to start tracking.
         </div>
-    </div>
-
-    <div class="section" id="nurtureSection"
-        data-tab-section="nurture">
-        <h2 style="font-size:16px; margin-bottom:12px;">
-            Connection Nurture List
-        </h2>
-        <div id="nurtureEmpty" style="
-            color:var(--muted); font-size:13px;
-            text-align:center; padding:16px;
-        ">
-            No nurture targets yet. New connections are
-            added automatically during connect runs.
-        </div>
-        <div id="nurtureList"></div>
     </div>
 
     <div data-tab-section="logs"
