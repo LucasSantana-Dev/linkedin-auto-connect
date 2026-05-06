@@ -19,6 +19,8 @@ A Chrome Extension for automating LinkedIn networking — connection requests, c
 
 ---
 
+> **No build step required.** Download the zip from [Releases](https://github.com/LucasSantana-Dev/linkedin-engage/releases), extract, and load unpacked in Chrome or Brave. No npm, no compilation, no account needed.
+
 ## What it does
 
 | Mode | What it automates |
@@ -93,6 +95,25 @@ Use in accordance with [LinkedIn's Terms of Service](https://www.linkedin.com/le
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the full feature and fix history.
+
+---
+
+## Privacy & Permissions
+
+LinkedIn Engage is intentionally minimal with permissions:
+
+| Permission | Why it's needed |
+|------------|-----------------|
+| `activeTab` | Read the current LinkedIn page to extract post content and profiles |
+| `storage` | Save your settings and quota counters locally (never uploaded) |
+| `scripting` | Inject the automation logic on linkedin.com |
+| `alarms` | Run scheduled automation sessions in the background |
+
+**What LinkedIn Engage does NOT do:**
+- No data sent to external servers (Groq API calls are made client-side with your own API key)
+- No access to your messages, contacts, or connection list
+- No analytics or telemetry
+- Fully open-source — read the code: [github.com/LucasSantana-Dev/linkedin-engage](https://github.com/LucasSantana-Dev/linkedin-engage)
 
 ## License
 
